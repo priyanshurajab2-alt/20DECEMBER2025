@@ -292,18 +292,18 @@ class DynamicDatabaseHandler:
                 )
             ''',
             'user_analytics': '''
-                CREATE TABLE IF NOT EXISTS user_analytics (
+                CREATE TABLE IF NOT EXISTS user_responses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    date DATE NOT NULL,
-                    questions_viewed INTEGER DEFAULT 0,
-                    answers_viewed INTEGER DEFAULT 0,
-                    topics_completed INTEGER DEFAULT 0,
-                    study_time_minutes INTEGER DEFAULT 0,
-                    databases_accessed TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id),
-                    UNIQUE(user_id, date)
+                    test_id INTEGER NOT NULL,
+                    user_id INTEGER,
+                    question_id INTEGER NOT NULL,
+                    user_answer TEXT,
+                    is_correct INTEGER DEFAULT 0,
+                    test_started INTEGER DEFAULT 0,
+                    test_submitted INTEGER DEFAULT 0,
+                    taken_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (test_id) REFERENCES test_info (id),
+                    FOREIGN KEY (question_id) REFERENCES test_questions (id)
                 )
             '''
         }
