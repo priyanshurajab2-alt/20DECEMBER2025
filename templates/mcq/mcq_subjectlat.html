@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Explore {{ subject }} topics in MBBS QBank for medical preparation." />
+    <title>MBBS QBank - {{ subject }}</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569',
+                        },
+                        cyan: {
+                            700: '#0891b2',
+                            800: '#0e7490',
+                            900: '#155e75',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        /* Box sizing */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Dropdown show/hide */
+        .dropdown-content {
+            display: none;
+        }
+        .dropdown:hover .dropdown-content,
+        .dropdown:focus-within .dropdown-content {
+            display: block;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100vh;
+            background-color: #1a3d4a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px 0;
+            z-index: 1000;
+        }
+
+        /* Main content */
+        .main-content {
+            margin-left: 200px;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Navigation items */
+        .nav-item {
+            transition: all 0.3s ease;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #b0bec5;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .nav-item:hover, .nav-item.active {
+            background-color: #2a4d5a;
+            color: white;
+            text-decoration: none;
+        }
+
+        /* Tips Section */
+        .tips-section {
+            margin: 20px;
+            background-color: #2a4d5a;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            user-select: none;
+        }
+
+        /* Question Count Badge */
+        .question-count {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+
+        /* Rating Display */
+        .rating-display {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Status Indicators */
+        .status-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 6px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .status-pro {
+            background-color: #f59e0b;
+            color: #000;
+        }
+        .status-free {
+            background-color: #10b981;
+            color: white;
+        }
+
+        /* Chapter Card Styling */
+        .chapter-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .chapter-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Chapter Title */
+        .chapter-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .chapter-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #06b6d4;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        /* Topic Links */
+        .topic-link {
+            display: block;
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            user-select: none;
+        }
+        .topic-link:hover {
+            background: #eff6ff;
+            transform: translateX(4px);
+            border-color: #bfdbfe;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Topic Content Layout */
+        .topic-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .topic-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .topic-title {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        /* Topic Meta info */
+        .topic-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Arrow icon next to topic */
+        .topic-arrow {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            color: #9ca3af;
+            user-select: none;
+        }
+
+        /* Topic Completed Indicator */
+        .topic-completed {
+            position: relative;
+        }
+        .topic-completed::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .back-link {
+            color: #3b82f6;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: color 0.3s ease, background-color 0.3s ease;
+            min-height: 44px;
+            user-select: none;
+        }
+        .back-link:hover {
+            color: #2563eb;
+            background: #eff6ff;
+            text-decoration: none;
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            user-select: none;
+        }
+
+        /* Sort Dropdown */
+        .sort-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+        .dropdown-button {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 44px;
+            user-select: none;
+        }
+        .dropdown-button:hover {
+            background: #f9fafb;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            user-select: none;
+        }
+        .tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-button {
+            padding: 12px 0;
+            border-bottom: 2px solid transparent;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            background: none;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 80px;
+            transition: color 0.3s ease, border-color 0.3s ease;
+            user-select: none;
+        }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+        .tab-button:hover {
+            color: #374151;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            flex-wrap: wrap;
+            user-select: none;
+        }
+        .breadcrumb a {
+            color: #3b82f6;
+            text-decoration: none;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .breadcrumb a:hover {
+            background: #eff6ff;
+            text-decoration: none;
+        }
+
+        /* No content state */
+        .no-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            padding: 60px 20px;
+            text-align: center;
+            user-select: none;
+        }
+        .no-content-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+        .no-content h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .no-content p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        /* Back to Subjects */
+        .back-to-subjects {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f3f4f6;
+            color: #3b82f6;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            margin-top: 24px;
+            user-select: none;
+        }
+        .back-to-subjects:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateX(-4px);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" role="navigation" aria-label="Main navigation">
+        <!-- Header -->
+        <div class="px-5 pb-8">
+            <a href="{{ url_for('home') }}" class="text-2xl font-bold text-cyan-400 no-underline sidebar-brand">MBBS QBANK</a>
+        </div>
+
+        <!-- User Profile -->
+        <div class="px-5 pb-5">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium" aria-hidden="true">
+                        {% if session.username %}
+                            {{ session.username[0].upper() }}
+                        {% else %}
+                            S
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold text-sm">
+                            {% if session.username %}
+                                {{ session.username }}
+                            {% else %}
+                                Student
+                            {% endif %}
+                        </span>
+                        <span class="bg-orange-500 text-black text-xs px-2 py-0.5 rounded-xl font-bold">PRO</span>
+                    </div>
+                    <div class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-xl mt-1 inline-block">Premium</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Info -->
+        <div class="px-5 pb-5">
+            <div class="text-sm" style="color: #b0bec5;">Course: <strong class="text-white">MBBS</strong></div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex-1">
+            <ul class="list-none">
+                <li>
+                    <a href="{{ url_for('home') }}" class="nav-item">
+                        <span class="text-lg">🏦</span>
+                        <span>QBank</span>
+                    </a>
+                </li>
+                <li>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('bookmarks') }}" class="nav-item">
+                            <span class="text-lg">📚</span>
+                            <span>Bookmarks</span>
+                        </a>
+                    {% else %}
+                        <button class="nav-item">
+                            <span class="text-lg">📚</span>
+                            <span>Bookmarks</span>
+                        </button>
+                    {% endif %}
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">⚙️</span>
+                        <span>Custom Module</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">💎</span>
+                        <span>Pearls</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🖼️</span>
+                        <span>Image Bank</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🧪</span>
+                        <span>Test Series</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🎥</span>
+                        <span>Videos</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="tips-section">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="text-lg">💡</span>
+                <span class="font-bold text-sm text-white">Study Tips</span>
+                <button class="ml-auto text-white text-base" aria-label="Close tip" onclick="this.closest('.tips-section').style.display='none'">×</button>
+            </div>
+            <p class="text-xs" style="color: #b0bec5; margin-bottom: 8px;">
+                Focus on high-yield topics and practice regularly for better retention.
+            </p>
+            <div class="text-center">
+                <button class="bg-transparent border border-white text-white py-1 px-4 rounded text-xs hover:bg-white hover:text-slate-800 transition-colors" onclick="alert('Feature coming soon!')">
+                    Next Tip
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="{{ url_for('home') }}">All Subjects</a>
+            <span aria-hidden="true">›</span>
+            <span>{{ subject }}</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="page-header">
+            <div class="header-left">
+                <a href="{{ url_for('home') }}" class="back-link" aria-label="Back to all subjects">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    <span>Back</span>
+                </a>
+                <h1 class="page-title">{{ subject }} – Chapters & Topics</h1>
+            </div>
+            <div class="sort-dropdown">
+                <span class="text-gray-600">Sort by</span>
+                <div class="relative dropdown">
+                    <button class="dropdown-button" aria-haspopup="true" aria-expanded="false">
+                        <span>Topic wise</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div class="dropdown-content absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                        <a href="#" class="block px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100" role="menuitem">Topic wise</a>
+                        <a href="#" class="block px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100" role="menuitem">Difficulty</a>
+                        <a href="#" class="block px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100" role="menuitem">Recent</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <button class="tab-button active" aria-current="true">All</button>
+            <button class="tab-button">Completed</button>
+            <button class="tab-button">Unattempted</button>
+            <button class="tab-button">Free</button>
+        </div>
+
+        <!-- Chapters and Topics -->
+        {% if chapters %}
+            {% for chapter in chapters %}
+                <div class="chapter-card">
+                    <h2 class="chapter-title">
+                        <div class="chapter-icon"></div>
+                        {{ chapter.chapter }}
+                        <span class="topic-count">({{ chapter.topics|length }} topics)</span>
+                    </h2>
+                    <div class="space-y-3">
+                        {% for topic in chapter.topics %}
+                            <a href="{{ url_for('show_topic', subject_name=subject, topic_name=topic.name) }}" 
+                               class="topic-link {% if session.user_id and topic.completed %}topic-completed{% endif %}">
+                                <div class="topic-content">
+                                    <div class="topic-info">
+                                        <h3 class="topic-title">
+                                            {% if topic.requires_login %}🔒 {% endif %}{{ topic.name }}
+                                        </h3>
+                                        <div class="topic-meta">
+                                            <div class="rating-display">
+                                                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                                <span class="text-gray-600">({{ topic.rating }})</span>
+                                            </div>
+                                            <span class="question-count">{{ topic.question_count }} Questions</span>
+                                            <span class="status-badge {% if topic.status == 'LOGIN REQUIRED' %}status-pro{% else %}status-free{% endif %}">
+                                                {{ topic.status }}
+                                            </span>
+                                            {% if session.user_id and topic.completed %}
+                                                <span class="text-green-600 text-xs font-bold">Completed</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="topic-arrow">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-content">
+                <div class="no-content-icon">📚</div>
+                <h3>No chapters available</h3>
+                <p>No chapters found for {{ subject }}. Please check back later.</p>
+            </div>
+        {% endif %}
+
+        <!-- Back Link -->
+        <div class="mt-6">
+            <a href="{{ url_for('home') }}" class="back-to-subjects">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7 7-7 7"></path>
+                </svg>
+                <span>Back to All Subjects</span>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        // Tab functionality script
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.removeAttribute('aria-current');
+                    });
+                    this.classList.add('active');
+                    this.setAttribute('aria-current', 'true');
+                    const tabText = this.textContent.trim();
+                    console.log('Selected tab:', tabText);
+                    // Add filtering logic here if needed
+                });
+            });
+            document.addEventListener('touchstart', function() {}, {passive: true});
+        });
+    </script>
+</body>
+</html>

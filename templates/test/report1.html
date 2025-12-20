@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Report - {{ test['test_name'] }}</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: darkgreen; }
+    ul { list-style-type: none; padding-left: 0; }
+    li { margin: 8px 0; }
+</style>
+</head>
+<body>
+    <h1>Test Report: {{ test['test_name'] }}</h1>
+    <p>Total Questions: {{ total }}</p>
+    <p>Correct Answers: {{ correct }}</p>
+    <p>Wrong Answers: {{ wrong }}</p>
+    <p>Unanswered: {{ unanswered }}</p>
+    <p>Marked Questions: {{ marked|length }}</p>
+
+    <!-- Optional: List marked question IDs -->
+    {% if marked %}
+        <h2>Marked Question IDs</h2>
+        <ul>
+            {% for qid in marked %}
+            <li>{{ qid }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p><a href="{{ url_for('test_bp.list_tests') }}">Back to Tests</a></p>
+</body>
+</html>

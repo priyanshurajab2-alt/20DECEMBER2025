@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Database Manager - MBBS QBank</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .actions { margin: 20px 0; text-align: center; }
+        .btn { display: inline-block; padding: 10px 20px; margin: 5px; text-decoration: none; border-radius: 5px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .db-category { margin: 30px 0; border: 2px solid #ddd; border-radius: 8px; padding: 20px; }
+        .category-header { background: #007bff; color: white; padding: 15px; margin: -20px -20px 20px -20px; border-radius: 6px 6px 0 0; }
+        .db-item { margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #007bff; }
+        .db-stats { font-size: 0.9em; color: #666; margin: 8px 0; }
+        .table-list { margin: 10px 0; }
+        .table-item { display: inline-block; margin: 3px 8px; padding: 3px 8px; background: #e9ecef; border-radius: 12px; font-size: 0.8em; }
+        .no-databases { text-align: center; color: #999; font-style: italic; padding: 20px; }
+        .flash-messages { margin: 20px 0; }
+        .flash-success { background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; border: 1px solid #c3e6cb; margin: 5px 0; }
+        .flash-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; margin: 5px 0; }
+        .flash-info { background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 4px; border: 1px solid #bee5eb; margin: 5px 0; }
+        .error-item { color: #dc3545; font-weight: bold; }
+        .action-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .upload-info { background: #e7f3ff; padding: 10px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #007bff; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Dynamic Database Manager</h1>
+            <p>Manage all your MBBS QBank databases from one place</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="actions">
+            <div class="action-buttons">
+                <a href="{{ url_for('add_new_database') }}" class="btn btn-success">➕ Add New Database</a>
+                <a href="{{ url_for('add_new_database') }}?action=upload" class="btn btn-info">📤 Upload Database</a>
+
+                <a href="{{ url_for('backup_all_databases') }}" class="btn btn-warning">💾 Backup All</a>
+                <a href="{{ url_for('home') }}" class="btn btn-primary">🏠 Back to Home</a>
+            </div>
+        </div>
+
+        <div class="upload-info">
+            <strong>💡 Quick Actions:</strong>
+            <ul style="margin: 5px 0;">
+                <li><strong>Add New Database:</strong> Create an empty database with proper structure</li>
+                <li><strong>Upload Database:</strong> Upload an existing .db file from your computer</li>
+                <li><strong>Backup All:</strong> Create a backup of all discovered databases</li>
+            </ul>
+        </div>
+
+        {% for category, config in categories.items() %}
+        <div class="db-category">
+            <div class="category-header">
+                <h2>{{ config.description }}</h2>
+                <p style="margin: 5px 0; opacity: 0.9;"><em>Pattern: {{ config.pattern }}</em></p>
+            </div>
+            
+            {% if discovered_databases[category] %}
+                {% for db_info in db_stats[category] %}
+                <div class="db-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; color: #007bff;">📊 {{ db_info.name }}</h3>
+                            <div class="db-stats">
+                                📁 <strong>File:</strong> {{ db_info.file }} | 
+                                📊 <strong>Size:</strong> {{ "%.2f"|format(db_info.size/1024) }} KB | 
+                                📅 <strong>Modified:</strong> {{ db_info.modified.strftime('%Y-%m-%d %H:%M') }}
+                                {% if 'total_records' in db_info %}
+                                | 📋 <strong>Total Records:</strong> {{ db_info.total_records }}
+                                {% endif %}
+                            </div>
+                            
+                            {% if 'tables' in db_info and db_info.tables %}
+                            <div class="table-list">
+                                <strong>Tables:</strong>
+                                {% for table in db_info.tables %}
+                                <span class="table-item">{{ table.name }} ({{ table.records }})</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'error' in db_info %}
+                            <div class="error-item">
+                                ❌ Error: {{ db_info.error }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div style="text-align: right;">
+                            <a href="{{ url_for('manage_specific_database', db_file=db_info.file) }}" class="btn btn-primary">✏️ Manage</a>
+                            <a href="{{ url_for('debug_table_access', db_file=db_info.file, table_name='qbank') }}" class="btn btn-info">🔍 Debug</a>
+                            <form method="POST" action="{{ url_for('delete_database', db_file=db_info.file) }}" style="display: inline-block; margin-left: 5px;" onsubmit="return confirm('Are you sure you want to delete {{ db_info.file }}? A backup will be created.')">
+                                <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-databases">
+                    <p>No databases found for this category.</p>
+                    <div style="margin-top: 15px;">
+                        <a href="{{ url_for('add_new_database') }}" class="btn btn-success">➕ Create New Database</a>
+                        <a href="{{ url_for('upload_database') }}" class="btn btn-info">📤 Upload Existing Database</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div style="margin-top: 40px; text-align: center; color: #666; border-top: 1px solid #ddd; padding-top: 20px;">
+            <h3>🔍 Auto-Discovery Information</h3>
+            <p><strong>This system automatically detects databases based on filename patterns:</strong></p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 15px 0;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong>📚 QBank Databases:</strong><br>
+                    <code>*year*.db</code><br>
+                    <small>Examples: 1st_year.db, 2nd_year.db, 3rd_year.db</small>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #007bff;">
+                    <strong>📝 MCQ Databases:</strong><br>
+                    <code>*mcq*.db</code><br>
+                    <small>Examples: anatomy_mcq.db, cardiology_mcq.db</small>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <strong>👤 Admin Databases:</strong><br>
+                    <code>admin*.db</code><br>
+                    <small>Examples: admin.db, admin_settings.db</small>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 6px; border-left: 4px solid #007bff;">
+                <strong>💡 Tips:</strong>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>New databases are automatically discovered when you restart the application</li>
+                    <li>Upload existing .db files using the "📤 Upload Database" button</li>
+                    <li>Use "🔍 Debug" to troubleshoot database access issues</li>
+                    <li>Regular backups are recommended before making major changes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

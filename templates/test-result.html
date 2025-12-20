@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Test Result | MBBS QBANK{% endblock %}
+
+{% block content %}
+<div class="page-header text-center">
+    <h1 class="page-title">Test Result</h1>
+    <h3>{{ test.test_name }}</h3>
+</div>
+
+<div class="text-center mt-4">
+    <p>You scored <strong>{{ score }}</strong> out of <strong>{{ total }}</strong>.</p>
+    <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-primary">Back to Tests</a>
+</div>
+{% endblock %}

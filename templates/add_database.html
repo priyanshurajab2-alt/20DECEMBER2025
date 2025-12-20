@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add New Database - MBBS QBank</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin: 20px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 10px 5px; text-decoration: none; border-radius: 5px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .category-info { background: #e7f3ff; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #007bff; }
+        .examples { font-style: italic; color: #666; margin-top: 5px; }
+        .flash-messages { margin: 20px 0; }
+        .flash-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>➕ Add New Database</h1>
+        <p>Create a new database for your MBBS QBank system</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="category">Database Category:</label>
+                <select name="category" id="category" required onchange="updateExamples()">
+                    <option value="">Select a category...</option>
+                    {% for category, config in categories.items() %}
+                    <option value="{{ category }}">{{ config.description }}</option>
+                    {% endfor %}
+                </select>
+                
+                <div id="category-info" class="category-info" style="display: none;">
+                    <div id="category-description"></div>
+                    <div id="category-examples" class="examples"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="db_name">Database Name:</label>
+                <input type="text" name="db_name" id="db_name" required placeholder="Enter database name..." pattern="[a-zA-Z0-9_]+" title="Only letters, numbers, and underscores allowed">
+                <div id="filename-preview" class="examples" style="margin-top: 8px;"></div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">✅ Create Database</button>
+                <a href="{{ url_for('dynamic_db_home') }}" class="btn btn-secondary">❌ Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const categoryData = {
+            'qbank': {
+                description: 'Question Bank databases store Q&A content organized by subjects, chapters, and topics.',
+                examples: 'Examples: "2nd" → 2nd_year.db, "3rd" → 3rd_year.db, "final" → final_year.db',
+                suffix: '_year.db'
+            },
+            'mcq': {
+                description: 'MCQ databases store multiple choice questions for testing and assessment.',
+                examples: 'Examples: "anatomy" → anatomy_mcq.db, "cardiology" → cardiology_mcq.db',
+                suffix: '_mcq.db'
+            },
+            'admin': {
+                description: 'Admin databases store user analytics, system settings, and administrative data.',
+                examples: 'Examples: "settings" → admin_settings.db, "logs" → admin_logs.db',
+                suffix: '.db',
+                prefix: 'admin_'
+            }
+        };
+
+        function updateExamples() {
+            const category = document.getElementById('category').value;
+            const infoDiv = document.getElementById('category-info');
+            const descDiv = document.getElementById('category-description');
+            const examplesDiv = document.getElementById('category-examples');
+            
+            if (category && categoryData[category]) {
+                const data = categoryData[category];
+                descDiv.textContent = data.description;
+                examplesDiv.textContent = data.examples;
+                infoDiv.style.display = 'block';
+                updateFilenamePreview();
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+
+        function updateFilenamePreview() {
+            const category = document.getElementById('category').value;
+            const dbName = document.getElementById('db_name').value;
+            const previewDiv = document.getElementById('filename-preview');
+            
+            if (category && dbName && categoryData[category]) {
+                const data = categoryData[category];
+                let filename = '';
+                
+                if (data.prefix) {
+                    filename = data.prefix + dbName + data.suffix;
+                } else {
+                    filename = dbName + data.suffix;
+                }
+                
+                previewDiv.textContent = `Will create: ${filename}`;
+                previewDiv.style.color = '#007bff';
+            } else {
+                previewDiv.textContent = '';
+            }
+        }
+
+        document.getElementById('db_name').addEventListener('input', updateFilenamePreview);
+    </script>
+</body>
+</html>

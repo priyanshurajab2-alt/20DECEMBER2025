@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Available Tests</title>
+</head>
+<body>
+    <h1>Available Tests</h1>
+    <ul>
+        {% for test in tests %}
+            <li>
+                <strong>{{ test['test_name'] }}</strong><br />
+                {{ test['description'] }}<br />
+                Duration: {{ test['duration_minutes'] }} minutes<br />
+                Start Time: {{ test['start_time'] }}<br />
+                End Time: {{ test['end_time'] }}<br />
+                <a href="{{ url_for('test_bp.start_test', test_id=test['id']) }}">Start Test</a>
+            </li>
+            <hr/>
+        {% else %}
+            <p>No tests available at the moment.</p>
+        {% endfor %}
+    </ul>
+</body>
+</html>

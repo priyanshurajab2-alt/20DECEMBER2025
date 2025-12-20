@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Test | MBBS QBANK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Create New Test Series (DB: {{ db_file }})</h1>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, msg in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<form method="post" class="mb-4">
+  <div class="mb-3">
+    <label for="name" class="form-label">Test Name <span class="text-danger">*</span></label>
+    <input type="text" name="name" id="name" class="form-control" required placeholder="Enter test name"/>
+  </div>
+
+  <div class="mb-3">
+    <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
+    <input type="text" name="subject" id="subject" class="form-control" required placeholder="Subject e.g. Physics"/>
+  </div>
+
+  <div class="mb-3">
+    <label for="description" class="form-label">Description</label>
+    <textarea name="description" id="description" rows="3" class="form-control" placeholder="Optional description..."></textarea>
+  </div>
+
+  <div class="mb-3">
+    <label for="duration_minutes" class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+    <input type="number" name="duration_minutes" id="duration_minutes" class="form-control" min="1" required/>
+  </div>
+
+  <div class="mb-3">
+    <label for="start_time" class="form-label">Start Time (YYYY-MM-DD HH:MM:SS)</label>
+    <input type="text" name="start_time" id="start_time" class="form-control" placeholder="2024-08-01 10:00:00" />
+  </div>
+
+  <div class="mb-3">
+    <label for="end_time" class="form-label">End Time (YYYY-MM-DD HH:MM:SS)</label>
+    <input type="text" name="end_time" id="end_time" class="form-control" placeholder="2024-08-01 13:00:00" />
+  </div>
+
+  <button type="submit" class="btn btn-primary">Create Test</button>
+  <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+</form>
+{% endblock %}

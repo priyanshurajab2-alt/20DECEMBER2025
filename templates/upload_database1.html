@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Database - MBBS QBank</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin: 20px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        select, input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 10px 5px; text-decoration: none; border-radius: 5px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .upload-info { background: #e7f3ff; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #007bff; }
+        .requirements { background: #fff3cd; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #ffc107; }
+        .flash-messages { margin: 20px 0; }
+        .flash-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; }
+        .flash-success { background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; border: 1px solid #c3e6cb; }
+        .file-info { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Upload Database</h1>
+        <p>Upload an existing .db file to integrate with your MBBS QBank system</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="requirements">
+            <h3>📋 Requirements</h3>
+            <ul>
+                <li>File must have <strong>.db extension</strong></li>
+                <li>Must be a valid SQLite database</li>
+                <li>Must contain required tables for selected category</li>
+                <li>File name should not conflict with existing databases</li>
+            </ul>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="category">Database Category:</label>
+                <select name="category" id="category" required>
+                    <option value="">Select a category...</option>
+                    {% for category, config in categories.items() %}
+                    <option value="{{ category }}">{{ config.description }}</option>
+                    {% endfor %}
+                </select>
+                
+                <div class="upload-info">
+                    <strong>Category Requirements:</strong><br>
+                    <strong>📚 QBank Databases:</strong> Should contain <code>qbank</code> table<br>
+                    <strong>📝 MCQ Databases:</strong> Should contain <code>mcq_questions</code> table<br>
+                    <strong>👤 Admin Databases:</strong> Should contain <code>users</code> and <code>user_analytics</code> tables
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="database_file">Select Database File:</label>
+                <input type="file" name="database_file" id="database_file" accept=".db" required>
+                <div class="file-info">
+                    <strong>Supported:</strong> .db files only | <strong>Max size:</strong> 50MB recommended
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">📤 Upload Database</button>
+                <a href="{{ url_for('dynamic_db_home') }}" class="btn btn-secondary">❌ Cancel</a>
+            </div>
+        </form>
+
+        <div class="upload-info">
+            <h3>💡 Upload Tips</h3>
+            <ul>
+                <li>The uploaded database will be automatically discovered and integrated</li>
+                <li>Make sure your database has the correct table structure for the selected category</li>
+                <li>Large files may take a moment to upload and validate</li>
+                <li>Invalid databases will be rejected and automatically removed</li>
+                <li>The original filename will be preserved</li>
+            </ul>
+        </div>
+
+        <div class="requirements">
+            <h3>🎯 Examples of Valid Database Names</h3>
+            <ul>
+                <li><strong>QBank:</strong> 3rd_year.db, final_year.db, intern_year.db</li>
+                <li><strong>MCQ:</strong> anatomy_mcq.db, pathology_mcq.db, surgery_mcq.db</li>
+                <li><strong>Admin:</strong> admin_backup.db, admin_settings.db</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

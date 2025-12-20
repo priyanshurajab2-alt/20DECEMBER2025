@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Available Tests</title></head>
+<body>
+<h1>Available Tests</h1>
+<ul>
+  {% for test in tests %}
+    <li><a href="{{ url_for('start_test', test_id=test.id) }}">{{ test.test_name }}</a> ({{ test.subject }})</li>
+  {% else %}
+    <li>No tests available.</li>
+  {% endfor %}
+</ul>
+</body>
+</html>

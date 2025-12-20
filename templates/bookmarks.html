@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="My Bookmarks - MBBS QBank for medical preparation.">
+    <title>MBBS QBank - Bookmarks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Enhanced sidebar styles - Mobile first */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100vh;
+            background-color: #1a3d4a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px 0;
+            z-index: 1000;
+        }
+        
+        .main-content {
+            margin-left: 200px;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .nav-item {
+            transition: all 0.3s ease;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #b0bec5;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        
+        .nav-item:hover {
+            background-color: #2a4d5a;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .nav-item.active {
+            background-color: #2a4d5a;
+            color: white;
+        }
+        
+        .tips-section {
+            margin: 20px;
+            background-color: #2a4d5a;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+        }
+
+        /* Bookmark-specific styles - Mobile optimized */
+        .bookmark-summary-section {
+            background: white;
+            border-radius: 8px;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .total-bookmarks-header {
+            font-size: 16px;
+            color: #333;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .subject-section {
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .subject-title {
+            font-size: 16px;
+            color: #333;
+            font-weight: 400;
+            margin: 0;
+            cursor: pointer;
+            padding: 20px;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 60px; /* Touch-friendly height */
+        }
+        
+        .subject-title:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .bookmark-count {
+            color: #6c757d;
+            font-weight: normal;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        
+        .tip-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        
+        .tip-icon {
+            color: #f39c12;
+            margin-right: 10px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .tip-content {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .tip-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        
+        .tip-text {
+            color: #856404;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .custom-module-link {
+            color: #4fc3c3;
+            text-decoration: none;
+        }
+        
+        .custom-module-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Enhanced Bookmark Card Styles - Mobile optimized */
+        .bookmark-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #e8ecef;
+            overflow: hidden;
+        }
+        
+        .bookmark-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+        
+        .bookmark-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 16px 20px;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .bookmark-content {
+            padding: 20px;
+        }
+        
+        .subject-tag {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        
+        .topic-tag {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+        
+        .question-text {
+            color: #2c3e50;
+            margin: 16px 0;
+            font-size: 16px;
+            line-height: 1.6;
+            font-weight: 500;
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            border-radius: 0 8px 8px 0;
+            word-wrap: break-word;
+        }
+        
+        .answer-preview {
+            color: #495057;
+            margin: 16px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            border-radius: 0 8px 8px 0;
+            position: relative;
+            word-wrap: break-word;
+        }
+        
+        .answer-preview::before {
+            content: "💡";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 18px;
+        }
+        
+        .btn-group-custom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .view-question-btn {
+            background: linear-gradient(135deg, #1a3d4a 0%, #2a4d5a 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: 44px;
+            min-width: 140px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .view-question-btn:hover {
+            background: linear-gradient(135deg, #2a4d5a 0%, #3a5d6a 100%);
+            color: white;
+            text-decoration: none;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 61, 74, 0.3);
+        }
+        
+        .remove-bookmark-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: 44px;
+            min-width: 120px;
+        }
+        
+        .remove-bookmark-btn:hover {
+            background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+        
+        .bookmark-date {
+            color: #6c757d;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        .filter-buttons {
+            margin-bottom: 25px;
+            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .filter-btn {
+            background-color: white;
+            color: #495057;
+            border: 2px solid #e9ecef;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: 44px;
+            white-space: nowrap;
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: linear-gradient(135deg, #1a3d4a 0%, #2a4d5a 100%);
+            color: white;
+            border-color: #1a3d4a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(26, 61, 74, 0.3);
+        }
+        
+        /* View toggle buttons - Mobile optimized */
+        .view-toggle {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-btn {
+            background: #4fc3c3;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 44px;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-btn.active {
+            background: #1a3d4a;
+            box-shadow: 0 2px 8px rgba(26, 61, 74, 0.3);
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .remove-animation {
+            animation: slideOut 0.5s ease-in-out forwards;
+        }
+        
+        @keyframes slideOut {
+            to { 
+                opacity: 0; 
+                transform: translateX(-100%) scale(0.8); 
+                height: 0;
+                margin: 0;
+                padding: 0;
+            }
+        }
+        
+        .no-bookmarks {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .no-bookmarks-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            opacity: 0.6;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Tablet styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+                padding: 15px;
+            }
+            .bookmark-content {
+                padding: 15px;
+            }
+            .question-text, .answer-preview {
+                padding: 12px;
+                font-size: 15px;
+            }
+            .view-question-btn {
+                min-width: 120px;
+                padding: 10px 16px;
+            }
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 576px) {
+            .sidebar {
+                width: 100%;
+                height: 60px;
+                position: fixed;
+                top: 0;
+                bottom: auto;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 20px;
+                overflow: visible;
+            }
+            
+            .sidebar > *:not(.sidebar-brand) {
+                display: none;
+            }
+            
+            .sidebar-brand {
+                font-size: 1.2rem !important;
+                padding: 0 !important;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding-top: 80px;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            .bookmark-header {
+                padding: 12px 15px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .bookmark-content {
+                padding: 15px;
+            }
+            
+            .question-text, .answer-preview {
+                padding: 12px;
+                font-size: 14px;
+                margin: 12px 0;
+            }
+            
+            .btn-group-custom {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .view-question-btn {
+                width: 100%;
+                margin-bottom: 8px;
+                padding: 14px;
+                font-size: 16px;
+            }
+            
+            .remove-bookmark-btn {
+                width: 100%;
+                padding: 14px;
+                font-size: 16px;
+                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            }
+            
+            .filter-buttons {
+                padding: 0 10px;
+            }
+            
+            .filter-btn {
+                padding: 10px 16px;
+                font-size: 12px;
+                min-width: auto;
+            }
+            
+            .subject-title {
+                padding: 15px;
+                font-size: 15px;
+            }
+            
+            .total-bookmarks-header {
+                padding: 15px;
+                font-size: 15px;
+            }
+            
+            .tip-box {
+                margin: 20px 0;
+                padding: 15px;
+                flex-direction: column;
+            }
+            
+            .tip-content {
+                min-width: auto;
+                margin-top: 10px;
+            }
+            
+            .view-toggle {
+                justify-content: center;
+            }
+            
+            .toggle-btn {
+                flex: 1;
+                max-width: 150px;
+            }
+        }
+
+        /* Very small screens */
+        @media (max-width: 360px) {
+            .main-content {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            .bookmark-card {
+                margin-bottom: 15px;
+            }
+            
+            .bookmark-content {
+                padding: 12px;
+            }
+            
+            .subject-tag, .topic-tag {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+    <!-- Enhanced Fixed Sidebar -->
+    <nav class="sidebar text-white" role="navigation" aria-label="Main navigation">
+        <!-- Header -->
+        <div class="px-5 pb-8">
+            <a href="{{ url_for('home') }}" class="text-2xl font-bold text-cyan-400 no-underline sidebar-brand">MBBS QBANK</a>
+        </div>
+
+        <!-- User Profile -->
+        <div class="px-5 pb-5">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium" aria-hidden="true">
+                        {% if session.username %}
+                            {{ session.username[0].upper() }}
+                        {% else %}
+                            S
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold text-sm">
+                            {% if session.username %}
+                                {{ session.username }}
+                            {% else %}
+                                Student
+                            {% endif %}
+                        </span>
+                        <span class="bg-orange-500 text-black text-xs px-2 py-0.5 rounded-xl font-bold">PRO</span>
+                    </div>
+                    <div class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-xl mt-1 inline-block">Premium</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Info -->
+        <div class="px-5 pb-5">
+            <div class="text-sm" style="color: #b0bec5;">Course: <strong class="text-white">MBBS</strong></div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex-1">
+            <ul class="list-none">
+                <li>
+                    <a href="{{ url_for('home') }}" class="nav-item">
+                        <span class="text-lg">🏦</span>
+                        <span>QBank</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('bookmarks') }}" class="nav-item active">
+                        <span class="text-lg">📚</span>
+                        <span>Bookmarks</span>
+                    </a>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">⚙️</span>
+                        <span>Custom Module</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">💎</span>
+                        <span>Pearls</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🖼️</span>
+                        <span>Image Bank</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🧪</span>
+                        <span>Test Series</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🎥</span>
+                        <span>Videos</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Enhanced Tips Section -->
+        <div class="tips-section">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="text-lg">💡</span>
+                <span class="font-bold text-sm text-white">Study Tips</span>
+                <button class="ml-auto text-white text-base" aria-label="Close tip" onclick="this.closest('.tips-section').style.display='none'">×</button>
+            </div>
+            <p class="text-xs" style="color: #b0bec5; margin-bottom: 8px;">
+                Focus on high-yield topics and practice regularly for better retention.
+            </p>
+            <div class="text-center">
+                <button class="bg-transparent border border-white text-white py-1 px-4 rounded text-xs hover:bg-white hover:text-slate-800 transition-colors" onclick="alert('Feature coming soon!')">
+                    Next Tip
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content flex-1" role="main">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 mb-3 text-xs text-gray-600" aria-label="Breadcrumb">
+            <a href="{{ url_for('home') }}" class="text-blue-500 hover:underline">QBank</a>
+            <span aria-hidden="true">›</span>
+            <span>Bookmarks</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div class="flex items-center space-x-3">
+                <a href="{{ url_for('home') }}" class="text-blue-500 hover:text-blue-600 flex items-center" aria-label="Back to home">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    <span class="text-sm">Back</span>
+                </a>
+                <h1 class="text-2xl font-bold text-gray-800">Bookmarks</h1>
+            </div>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button class="toggle-btn active" id="listViewBtn" onclick="toggleView('list')">List View</button>
+            <button class="toggle-btn" id="detailViewBtn" onclick="toggleView('detail')">Detail View</button>
+        </div>
+        
+        {% if bookmarks %}
+            <!-- List View -->
+            <div id="listView">
+                <div class="bookmark-summary-section">
+                    <div class="total-bookmarks-header">
+                        All Bookmarks ({{ bookmarks|length }})
+                    </div>
+                    
+                    {% set subjects_dict = {} %}
+                    {% for bookmark in bookmarks %}
+                        {% if subjects_dict.update({bookmark.subject: subjects_dict.get(bookmark.subject, 0) + 1}) %}{% endif %}
+                    {% endfor %}
+                    
+                    {% for subject, count in subjects_dict.items() %}
+                        <div class="subject-section">
+                            <div class="subject-title" onclick="filterBySubject('{{ subject }}')">
+                                <span>{{ subject }}</span>
+                                <span class="bookmark-count">{{ count }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Tip Box -->
+                <div class="tip-box">
+                    <div class="tip-icon">💡</div>
+                    <div class="tip-content">
+                        <div class="tip-title">TIP</div>
+                        <div class="tip-text">
+                            You can create an exam scenario based on your bookmarks using the 
+                            <a href="#" class="custom-module-link">Custom Module</a>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed View -->
+            <div id="detailView" style="display: none;">
+                <!-- Filter Buttons -->
+                <div class="filter-buttons fade-in">
+                    <button class="filter-btn active" onclick="filterBookmarks('all')">All Subjects</button>
+                    {% for subject in bookmarks|map(attribute='subject')|unique %}
+                        <button class="filter-btn" onclick="filterBookmarks('{{ subject }}')">{{ subject }}</button>
+                    {% endfor %}
+                </div>
+
+                <!-- Bookmarks List -->
+                <div id="bookmarks-list">
+                    {% for bookmark in bookmarks %}
+                        <div class="bookmark-card fade-in" data-subject="{{ bookmark.subject }}" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                            <div class="bookmark-header">
+                                <div>
+                                    <span class="subject-tag">{{ bookmark.subject }}</span>
+                                    <span class="topic-tag">{{ bookmark.topic }}</span>
+                                </div>
+                                <div class="bookmark-date">
+                                    {% if bookmark.created_at %}
+                                        {% set date_str = bookmark.created_at|string %}
+                                        📅 {{ date_str[:10] if date_str|length > 10 else date_str }}
+                                    {% else %}
+                                        📅 Recently Added
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="bookmark-content">
+                                <div class="question-text">
+                                    <strong>❓ Question:</strong><br>
+                                    {{ bookmark.question[:250] if bookmark.question else "No question text available" }}{% if bookmark.question and bookmark.question|length > 250 %}...{% endif %}
+                                </div>
+                                
+                                {% if bookmark.answer %}
+                                    <div class="answer-preview">
+                                        <strong>✅ Answer Preview:</strong><br>
+                                        {{ bookmark.answer[:200] }}{% if bookmark.answer|length > 200 %}...{% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="answer-preview">
+                                        <strong>✅ Answer:</strong><br>
+                                        <em>Answer will be available when you view the question</em>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div class="btn-group-custom">
+                                        <a href="{{ url_for('show_question', subject_name=bookmark.subject, topic_name=bookmark.topic, qid=bookmark.question_id) }}" 
+                                           class="view-question-btn">
+                                            👁️ View Question
+                                        </a>
+                                        <a href="{{ url_for('show_answer', subject_name=bookmark.subject, topic_name=bookmark.topic, qid=bookmark.question_id) }}" 
+                                           class="view-question-btn">
+                                            💡 View Answer
+                                        </a>
+                                    </div>
+                                    <button class="remove-bookmark-btn" 
+                                            onclick="removeBookmark({{ bookmark.question_id }}, this)"
+                                            title="Remove this bookmark">
+                                        🗑️ Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" style="display: none;" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Processing your request...</p>
+                </div>
+            </div>
+            
+        {% else %}
+            <div class="bookmark-summary-section">
+                <div class="total-bookmarks-header">
+                    All Bookmarks (0)
+                </div>
+            </div>
+            <div class="no-bookmarks fade-in">
+                <div class="no-bookmarks-icon">📚</div>
+                <h3 class="mb-3">No Bookmarks Yet!</h3>
+                <p class="mb-4">Start building your personalized study collection by bookmarking important questions.</p>
+                <div class="mb-4">
+                    <p class="text-muted">
+                        <small>💡 <strong>Tip:</strong> Click the ★ button on any question to save it here for quick review!</small>
+                    </p>
+                </div>
+                <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg" style="background: #1a3d4a; border: none; padding: 12px 24px; border-radius: 8px; color: white; text-decoration: none; display: inline-block;">
+                    🚀 Explore Subjects
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Back Link -->
+        <div class="mt-6">
+            <a href="{{ url_for('home') }}" 
+               class="inline-flex items-center space-x-2 bg-gray-100 hover:bg-blue-500 hover:text-white border border-gray-300 rounded-lg px-5 py-3 text-blue-600 text-sm transition-all duration-300 hover:-translate-x-1" style="text-decoration: none;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                <span>Back to All Subjects</span>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        // Toggle between views
+        function toggleView(view) {
+            const listView = document.getElementById('listView');
+            const detailView = document.getElementById('detailView');
+            const listBtn = document.getElementById('listViewBtn');
+            const detailBtn = document.getElementById('detailViewBtn');
+            
+            if (view === 'list') {
+                listView.style.display = 'block';
+                detailView.style.display = 'none';
+                listBtn.classList.add('active');
+                detailBtn.classList.remove('active');
+            } else {
+                listView.style.display = 'none';
+                detailView.style.display = 'block';
+                listBtn.classList.remove('active');
+                detailBtn.classList.add('active');
+            }
+        }
+
+        function filterBySubject(subject) {
+            // Switch to detail view and filter
+            toggleView('detail');
+            setTimeout(() => {
+                filterBookmarks(subject);
+            }, 100);
+        }
+
+        // Filter bookmarks by subject
+        function filterBookmarks(subject) {
+            const cards = document.querySelectorAll('.bookmark-card');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.transform = 'translateY(0)';
+            });
+            event.target.classList.add('active');
+            event.target.style.transform = 'translateY(-2px)';
+            
+            let visibleCount = 0;
+            cards.forEach((card, index) => {
+                if (subject === 'all' || card.dataset.subject === subject) {
+                    card.style.display = 'block';
+                    card.style.animationDelay = `${visibleCount * 0.1}s`;
+                    card.classList.add('fade-in');
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                    card.classList.remove('fade-in');
+                }
+            });
+        }
+
+        // Enhanced remove bookmark function
+        function removeBookmark(questionId, button) {
+            if (!confirm('🗑️ Are you sure you want to remove this bookmark?\n\nThis action cannot be undone.')) {
+                return;
+            }
+            
+            const card = button.closest('.bookmark-card');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '⏳ Removing...';
+            button.disabled = true;
+            card.style.opacity = '0.6';
+
+            const loadingState = document.getElementById('loading-state');
+            if (loadingState) {
+                loadingState.style.display = 'block';
+                loadingState.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            fetch('/toggle_bookmark', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    subject: 'temp',
+                    topic: 'temp'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (loadingState) loadingState.style.display = 'none';
+                
+                if (data.success && !data.bookmarked) {
+                    card.classList.add('remove-animation');
+                    showNotification('✅ Bookmark removed successfully!', 'success');
+                    
+                    setTimeout(() => {
+                        card.remove();
+                        
+                        const remainingCards = document.querySelectorAll('.bookmark-card');
+                        if (remainingCards.length === 0) {
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        }
+                    }, 500);
+                } else {
+                    card.style.opacity = '1';
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    showNotification('❌ Failed to remove bookmark. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing bookmark:', error);
+                if (loadingState) loadingState.style.display = 'none';
+                card.style.opacity = '1';
+                button.innerHTML = originalText;
+                button.disabled = false;
+                showNotification('🔥 Network error occurred. Please check your connection.', 'error');
+            });
+        }
+
+        function showNotification(message, type) {
+            const existingNotifications = document.querySelectorAll('.notification-toast');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification-toast`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 90vw;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-weight: 500;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                animation: slideInRight 0.4s ease-out;
+                background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+                color: ${type === 'success' ? '#155724' : '#721c24'};
+                border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${message}</span>
+                    <button type="button" style="background: none; border: none; font-size: 18px; cursor: pointer; color: inherit;" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutRight 0.4s ease-in';
+                    setTimeout(() => notification.remove(), 400);
+                }
+            }, 4000);
+        }
+
+        // Add CSS for notifications
+        const notificationStyles = document.createElement('style');
+        notificationStyles.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(notificationStyles);
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📚 Bookmarks page loaded successfully');
+            
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    document.getElementById('bookmarks-list').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+            });
+
+            // Prevent zoom on iOS when focusing on buttons
+            document.addEventListener('touchstart', function() {}, {passive: true});
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ topic }} – Question</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            background-color: #f0f0f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding-bottom: 100px; /* Space for fixed footer */
+        }
+        
+        .question-header { 
+            background-color: #1a3d4a; 
+            color: white; 
+            padding: 15px 10px; /* Increased padding for mobile */
+            width: 100%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .question-header span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .question { 
+            padding: 15px; /* Reduced for mobile */
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .question p { 
+            color: #333333;
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-size: 16px;
+        }
+        
+        .question h4 {
+            color: #1a3d4a;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+        
+        .submit-btn { 
+            background-color: #1a3d4a; 
+            color: white; 
+            padding: 14px 24px; /* Larger for mobile touch */
+            margin-top: 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%; /* Full width on mobile */
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            background-color: #2a4d5a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 61, 74, 0.3);
+        }
+        
+        .footer { 
+            background-color: #1a3d4a; 
+            color: white; 
+            padding: 15px 10px; /* Increased padding */
+            position: fixed; 
+            bottom: 0; 
+            width: 100%;
+            z-index: 99;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        /* Enhanced bookmark button styling - Mobile optimized */
+        .bookmark-btn {
+            background: none;
+            border: none;
+            font-size: 24px; /* Larger for mobile */
+            cursor: pointer;
+            color: #ddd;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+            padding: 8px; /* Larger touch target */
+            border-radius: 6px;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .bookmark-btn.bookmarked {
+            color: #ffd700;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .bookmark-btn:hover {
+            color: #ffd700;
+            transform: scale(1.1);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .bookmark-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Header navigation buttons - Mobile optimized */
+        .header-nav-btn {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .header-nav-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .header-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Bottom navigation - Mobile first */
+        .bottom-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 30px;
+            align-items: center;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background-color: #1a3d4a;
+            color: white;
+            padding: 12px 20px; /* Larger for mobile */
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            min-width: 130px;
+            text-align: center;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .nav-btn:hover {
+            background-color: #2a4d5a;
+            color: white;
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+        
+        .nav-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Back links styling - Mobile friendly */
+        .back-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .back-links a {
+            color: #1a3d4a;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: rgba(26, 61, 74, 0.1);
+            transition: all 0.3s ease;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .back-links a:hover {
+            color: #2a4d5a;
+            text-decoration: none;
+            background: rgba(26, 61, 74, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Success/Error message styling - Mobile responsive */
+        .bookmark-message {
+            position: fixed;
+            top: 80px; /* Below sticky header */
+            right: 15px;
+            left: 15px;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1001;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideInDown 0.3s ease;
+            text-align: center;
+        }
+
+        .bookmark-message.success {
+            background-color: #28a745;
+        }
+
+        .bookmark-message.error {
+            background-color: #dc3545;
+        }
+
+        @keyframes slideInDown {
+            from { 
+                transform: translateY(-100%); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateY(0); 
+                opacity: 1; 
+            }
+        }
+
+        /* Question content styling */
+        .question-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #1a3d4a;
+        }
+
+        /* Tablet styles */
+        @media (min-width: 768px) {
+            .question {
+                padding: 25px 30px;
+            }
+            
+            .submit-btn {
+                width: auto;
+                min-width: 200px;
+                display: inline-block;
+                margin: 25px auto;
+            }
+            
+            .bottom-nav {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .nav-buttons {
+                width: auto;
+            }
+            
+            .nav-btn {
+                flex: none;
+                min-width: 120px;
+            }
+            
+            .back-links {
+                flex-direction: row;
+                gap: 15px;
+            }
+            
+            .bookmark-message {
+                right: 20px;
+                left: auto;
+                max-width: 350px;
+            }
+        }
+        
+        /* Desktop styles */
+        @media (min-width: 992px) {
+            .question {
+                padding: 30px 40px;
+                max-width: 900px;
+                margin: 0 auto;
+            }
+            
+            .question-header {
+                padding: 15px 40px;
+            }
+            
+            body {
+                padding-bottom: 80px;
+            }
+            
+            .footer {
+                padding: 12px;
+            }
+            
+            .question-content {
+                padding: 30px;
+                margin-bottom: 30px;
+            }
+            
+            .question h4 {
+                font-size: 1.5rem;
+            }
+            
+            .question p {
+                font-size: 18px;
+            }
+        }
+        
+        /* Large desktop */
+        @media (min-width: 1200px) {
+            .question {
+                max-width: 1000px;
+            }
+        }
+
+        /* Very small screens */
+        @media (max-width: 360px) {
+            .question {
+                padding: 12px;
+            }
+            
+            .question-header {
+                padding: 12px 8px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .nav-btn {
+                min-width: 100px;
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            
+            .back-links a {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .submit-btn {
+                padding: 12px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="question-header d-flex justify-content-between align-items-center flex-wrap">
+        <span class="flex-grow-1">
+            {{ topic }} – Question {{ current_index }} of {{ total }}
+            {% if session.user_id %}
+                <button id="bookmark-btn" 
+                        type="button" 
+                        class="bookmark-btn {% if bookmarked %}bookmarked{% endif %}" 
+                        onclick="toggleBookmark({{ q.id }}, '{{ subject }}', '{{ topic }}')"
+                        title="{% if bookmarked %}Remove bookmark{% else %}Add bookmark{% endif %}">
+                    ★
+                </button>
+            {% endif %}
+        </span>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            {% if prev_qid %}
+                <button class="header-nav-btn" onclick="window.location.href='{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=prev_qid) }}'">⏮ Prev</button>
+            {% else %}
+                <button class="header-nav-btn" disabled>⏮ Prev</button>
+            {% endif %}
+            {% if next_qid %}
+                <button class="header-nav-btn" onclick="window.location.href='{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}'">⏭ Next</button>
+            {% else %}
+                <button class="header-nav-btn" disabled>⏭ Next</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="question">
+            <div class="question-content">
+                <h4>Question</h4>
+                <p><strong>Q:</strong> {{ q['question'] }}</p>
+                
+                <!-- Display options if available -->
+                {% if q.option_a or q.option_b or q.option_c or q.option_d %}
+                    <div class="mt-4">
+                        <h5 style="color: #1a3d4a; margin-bottom: 15px;">Options:</h5>
+                        <div class="options-list">
+                            {% if q.option_a %}
+                                <div class="option-item" style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 3px solid #6c757d;">
+                                    <strong>A)</strong> {{ q.option_a }}
+                                </div>
+                            {% endif %}
+                            {% if q.option_b %}
+                                <div class="option-item" style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 3px solid #6c757d;">
+                                    <strong>B)</strong> {{ q.option_b }}
+                                </div>
+                            {% endif %}
+                            {% if q.option_c %}
+                                <div class="option-item" style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 3px solid #6c757d;">
+                                    <strong>C)</strong> {{ q.option_c }}
+                                </div>
+                            {% endif %}
+                            {% if q.option_d %}
+                                <div class="option-item" style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 3px solid #6c757d;">
+                                    <strong>D)</strong> {{ q.option_d }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <form method="get" action="{{ url_for('show_answer', subject_name=subject, topic_name=topic, qid=q['id']) }}" style="text-align: center;">
+                <button type="submit" class="btn submit-btn">👁 Show Answer</button>
+            </form>
+            
+            <div class="bottom-nav">
+                <div class="nav-buttons">
+                    {% if prev_qid %}
+                        <a href="{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=prev_qid) }}" class="nav-btn">⏮️ Previous</a>
+                    {% else %}
+                        <button class="nav-btn" disabled>⏮️ Previous</button>
+                    {% endif %}
+                    {% if next_qid %}
+                        <a href="{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}" class="nav-btn">⏭️ Next</a>
+                    {% else %}
+                        <button class="nav-btn" disabled>⏭️ Next</button>
+                    {% endif %}
+                </div>
+                <div class="back-links">
+                    <a href="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('bookmarks') }}">📚 Bookmarks</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>Block Time Elapsed: 00:00:00</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Load external bookmark JavaScript file -->
+    <script src="{{ url_for('static', filename='js/bookmark.js') }}"></script>
+    
+    <!-- Fallback inline JavaScript for bookmark functionality -->
+    <script>
+        // Fallback function if external JS fails to load
+        if (typeof toggleBookmark === 'undefined') {
+            console.log('⚠️ External bookmark JS not loaded, using fallback');
+            
+            function toggleBookmark(questionId, subject, topic) {
+                {% if session.user_id %}
+                console.log('🔄 Fallback bookmark function called');
+                const bookmarkBtn = document.getElementById('bookmark-btn');
+                const originalText = bookmarkBtn.innerHTML;
+                
+                // Show loading state
+                bookmarkBtn.innerHTML = '⏳';
+                bookmarkBtn.disabled = true;
+
+                fetch('/toggle_bookmark', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question_id: questionId,
+                        subject: subject,
+                        topic: topic
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update bookmark button state
+                        if (data.bookmarked) {
+                            bookmarkBtn.classList.add('bookmarked');
+                            bookmarkBtn.title = 'Remove bookmark';
+                        } else {
+                            bookmarkBtn.classList.remove('bookmarked');
+                            bookmarkBtn.title = 'Add bookmark';
+                        }
+                        
+                        // Restore star icon
+                        bookmarkBtn.innerHTML = '★';
+                        
+                        // Show success message
+                        showMessage(data.message || (data.bookmarked ? 'Bookmark added!' : 'Bookmark removed!'), 'success');
+                    } else {
+                        // Restore original state on error
+                        bookmarkBtn.innerHTML = originalText;
+                        showMessage(data.message || 'Failed to toggle bookmark', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Bookmark error:', error);
+                    bookmarkBtn.innerHTML = originalText;
+                    showMessage('Network error occurred', 'error');
+                })
+                .finally(() => {
+                    bookmarkBtn.disabled = false;
+                });
+                {% else %}
+                    showMessage('Please login to bookmark questions', 'error');
+                {% endif %}
+            }
+        }
+
+        // Message display function (always available)
+        function showMessage(message, type) {
+            // Remove existing messages
+            const existingMessages = document.querySelectorAll('.bookmark-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            // Create new message
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            messageDiv.className = `bookmark-message ${type}`;
+            
+            document.body.appendChild(messageDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.style.animation = 'slideInDown 0.3s ease reverse';
+                    setTimeout(() => messageDiv.remove(), 300);
+                }
+            }, 3000);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Arrow keys for navigation
+            if (e.key === 'ArrowLeft' && {{ 'true' if prev_qid else 'false' }}) {
+                window.location.href = '{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=prev_qid) if prev_qid else '#' }}';
+            } else if (e.key === 'ArrowRight' && {{ 'true' if next_qid else 'false' }}) {
+                window.location.href = '{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) if next_qid else '#' }}';
+            }
+            // Space or Enter to show answer
+            else if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                document.querySelector('.submit-btn').click();
+            }
+            // 'B' key to toggle bookmark
+            else if (e.key.toLowerCase() === 'b' && {{ 'true' if session.user_id else 'false' }}) {
+                e.preventDefault();
+                toggleBookmark({{ q.id }}, '{{ subject }}', '{{ topic }}');
+            }
+        });
+        
+        // Prevent zoom on iOS when focusing on form elements
+        document.addEventListener('touchstart', function() {}, {passive: true});
+        
+        // Debug logging
+        console.log('📄 Question page loaded, bookmark functionality ready');
+        console.log('🎮 Keyboard shortcuts: ← → for navigation, Space/Enter for answer, B for bookmark');
+    </script>
+</body>
+</html>

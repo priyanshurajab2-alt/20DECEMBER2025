@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCQ Practice - MBBS QBank</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 160px;
+            height: 100vh;
+            background-color: #1a3d4a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px 0;
+            z-index: 1000;
+        }
+        .main-content {
+            margin-left: 160px;
+            flex: 1;
+            padding: 20px 40px;
+            overflow-y: auto;
+        }
+        .nav-item {
+            transition: all 0.3s ease;
+            padding: 10px 12px;
+            cursor: pointer;
+            color: #b0bec5;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            flex-wrap: wrap;
+        }
+        .nav-item:hover {
+            background-color: #2a4d5a;
+            color: white;
+            text-decoration: none;
+        }
+        .nav-item.active {
+            background-color: #2a4d5a;
+            color: white;
+        }
+        .tips-section {
+            margin: 16px;
+            background-color: #2a4d5a;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 11px;
+        }
+        .main-section { display: flex; flex-direction: column; gap: 15px; }
+        .year-section {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+        }
+        .year-section h2 {
+            font-size: 1.3rem;
+            color: #1a2a44;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .year-icon { width: 16px; height: 16px; background-color: #4dd0e1; border-radius: 3px; }
+        .subject-list { display: flex; flex-direction: column; gap: 8px; }
+        .subject-card {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .subject-card:hover {
+            background: #e3f2fd;
+            transform: translateX(3px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+        .subject-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .subject-icon.anatomy { background-color: #e3f2fd; }
+        .subject-icon.biochemistry { background-color: #f3e5f5; }
+        .subject-icon.physiology { background-color: #e8f5e8; }
+        .subject-icon.pharmacology { background-color: #fff3e0; }
+        .subject-icon.pathology { background-color: #ffebee; }
+        .subject-icon.microbiology { background-color: #e0f2f1; }
+        .subject-icon.forensicmedicine { background-color: #fce4ec; }
+        .subject-icon.psm { background-color: #f1f8e9; }
+        .subject-icon.ent { background-color: #e8eaf6; }
+        .subject-icon.ophthalmology { background-color: #fff8e1; }
+        .subject-icon.medicine { background-color: #e3f2fd; }
+        .subject-icon.surgery { background-color: #ffebee; }
+        .subject-icon.pediatrics { background-color: #f3e5f5; }
+        .subject-icon.obstetrics { background-color: #e8f5e8; }
+        .subject-icon.gynecology { background-color: #e8f5e8; }
+        .subject-icon.orthopedics { background-color: #fff3e0; }
+        .subject-icon.dermatology { background-color: #fce4ec; }
+        .subject-icon.psychiatry { background-color: #f1f8e9; }
+        .subject-icon.radiology { background-color: #e0f2f1; }
+        .subject-icon.default { background-color: #f5f5f5; }
+        .subject-info h3 { font-size: 14px; color: #333; margin: 0; font-weight: 500; }
+        .subject-progress { margin-top: 5px; height: 4px; background-color: #e9ecef; border-radius: 2px; overflow: hidden; }
+        .subject-progress-bar {
+            height: 100%; background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            transition: width 0.5s ease;
+        }
+        .progress-text { font-size: 10px; color: #666; margin-top: 2px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state h3 { margin-bottom: 15px; color: #1a2a44; }
+        .empty-state p { margin-bottom: 25px; }
+        .action-btn {
+            padding: 10px 20px; border-radius: 6px; text-decoration: none;
+            font-weight: 500; transition: all 0.3s ease; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary-custom { background-color: #1a3d4a; color: white; }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-decoration: none; color: white;
+        }
+        @media (min-width: 768px) {
+            .subject-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+            .year-section h2 { font-size: 1.5rem; }
+            .subject-info h3 { font-size: 16px; }
+            .subject-icon { width: 36px; height: 36px; font-size: 18px; }
+        }
+        @media (min-width: 992px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; padding: 30px 60px; }
+            .year-section { padding: 25px 30px; margin-bottom: 25px; }
+            .subject-list { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; }
+            .subject-card { padding: 15px 20px; }
+            .subject-icon { width: 40px; height: 40px; font-size: 20px; }
+        }
+        @media (min-width: 1400px) {
+            .main-content { max-width: 1200px; margin-left: auto; margin-right: auto; padding-left: 200px; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { width: 120px; }
+            .main-content { margin-left: 120px; padding: 20px; }
+            .subject-card { padding: 8px 10px; }
+            .subject-icon { width: 28px; height: 28px; font-size: 14px; }
+            .subject-info h3 { font-size: 13px; }
+            .nav-item { font-size: 12px; padding: 8px 10px; gap: 6px; }
+            .tips-section { margin: 12px; padding: 10px; font-size: 10px; }
+            .sidebar-brand { font-size: 1.5rem; }
+        }
+        @media (max-width: 576px) {
+            .sidebar {
+                width: 100%; height: 60px; top: 0; bottom: auto; flex-direction: row;
+                align-items: center; justify-content: space-between; padding: 10px 20px; overflow: visible;
+            }
+            .sidebar > *:not(.sidebar-brand) { display: none; }
+            .sidebar-brand { font-size: 1.2rem !important; padding: 0 !important; }
+            .main-content { margin-left: 0; padding-top: 80px; padding-left: 15px; padding-right: 15px; }
+            .year-section { padding: 12px; }
+            .subject-card { padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar text-white" role="navigation" aria-label="Main navigation">
+        <div class="px-4 pb-6">
+            <a href="{{ url_for('home') }}" class="text-xl font-bold text-cyan-400 no-underline sidebar-brand">MBBS QBANK</a>
+        </div>
+
+        <div class="px-4 pb-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                    <span class="text-xs font-medium" aria-hidden="true">
+                        {% if session.username %}
+                            {{ session.username[0].upper() }}
+                        {% else %}
+                            S
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-1">
+                        <span class="font-semibold text-xs">
+                            {% if session.username %}
+                                {{ session.username|truncate(10, True, '...') }}
+                            {% else %}
+                                Student
+                            {% endif %}
+                        </span>
+                        <span class="bg-orange-500 text-black text-[10px] px-1.5 py-0.5 rounded-lg font-bold">PRO</span>
+                    </div>
+                    <div class="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-lg mt-1 inline-block">Premium</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 pb-4">
+            <div class="text-xs" style="color: #b0bec5;">Course: <strong class="text-white">MBBS</strong></div>
+        </div>
+
+        <div class="flex-1">
+            <ul class="list-none">
+                <li>
+                    <a href="{{ url_for('home') }}" class="nav-item">
+                        <span class="text-base">🏦</span>
+                        <span>QBank</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('mcq.mcq_home') }}" class="nav-item active">
+                        <span class="text-base">🧠</span>
+                        <span>MCQ Practice</span>
+                    </a>
+                </li>
+                <li>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('bookmarks') }}" class="nav-item">
+                            <span class="text-base">📚</span>
+                            <span>Bookmarks</span>
+                        </a>
+                    {% else %}
+                        <button class="nav-item">
+                            <span class="text-base">📚</span>
+                            <span>Bookmarks</span>
+                        </button>
+                    {% endif %}
+                </li>
+                <li>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('mcq.mcq_results') }}" class="nav-item">
+                            <span class="text-base">📊</span>
+                            <span>MCQ Results</span>
+                        </a>
+                    {% else %}
+                        <button class="nav-item">
+                            <span class="text-base">📊</span>
+                            <span>MCQ Results</span>
+                        </button>
+                    {% endif %}
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-base">⚙️</span>
+                        <span>Custom Module</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-base">💎</span>
+                        <span>Pearls</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-base">🖼️</span>
+                        <span>Image Bank</span>
+                    </button>
+                </li>
+                <li>
+                    <a href="{{ url_for('test_bp.list_tests') }}" class="nav-item">
+                        <span class="text-base">🧪</span>
+                        <span>Test Series</span>
+                    </a>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-base">🎥</span>
+                        <span>Videos</span>
+                    </button>
+                </li>
+                
+            </ul>
+        </div>
+
+        <div class="tips-section">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="text-base">💡</span>
+                <span class="font-bold text-xs text-white">Study Tips</span>
+                <button class="ml-auto text-white text-sm" aria-label="Close tip" onclick="this.closest('.tips-section').style.display='none'">×</button>
+            </div>
+            <p class="text-[10px]" style="color: #b0bec5; margin-bottom: 6px;">
+                Focus on high-yield topics and practice regularly.
+            </p>
+            <div class="text-center">
+                <button class="bg-transparent border border-white text-white py-0.5 px-3 rounded text-[10px] hover:bg-white hover:text-slate-800 transition-colors" onclick="alert('Feature coming soon!')">
+                    Next Tip
+                </button>
+            </div>
+        </div>
+    </nav>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="main-section">
+            {% if subjects %}
+                {% set grouped_subjects = {} %}
+                {% for subject in subjects %}
+                    {% set subject_name = subject.name.lower() %}
+                    {% if 'anatomy' in subject_name or 'biochemistry' in subject_name or 'physiology' in subject_name %}
+                        {% set year = 'First Year MBBS' %}
+                    {% elif 'pharmacology' in subject_name or 'pathology' in subject_name or 'microbiology' in subject_name or 'forensic' in subject_name %}
+                        {% set year = 'Second Year MBBS' %}
+                    {% elif 'psm' in subject_name or 'ent' in subject_name or 'ophthalmology' in subject_name %}
+                        {% set year = 'Third Year MBBS (Part I)' %}
+                    {% elif 'medicine' in subject_name or 'surgery' in subject_name or 'pediatrics' in subject_name or 'obstetrics' in subject_name or 'gynecology' in subject_name %}
+                        {% set year = 'Third Year MBBS (Part II)' %}
+                    {% elif 'orthopedics' in subject_name or 'dermatology' in subject_name or 'psychiatry' in subject_name or 'radiology' in subject_name %}
+                        {% set year = 'Fourth Year MBBS (Internship)' %}
+                    {% else %}
+                        {% set year = 'General MBBS' %}
+                    {% endif %}
+                    {% if year not in grouped_subjects %}
+                        {% set _ = grouped_subjects.update({year: []}) %}
+                    {% endif %}
+                    {% set _ = grouped_subjects[year].append(subject) %}
+                {% endfor %}
+                {% for year, year_subjects in grouped_subjects.items() %}
+                    <div class="year-section">
+                        <h2>
+                            <div class="year-icon"></div>
+                            {{ year }}
+                        </h2>
+                        <div class="subject-list">
+                            {% for subject in year_subjects %}
+                                <a href="{{ url_for('mcq.mcq_subject', subject_name=subject.name) }}" class="subject-card">
+                                    <div class="subject-icon {{ subject.name.lower().replace(' ', '').replace('&', '') }}">
+                                        {% set subject_name = subject.name.lower() %}
+                                        {% if 'anatomy' in subject_name %}🧠
+                                        {% elif 'biochemistry' in subject_name %}🧪
+                                        {% elif 'physiology' in subject_name %}❤️
+                                        {% elif 'pharmacology' in subject_name %}💊
+                                        {% elif 'pathology' in subject_name %}🔬
+                                        {% elif 'microbiology' in subject_name %}🦠
+                                        {% elif 'forensic' in subject_name %}⚖️
+                                        {% elif 'psm' in subject_name %}🏥
+                                        {% elif 'ent' in subject_name %}👂
+                                        {% elif 'ophthalmology' in subject_name %}👁️
+                                        {% elif 'medicine' in subject_name %}🩺
+                                        {% elif 'surgery' in subject_name %}🔪
+                                        {% elif 'pediatrics' in subject_name %}👶
+                                        {% elif 'obstetrics' in subject_name or 'gynecology' in subject_name %}🤱
+                                        {% elif 'orthopedics' in subject_name %}🦴
+                                        {% elif 'dermatology' in subject_name %}🧴
+                                        {% elif 'psychiatry' in subject_name %}🧠
+                                        {% elif 'radiology' in subject_name %}📡
+                                        {% else %}📖
+                                        {% endif %}
+                                    </div>
+                                    <div class="subject-info">
+                                        <h3>{{ subject.name }}</h3>
+                                        {% if session.user_id and subject.completed_topics is defined %}
+                                            <div class="subject-progress">
+                                                <div class="subject-progress-bar" style="width: {{ (subject.completed_topics / subject.total_topics * 100) if subject.total_topics > 0 else 0 }}%"></div>
+                                            </div>
+                                            <div class="progress-text">
+                                                {{ subject.completed_topics }}/{{ subject.total_topics }} topics completed
+                                            </div>
+                                        {% elif not session.user_id %}
+                                            <div class="progress-text">
+                                                Login to track progress
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+               
+            {% endif %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const subjectCards = document.querySelectorAll('.subject-card');
+            subjectCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

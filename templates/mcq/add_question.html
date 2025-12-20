@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add MCQ Question - Admin</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin: 20px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        textarea { min-height: 100px; resize: vertical; }
+        .option-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 10px 5px; text-decoration: none; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .flash-message { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .preview-section { background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; }
+        .preview-question { font-weight: bold; margin-bottom: 15px; }
+        .preview-option { margin: 5px 0; padding: 8px; border-radius: 4px; }
+        .correct-option { background: #d4edda; border: 1px solid #c3e6cb; }
+        .regular-option { background: white; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>➕ Add MCQ Question</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" onsubmit="return validateForm()">
+            <div class="form-group">
+                <label for="subject">Subject:</label>
+                <select name="subject" id="subject" required>
+                    <option value="">Select Subject</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject }}">{{ subject }}</option>
+                    {% endfor %}
+                    <option value="Anatomy">Anatomy</option>
+                    <option value="Physiology">Physiology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Pathology">Pathology</option>
+                    <option value="Pharmacology">Pharmacology</option>
+                    <option value="Microbiology">Microbiology</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="topic">Topic:</label>
+                <input type="text" name="topic" id="topic" required placeholder="e.g., Cardiovascular System">
+            </div>
+
+            <div class="form-group">
+                <label for="question">Question:</label>
+                <textarea name="question" id="question" required placeholder="Enter the MCQ question here..." onchange="updatePreview()"></textarea>
+            </div>
+
+            <div class="option-group">
+                <div class="form-group">
+                    <label for="option_a">Option A:</label>
+                    <input type="text" name="option_a" id="option_a" required onchange="updatePreview()">
+                </div>
+                <div class="form-group">
+                    <label for="option_b">Option B:</label>
+                    <input type="text" name="option_b" id="option_b" required onchange="updatePreview()">
+                </div>
+                <div class="form-group">
+                    <label for="option_c">Option C:</label>
+                    <input type="text" name="option_c" id="option_c" required onchange="updatePreview()">
+                </div>
+                <div class="form-group">
+                    <label for="option_d">Option D:</label>
+                    <input type="text" name="option_d" id="option_d" required onchange="updatePreview()">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="correct_answer">Correct Answer:</label>
+                <select name="correct_answer" id="correct_answer" required onchange="updatePreview()">
+                    <option value="">Select Correct Option</option>
+                    <option value="A">Option A</option>
+                    <option value="B">Option B</option>
+                    <option value="C">Option C</option>
+                    <option value="D">Option D</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="explanation">Explanation:</label>
+                <textarea name="explanation" id="explanation" placeholder="Explain why this is the correct answer..."></textarea>
+            </div>
+
+            <div class="option-group">
+                <div class="form-group">
+                    <label for="difficulty">Difficulty:</label>
+                    <select name="difficulty" id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="year_of_question">Year (Optional):</label>
+                    <input type="number" name="year_of_question" id="year_of_question" min="1990" max="2030">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="source">Source (Optional):</label>
+                <input type="text" name="source" id="source" placeholder="e.g., AIIMS 2023, NEET 2022">
+            </div>
+
+            <!-- Preview Section -->
+            <div class="preview-section" id="preview-section" style="display: none;">
+                <h3>📋 Question Preview</h3>
+                <div class="preview-question" id="preview-question"></div>
+                <div id="preview-options"></div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Add Question</button>
+                <a href="{{ url_for('mcq.mcq_home') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function updatePreview() {
+            const question = document.getElementById('question').value;
+            const optionA = document.getElementById('option_a').value;
+            const optionB = document.getElementById('option_b').value;
+            const optionC = document.getElementById('option_c').value;
+            const optionD = document.getElementById('option_d').value;
+            const correctAnswer = document.getElementById('correct_answer').value;
+
+            if (question && optionA && optionB && optionC && optionD) {
+                document.getElementById('preview-section').style.display = 'block';
+                document.getElementById('preview-question').textContent = question;
+                
+                const previewOptions = document.getElementById('preview-options');
+                previewOptions.innerHTML = `
+                    <div class="preview-option ${correctAnswer === 'A' ? 'correct-option' : 'regular-option'}">A. ${optionA}</div>
+                    <div class="preview-option ${correctAnswer === 'B' ? 'correct-option' : 'regular-option'}">B. ${optionB}</div>
+                    <div class="preview-option ${correctAnswer === 'C' ? 'correct-option' : 'regular-option'}">C. ${optionC}</div>
+                    <div class="preview-option ${correctAnswer === 'D' ? 'correct-option' : 'regular-option'}">D. ${optionD}</div>
+                `;
+            } else {
+                document.getElementById('preview-section').style.display = 'none';
+            }
+        }
+
+        function validateForm() {
+            const correctAnswer = document.getElementById('correct_answer').value;
+            if (!correctAnswer) {
+                alert('Please select the correct answer option');
+                return false;
+            }
+            return true;
+        }
+
+        // Add event listeners for real-time preview
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', updatePreview);
+            });
+        });
+    </script>
+</body>
+</html>

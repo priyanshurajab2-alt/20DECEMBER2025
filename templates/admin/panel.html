@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin Panel</title>
+</head>
+<body>
+    <h1>Welcome, {{ admin_username }}</h1>
+    <ul>
+        <li><a href="{{ url_for('admin_bp.dynamic_db_manager') }}">Manage Databases</a></li>
+        <li><a href="{{ url_for('admin_bp.logout') }}">Logout</a></li>
+    </ul>
+</body>
+</html>

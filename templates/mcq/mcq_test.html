@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ test.test_name }} - MCQ Test</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; min-height: 100vh; }
+        .test-header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 25px; text-align: center; }
+        .test-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin: 15px 0; }
+        .info-item { text-align: center; }
+        .info-value { font-size: 1.5em; font-weight: bold; }
+        .info-label { font-size: 0.9em; opacity: 0.9; }
+        .timer { position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 10px 15px; border-radius: 6px; font-weight: bold; z-index: 1000; }
+        .question-area { padding: 30px; }
+        .question-navigation { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .question-nav-btn { width: 40px; height: 40px; border: 2px solid #dee2e6; border-radius: 6px; background: white; cursor: pointer; font-weight: bold; }
+        .question-nav-btn.current { border-color: #007bff; background: #007bff; color: white; }
+        .question-nav-btn.answered { border-color: #28a745; background: #28a745; color: white; }
+        .question-card { background: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 20px; min-height: 400px; }
+        .question-text { font-size: 1.1em; font-weight: 500; margin-bottom: 25px; line-height: 1.6; }
+        .options { margin: 20px 0; }
+        .option { display: block; width: 100%; padding: 15px; margin: 12px 0; border: 2px solid #e9ecef; border-radius: 6px; background: white; cursor: pointer; transition: all 0.3s; text-align: left; }
+        .option:hover { border-color: #007bff; background: #f8f9fa; }
+        .option.selected { border-color: #007bff; background: #e3f2fd; }
+        .test-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .progress-bar { width: 100%; height: 6px; background: #e9ecef; border-radius: 3px; margin: 20px 0; }
+        .progress-fill { height: 100%; background: #007bff; border-radius: 3px; transition: width 0.3s; }
+        .submit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; }
+        .submit-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-header">
+            <h1>📝 {{ test.test_name }}</h1>
+            <div class="test-info">
+                <div class="info-item">
+                    <div class="info-value">{{ test.total_questions }}</div>
+                    <div class="info-label">Questions</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value">{{ test.duration_minutes }}</div>
+                    <div class="info-label">Minutes</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value">{{ test.subject }}</div>
+                    <div class="info-label">Subject</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="timer" id="timer">
+            ⏰ <span id="time-remaining">{{ test.duration_minutes }}:00</span>
+        </div>
+
+        <div class="question-area">
+            <div class="question-navigation">
+                {% for question in questions %}
+                <button class="question-nav-btn {% if loop.first %}current{% endif %}" 
+                        onclick="goToQuestion({{ loop.index }})" 
+                        id="nav-btn-{{ loop.index }}">
+                    {{ loop.index }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+            </div>
+
+            <div id="question-container">
+                {% for question in questions %}
+                <div class="question-card" id="question-{{ loop.index }}" style="{% if not loop.first %}display: none;{% endif %}">
+                    <div class="question-text">
+                        <strong>Question {{ loop.index }}:</strong><br>
+                        {{ question.question }}
+                    </div>
+                    
+                    <div class="options">
+                        <button class="option" onclick="selectOption({{ loop.index }}, 'A')">
+                            A. {{ question.option_a }}
+                        </button>
+                        <button class="option" onclick="selectOption({{ loop.index }}, 'B')">
+                            B. {{ question.option_b }}
+                        </button>
+                        <button class="option" onclick="selectOption({{ loop.index }}, 'C')">
+                            C. {{ question.option_c }}
+                        </button>
+                        <button class="option" onclick="selectOption({{ loop.index }}, 'D')">
+                            D. {{ question.option_d }}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="test-controls">
+                <button class="btn btn-secondary" id="prev-btn" onclick="previousQuestion()" disabled>
+                    ← Previous
+                </button>
+                
+                <div>
+                    <span id="answered-count">0</span> / {{ questions|length }} answered
+                </div>
+                
+                <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()">
+                    Next →
+                </button>
+                
+                <button class="btn btn-success" onclick="showSubmitModal()" style="margin-left: 20px;">
+                    Submit Test
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Confirmation Modal -->
+    <div class="submit-modal" id="submit-modal">
+        <div class="submit-content">
+            <h3>⚠️ Submit Test?</h3>
+            <p>Are you sure you want to submit your test?</p>
+            <p>You have answered <span id="modal-answered">0</span> out of {{ questions|length }} questions.</p>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-success" onclick="submitTest()">Yes, Submit</button>
+                <button class="btn btn-secondary" onclick="hideSubmitModal()" style="margin-left: 10px;">Continue Test</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        let totalQuestions = {{ questions|length }};
+        let answers = {};
+        let timeRemaining = {{ test.duration_minutes }} * 60; // in seconds
+        let timerInterval;
+        let testStartTime = Date.now();
+
+        // Start timer
+        function startTimer() {
+            timerInterval = setInterval(function() {
+                timeRemaining--;
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up! Submitting test automatically.');
+                    submitTest();
+                    return;
+                }
+                
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                document.getElementById('time-remaining').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Change timer color when time is running low
+                const timer = document.getElementById('timer');
+                if (timeRemaining <= 300) { // 5 minutes
+                    timer.style.background = '#dc3545';
+                } else if (timeRemaining <= 600) { // 10 minutes
+                    timer.style.background = '#ffc107';
+                }
+            }, 1000);
+        }
+
+        function selectOption(questionNum, option) {
+            // Remove selection from all options in this question
+            const questionCard = document.getElementById(`question-${questionNum}`);
+            const options = questionCard.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+
+            // Select this option
+            event.target.classList.add('selected');
+            
+            // Store answer
+            answers[questionNum] = option;
+            
+            // Update navigation button
+            const navBtn = document.getElementById(`nav-btn-${questionNum}`);
+            navBtn.classList.add('answered');
+            
+            // Update answered count
+            updateAnsweredCount();
+            updateProgress();
+        }
+
+        function goToQuestion(questionNum) {
+            // Hide current question
+            document.getElementById(`question-${currentQuestion}`).style.display = 'none';
+            
+            // Update navigation buttons
+            document.getElementById(`nav-btn-${currentQuestion}`).classList.remove('current');
+            document.getElementById(`nav-btn-${questionNum}`).classList.add('current');
+            
+            // Show selected question
+            currentQuestion = questionNum;
+            document.getElementById(`question-${currentQuestion}`).style.display = 'block';
+            
+            // Update prev/next buttons
+            document.getElementById('prev-btn').disabled = currentQuestion === 1;
+            document.getElementById('next-btn').textContent = 
+                currentQuestion === totalQuestions ? 'Finish' : 'Next →';
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < totalQuestions) {
+                goToQuestion(currentQuestion + 1);
+            } else {
+                showSubmitModal();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 1) {
+                goToQuestion(currentQuestion - 1);
+            }
+        }
+
+        function updateAnsweredCount() {
+            const answered = Object.keys(answers).length;
+            document.getElementById('answered-count').textContent = answered;
+            document.getElementById('modal-answered').textContent = answered;
+        }
+
+        function updateProgress() {
+            const answered = Object.keys(answers).length;
+            const progress = (answered / totalQuestions) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+        }
+
+        function showSubmitModal() {
+            updateAnsweredCount();
+            document.getElementById('submit-modal').style.display = 'block';
+        }
+
+        function hideSubmitModal() {
+            document.getElementById('submit-modal').style.display = 'none';
+        }
+
+        function submitTest() {
+            clearInterval(timerInterval);
+            
+            const timeTaken = Math.round((Date.now() - testStartTime) / 1000 / 60); // in minutes
+            
+            fetch('/mcq/submit_test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    test_id: {{ test.id }},
+                    answers: answers,
+                    time_taken: timeTaken
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Test submitted successfully!\nScore: ${data.score}/${data.total} (${data.percentage}%)`);
+                    window.location.href = '/mcq/results';
+                } else {
+                    alert('Error submitting test: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting test. Please try again.');
+            });
+        }
+
+        // Start the timer when page loads
+        window.onload = function() {
+            startTimer();
+        };
+
+        // Prevent accidental page refresh
+        window.addEventListener('beforeunload', function(e) {
+            if (Object.keys(answers).length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

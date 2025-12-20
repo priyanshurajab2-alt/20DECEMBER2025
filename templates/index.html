@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBBS QBank - Transform Your Medical Career</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #f5f5f5;
+        }
+
+
+
+
+        /* Navbar */
+        .navbar {
+            background: #1a3d4a;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+
+
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+
+
+
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+
+
+
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+
+
+
+        .nav-link {
+            color: #b0bec5;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+
+
+
+        .nav-link:hover {
+            color: white;
+        }
+
+
+
+
+        .btn-login {
+            background: #2a4d5a;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+
+
+
+        .btn-login:hover {
+            background: #3a5d6a;
+            color: white;
+        }
+
+
+
+
+        /* Hero Section */
+        .hero-section {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+
+
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+
+
+
+        .hero-content {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+
+
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+
+
+
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #2d2d2d;
+            margin-bottom: 40px;
+        }
+
+
+
+
+        .hero-cta {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+
+
+
+        .btn-primary {
+            background: #1a3d4a;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+
+
+
+        .btn-primary:hover {
+            background: #2a4d5a;
+            color: white;
+        }
+
+
+
+
+        .btn-secondary {
+            background: white;
+            color: #1a3d4a;
+            padding: 15px 30px;
+            border: 1px solid #1a3d4a;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+
+
+
+        .btn-secondary:hover {
+            background: #1a3d4a;
+            color: white;
+        }
+
+
+
+
+        /* Stats Section */
+        .stats-section {
+            background: white;
+            padding: 80px 0;
+        }
+
+
+
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+
+
+
+
+        .stat-item {
+            padding: 20px;
+        }
+
+
+
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a3d4a;
+            margin-bottom: 10px;
+        }
+
+
+
+
+        .stat-label {
+            color: #2d2d2d;
+            font-weight: 500;
+        }
+
+
+
+
+        /* Features Section */
+        .features-section {
+            background: #f5f5f5;
+            padding: 80px 0;
+        }
+
+
+
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+
+
+
+        .section-title h2 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+
+
+
+        .section-subtitle {
+            font-size: 18px;
+            color: #2d2d2d;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+
+
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+
+
+
+        .feature-card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+
+
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: #333;
+            font-size: 24px;
+        }
+
+
+
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+
+
+
+        .feature-description {
+            color: #2d2d2d;
+            line-height: 1.6;
+        }
+
+
+
+
+        /* CTA Section */
+        .cta-section {
+            background: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+
+
+
+        .cta-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+        }
+
+
+
+
+        .cta-subtitle {
+            font-size: 18px;
+            color: #2d2d2d;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+
+
+
+        /* Footer */
+        .footer {
+            background: #1a1a1a;
+            color: white;
+            padding: 60px 0 20px;
+        }
+
+
+
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+
+
+
+        .footer-section h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+
+
+
+        .footer-section p,
+        .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            margin-bottom: 10px;
+            display: block;
+            transition: color 0.3s ease;
+        }
+
+
+
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+
+
+
+        .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 20px;
+            text-align: center;
+            color: #ccc;
+        }
+
+
+
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-title {
+                font-size: 32px;
+            }
+            
+            .hero-subtitle {
+                font-size: 16px;
+            }
+            
+            .hero-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .section-title h2 {
+                font-size: 28px;
+            }
+            
+            .cta-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="navbar-brand" href="#">MBBS QBank</a>
+            <div class="nav-links">
+                <a class="nav-link" href="#features">Features</a>
+                <a class="nav-link" href="#about">About</a>
+                <a class="nav-link" href="{{ url_for('signup') }}">Sign Up</a>
+                <a class="nav-link btn-login" href="{{ url_for('login') }}">Login</a>
+            </div>
+        </div>
+    </nav>
+
+
+
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Transform Your Medical Career</h1>
+                <p class="hero-subtitle">
+                    Master every aspect of MBBS with our comprehensive question bank. 
+                    Built by doctors, for future doctors.
+                </p>
+                <div class="hero-cta">
+                    <a href="/home" class="btn-primary">Start Learning Now</a>
+                    <a href="#features" class="btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="mb-3">
+  <form method="POST" action="{{ url_for('set_goal') }}" class="d-flex align-items-end gap-2">
+    <div>
+      <label for="goal" class="form-label mb-1">Goal</label>
+      <select name="goal" id="goal" class="form-select form-select-sm">
+        {% for key, g in goals.items() %}
+          <option value="{{ key }}" {% if session.current_goal == key %}selected{% endif %}>
+            {{ g.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary mb-1">Set</button>
+  </form>
+
+  {% if session.current_goal %}
+    <small class="text-muted">
+      Current goal: {{ goals[session.current_goal].label }}
+    </small>
+  {% endif %}
+</div>
+
+
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">50K+</div>
+                    <div class="stat-label">Questions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">Students</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">95%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Support</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Why Choose MBBS QBank?</h2>
+                <p class="section-subtitle">
+                    Experience the most comprehensive and effective way to prepare for your medical exams
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3 class="feature-title">Smart Learning</h3>
+                    <p class="feature-description">
+                        AI-powered adaptive learning that adjusts to your pace and identifies weak areas.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">Progress Analytics</h3>
+                    <p class="feature-description">
+                        Detailed performance insights with visual charts to track your improvement.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">Mobile Optimized</h3>
+                    <p class="feature-description">
+                        Study anywhere, anytime with our fully responsive design.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 class="cta-title">Ready to Excel in Your MBBS Journey?</h2>
+            <p class="cta-subtitle">
+                Join thousands of successful medical students who transformed their careers with our platform
+            </p>
+            <div class="hero-cta">
+                <a href="/home" class="btn-primary">Get Started Free</a>
+                <a href="{{ url_for('signup') }}" class="btn-secondary">Create Account</a>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <!-- Footer -->
+    <footer class="footer" id="about">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>MBBS QBank</h4>
+                    <p>Empowering medical students with comprehensive question banks and smart learning tools.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="/home">Question Bank</a>
+                    <a href="{{ url_for('signup') }}">Sign Up</a>
+                    <a href="{{ url_for('login') }}">Login</a>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <a href="#">Help Center</a>
+                    <a href="#">Contact Us</a>
+                    <a href="#">Privacy Policy</a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 MBBS QBank. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

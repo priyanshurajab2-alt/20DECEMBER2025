@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subjects by MBBS Year | MBBS QBank</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 100vh;
+            background-color: #1a3d4a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px 0;
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: 200px;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .nav-item {
+            transition: all 0.3s ease;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #b0bec5;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background-color: #2a4d5a;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-item.active {
+            background-color: #2a4d5a;
+            color: white;
+        }
+
+        .tips-section {
+            margin: 20px;
+            background-color: #2a4d5a;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .welcome-message {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .auth-btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .year-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .year-section:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .year-section h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .year-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #06b6d4;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .subject-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .subject-card {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .subject-card:hover {
+            background: #eff6ff;
+            transform: translateX(4px);
+            border-color: #bfdbfe;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .subject-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .subject-icon.anatomy { background-color: #e3f2fd; }
+        .subject-icon.biochemistry { background-color: #f3e5f5; }
+        .subject-icon.physiology { background-color: #e8f5e8; }
+        .subject-icon.pharmacology { background-color: #fff3e0; }
+        .subject-icon.pathology { background-color: #ffebee; }
+        .subject-icon.microbiology { background-color: #e0f2f1; }
+        .subject-icon.forensicmedicine { background-color: #fce4ec; }
+        .subject-icon.psm { background-color: #f1f8e9; }
+        .subject-icon.ent { background-color: #e8eaf6; }
+        .subject-icon.ophthalmology { background-color: #fff8e1; }
+        .subject-icon.medicine { background-color: #e3f2fd; }
+        .subject-icon.surgery { background-color: #ffebee; }
+        .subject-icon.pediatrics { background-color: #f3e5f5; }
+        .subject-icon.obstetrics { background-color: #e8f5e8; }
+        .subject-icon.gynecology { background-color: #e8f5e8; }
+        .subject-icon.orthopedics { background-color: #fff3e0; }
+        .subject-icon.dermatology { background-color: #fce4ec; }
+        .subject-icon.psychiatry { background-color: #f1f8e9; }
+        .subject-icon.radiology { background-color: #e0f2f1; }
+        .subject-icon.default { background-color: #f5f5f5; }
+
+        .subject-info h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .subject-progress {
+            margin-top: 5px;
+            height: 4px;
+            background-color: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .subject-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            font-size: 10px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        /* Tablet styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 150px;
+            }
+            .main-content {
+                margin-left: 150px;
+                padding: 15px;
+            }
+            .page-title {
+                font-size: 1.25rem;
+            }
+            .subject-card {
+                padding: 12px;
+            }
+            .subject-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+            .subject-info h3 {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Mobile styles */
+        @media (max-width: 576px) {
+            .sidebar {
+                width: 100%;
+                height: 60px;
+                position: fixed;
+                top: 0;
+                bottom: auto;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 20px;
+                overflow: visible;
+            }
+
+            .sidebar > *:not(.sidebar-brand) {
+                display: none;
+            }
+
+            .sidebar-brand {
+                font-size: 1.2rem !important;
+                padding: 0 !important;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding-top: 80px;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .page-title {
+                font-size: 1.125rem;
+                line-height: 1.3;
+            }
+
+            .auth-btn {
+                width: 100%;
+                text-align: center;
+                padding: 12px;
+            }
+
+            .year-section {
+                padding: 12px;
+                margin-bottom: 16px;
+            }
+
+            .year-section h2 {
+                font-size: 1rem;
+                margin-bottom: 16px;
+            }
+
+            .subject-card {
+                padding: 12px;
+                margin-bottom: 8px;
+            }
+
+            .subject-info h3 {
+                font-size: 0.8rem;
+            }
+
+            .progress-text {
+                font-size: 9px;
+            }
+        }
+
+        /* Very small screens */
+        @media (max-width: 360px) {
+            .main-content {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+
+            .year-section {
+                padding: 10px;
+            }
+
+            .subject-card {
+                padding: 10px;
+            }
+
+            .page-title {
+                font-size: 1rem;
+            }
+
+            .year-section h2 {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Enhanced Fixed Sidebar -->
+    <nav class="sidebar text-white" role="navigation" aria-label="Main navigation">
+        <!-- Header -->
+        <div class="px-5 pb-8">
+            <a href="{{ url_for('home') }}" class="text-2xl font-bold text-cyan-400 no-underline sidebar-brand">MBBS QBANK</a>
+        </div>
+
+        <!-- User Profile -->
+        <div class="px-5 pb-5">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium" aria-hidden="true">
+                        {% if session.username %}
+                            {{ session.username[0].upper() }}
+                        {% else %}
+                            S
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold text-sm">
+                            {% if session.username %}
+                                {{ session.username }}
+                            {% else %}
+                                Student
+                            {% endif %}
+                        </span>
+                        <span class="bg-orange-500 text-black text-xs px-2 py-0.5 rounded-xl font-bold">PRO</span>
+                    </div>
+                    <div class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-xl mt-1 inline-block">Premium</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Info -->
+        <div class="px-5 pb-5">
+            <div class="text-sm" style="color: #b0bec5;">Course: <strong class="text-white">MBBS</strong></div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex-1">
+            <ul class="list-none">
+                <li>
+                    <a href="{{ url_for('home') }}" class="nav-item active">
+                        <span class="text-lg">🏦</span>
+                        <span>QBank</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('mcq.mcq_home') }}" class="nav-item">
+                        <span class="text-lg">🧠</span>
+                        <span>MCQ Practice</span>
+                    </a>
+                </li>
+                <li>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('bookmarks') }}" class="nav-item">
+                            <span class="text-lg">📚</span>
+                            <span>Bookmarks</span>
+                        </a>
+                    {% else %}
+                        <button class="nav-item">
+                            <span class="text-lg">📚</span>
+                            <span>Bookmarks</span>
+                        </button>
+                    {% endif %}
+                </li>
+                <li>
+                    {% if session.user_id %}
+                        <a href="{{ url_for('mcq.mcq_results') }}" class="nav-item">
+                            <span class="text-lg">📊</span>
+                            <span>MCQ Results</span>
+                        </a>
+                    {% else %}
+                        <button class="nav-item">
+                            <span class="text-lg">📊</span>
+                            <span>MCQ Results</span>
+                        </button>
+                    {% endif %}
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">⚙️</span>
+                        <span>Custom Module</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">💎</span>
+                        <span>Pearls</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🖼️</span>
+                        <span>Image Bank</span>
+                    </button>
+                </li>
+                <li>
+                    <a href="{{ url_for('test_bp.list_tests') }}" class="nav-item">
+                        <span class="text-lg">🧪</span>
+                        <span>Test Series</span>
+                    </a>
+                </li>
+                <li>
+                    <button class="nav-item">
+                        <span class="text-lg">🎥</span>
+                        <span>Videos</span>
+                    </button>
+                </li>
+                {% if session.user_type == 'admin' %}
+<li>
+    <a href="{{ url_for('dynamic_db_home') }}" class="nav-item">
+        <span class="text-lg">⚙️</span>
+        <span>Admin Panel</span>
+    </a>
+</li>
+{% endif %}
+
+
+
+            </ul>
+        </div>
+
+        <!-- Enhanced Tips Section -->
+        <div class="tips-section">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="text-lg">💡</span>
+                <span class="font-bold text-sm text-white">Study Tips</span>
+                <button class="ml-auto text-white text-base" aria-label="Close tip" onclick="this.closest('.tips-section').style.display='none'">×</button>
+            </div>
+            <p class="text-xs" style="color: #b0bec5; margin-bottom: 8px;">
+                Focus on high-yield topics and practice regularly for better retention.
+            </p>
+            <div class="text-center">
+                <button class="bg-transparent border border-white text-white py-1 px-4 rounded text-xs hover:bg-white hover:text-slate-800 transition-colors" onclick="alert('Feature coming soon!')">
+                    Next Tip
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content flex-1" role="main">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">Subjects by Professional Year</h1>
+            </div>
+        </div>
+
+        <div class="welcome-message">
+            {% if session.username %}
+                Welcome back, <strong>{{ session.username }}</strong>! Continue your medical studies.
+            {% else %}
+                Access comprehensive MBBS question banks and MCQ practice. Login to track your progress and bookmark questions.
+            {% endif %}
+        </div>
+
+        <div class="auth-actions flex flex-wrap gap-4 mb-6">
+            {% if session.username %}
+                <a href="{{ url_for('mcq.mcq_home') }}" class="auth-btn bg-green-500 text-white">🧠 MCQ Practice</a>
+                <a href="{{ url_for('dynamic_db_home') }}" class="auth-btn bg-gray-500 text-white">⚙️ Database Manager</a>
+                <a href="{{ url_for('logout') }}" class="auth-btn bg-red-500 text-white">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="auth-btn bg-slate-700 text-white">Login</a>
+                <a href="{{ url_for('signup') }}" class="auth-btn bg-cyan-400 text-white">Sign Up</a>
+                <a href="{{ url_for('mcq.mcq_home') }}" class="auth-btn bg-green-500 text-white">🧠 Try MCQ Practice</a>
+            {% endif %}
+        </div>
+
+        <div class="main-section space-y-6">
+            {% for year, subjects in grouped_subjects.items() %}
+                <div class="year-section">
+                    <h2>
+                        <div class="year-icon"></div>
+                        {{ year }}
+                    </h2>
+                    <div class="subject-list">
+                        {% for subject in subjects %}
+                            <a href="{{ url_for('show_subject', subject_name=subject.name if subject.name is defined else subject) }}" class="subject-card">
+                                <div class="subject-icon {{ (subject.name if subject.name is defined else subject).lower().replace(' ', '').replace('&', '') }}">
+                                    {% set subject_name = subject.name if subject.name is defined else subject %}
+                                    {% if 'anatomy' in subject_name.lower() %}🧠
+                                    {% elif 'biochemistry' in subject_name.lower() %}🧪
+                                    {% elif 'physiology' in subject_name.lower() %}❤️
+                                    {% elif 'pharmacology' in subject_name.lower() %}💊
+                                    {% elif 'pathology' in subject_name.lower() %}🔬
+                                    {% elif 'microbiology' in subject_name.lower() %}🦠
+                                    {% elif 'forensic' in subject_name.lower() %}⚖️
+                                    {% elif 'psm' in subject_name.lower() %}🏥
+                                    {% elif 'ent' in subject_name.lower() %}👂
+                                    {% elif 'ophthalmology' in subject_name.lower() %}👁️
+                                    {% elif 'medicine' in subject_name.lower() %}🩺
+                                    {% elif 'surgery' in subject_name.lower() %}🔪
+                                    {% elif 'pediatrics' in subject_name.lower() %}👶
+                                    {% elif 'obstetrics' in subject_name.lower() or 'gynecology' in subject_name.lower() %}🤱
+                                    {% elif 'orthopedics' in subject_name.lower() %}🦴
+                                    {% elif 'dermatology' in subject_name.lower() %}🧴
+                                    {% elif 'psychiatry' in subject_name.lower() %}🧠
+                                    {% elif 'radiology' in subject_name.lower() %}📡
+                                    {% else %}📖
+                                    {% endif %}
+                                </div>
+                                <div class="subject-info">
+                                    <h3>{{ subject_name }}</h3>
+                                    {% if session.user_id and subject.completed_topics is defined %}
+                                        <div class="subject-progress">
+                                            <div class="subject-progress-bar" style="width: {{ (subject.completed_topics / subject.total_topics * 100) if subject.total_topics > 0 else 0 }}%"></div>
+                                        </div>
+                                        <div class="progress-text">
+                                            {{ subject.completed_topics }}/{{ subject.total_topics }} topics completed
+                                        </div>
+                                    {% elif not session.user_id %}
+                                        <div class="progress-text">
+                                            Login to track progress
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const subjectCards = document.querySelectorAll('.subject-card');
+            subjectCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    this.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

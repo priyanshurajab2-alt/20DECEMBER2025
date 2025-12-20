@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ test['test_name'] }} - Question {{ q_num }} of {{ total }}</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    #timer {
+        font-weight: bold;
+        font-size: 1.2em;
+        color: #d32f2f;
+    }
+    .question-text {
+        font-size: 1.2em;
+        margin-bottom: 15px;
+    }
+    .option-label {
+        display: block;
+        cursor: pointer;
+        margin-bottom: 8px;
+    }
+    button {
+        padding: 8px 16px;
+        margin-right: 10px;
+        font-size: 1em;
+        cursor: pointer;
+    }
+    #mark-btn {
+        font-size: 1.8em;
+        background: none;
+        border: none;
+        cursor: pointer;
+        vertical-align: middle;
+        color: #ff9800;
+        margin-right: 15px;
+    }
+    .flash-message {
+        color: red;
+        margin-bottom: 15px;
+    }
+    a.review-link {
+        display: inline-block;
+        margin-top: 15px;
+        font-weight: bold;
+        text-decoration: none;
+        color: #1976d2;
+    }
+    a.review-link:hover {
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+<h1>{{ test['test_name'] }}</h1>
+<p>Time Remaining: <span id="timer"></span></p>
+<p>Question {{ q_num }} of {{ total }}</p>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash-message">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<form method="post" id="question-form">
+
+    <div class="question-text">{{ question['question'] }}</div>
+
+    <div id="options">
+        {% for opt, txt in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
+        <label class="option-label">
+            <input type="radio" name="answer" value="{{ opt }}" 
+                {% if selected_answer == opt %}checked{% endif %}>
+            {{ txt }}
+        </label>
+        {% endfor %}
+    </div>
+
+    <!-- Star toggle button -->
+    <button type="button" id="mark-btn" title="Mark question (Star)">
+        {% if question['id']|string in marked_questions %}
+            ★
+        {% else %}
+            ☆
+        {% endif %}
+    </button>
+
+    <div style="margin-top: 20px;">
+        <button type="submit" name="nav" value="skip" style="margin-right: 10px;">Skip</button>
+
+        {% if q_num > 1 %}
+            <button type="submit" name="nav" value="previous">Previous</button>
+        {% endif %}
+
+        {% if q_num < total %}
+            <button type="submit" name="nav" value="next">Next</button>
+        {% else %}
+            <button type="submit" name="nav" value="submit">Submit</button>
+        {% endif %}
+    </div>
+</form>
+
+<a href="{{ url_for('test_bp.review_test', test_id=test['id']) }}" class="review-link">Review Questions</a>
+
+<script>
+// -------- Timer --------
+const totalSeconds = {{ duration_minutes * 60 }};
+let timeLeft = sessionStorage.getItem('timeLeft') || totalSeconds;
+
+const timerElem = document.getElementById('timer');
+
+function updateTimer() {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    timerElem.textContent = minutes.toString().padStart(2,'0') + ':' + seconds.toString().padStart(2,'0');
+
+    if (timeLeft <= 0) {
+        alert('Time is up! Submitting test automatically.');
+        window.location.href = '{{ url_for("test_bp.submit_test", test_id=test["id"]) }}';
+    }
+    timeLeft--;
+    sessionStorage.setItem('timeLeft', timeLeft);
+}
+updateTimer();
+setInterval(updateTimer, 1000);
+
+// -------- Double click to deselect answer --------
+const inputs = document.querySelectorAll('input[type=radio][name=answer]');
+let lastClicked = null;
+inputs.forEach(input => {
+    input.addEventListener('click', () => {
+        if (lastClicked === input) {
+            input.checked = false;
+            lastClicked = null;
+        } else {
+            lastClicked = input;
+        }
+    });
+});
+
+// -------- Star Mark button AJAX toggle --------
+document.getElementById('mark-btn').addEventListener('click', function() {
+    const btn = this;
+    const testId = {{ test['id'] }};
+    const qNum = {{ q_num }};
+
+    fetch(`/tests/${testId}/question/${qNum}/toggle_mark`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin',
+        body: '{}'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            btn.textContent = data.marked ? '★' : '☆';
+        } else {
+            alert('Failed to toggle mark: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(() => alert('Network error toggling mark'));
+});
+</script>
+
+</body>
+</html>

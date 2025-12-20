@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Review Test - {{ test['test_name'] }}</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    .question-grid {
+        display: flex;
+        flex-wrap: wrap;
+        max-width: 400px;
+    }
+    .question-number {
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        margin: 5px;
+        text-align: center;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        color: white;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .answered { background-color: #4caf50; }       /* green */
+    .skipped { background-color: #9e9e9e; }        /* gray */
+    .marked { background-color: #ff9800; }         /* orange */
+    .marked_answered { background-color: #f57c00; }/* dark orange */
+    .marked_skipped { background-color: #795548; } /* brown */
+    .unanswered { background-color: #607d8b; }     /* blue gray */
+    .legend {
+        margin-top: 20px;
+    }
+    .legend-item {
+        display: inline-block;
+        margin-right: 20px;
+        font-weight: normal;
+    }
+    .color-box {
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 5px;
+        border-radius: 3px;
+    }
+    .color-answered { background-color: #4caf50; }
+    .color-skipped { background-color: #9e9e9e; }
+    .color-marked { background-color: #ff9800; }
+    .color-marked-answered { background-color: #f57c00; }
+    .color-marked-skipped { background-color: #795548; }
+    .color-unanswered { background-color: #607d8b; }
+</style>
+</head>
+<body>
+    <h1>Review Test - {{ test['test_name'] }}</h1>
+
+    <div class="question-grid">
+        {% for q in questions %}
+            {% set qid = q['id']|string %}
+            {% set answered = qid in answers %}
+            {% set skipped_q = qid in skipped %}
+            {% set is_marked = qid in marked %}
+
+            {% if answered and is_marked %}
+                {% set cls = "marked_answered" %}
+            {% elif skipped_q and is_marked %}
+                {% set cls = "marked_skipped" %}
+            {% elif is_marked %}
+                {% set cls = "marked" %}
+            {% elif answered %}
+                {% set cls = "answered" %}
+            {% elif skipped_q %}
+                {% set cls = "skipped" %}
+            {% else %}
+                {% set cls = "unanswered" %}
+            {% endif %}
+
+            <a href="{{ url_for('test_bp.single_question', test_id=test['id'], q_num=loop.index) }}"
+               class="question-number {{ cls }}"
+               title="Question {{ loop.index }}">
+               {{ loop.index }}
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><span class="color-box color-answered"></span>Answered</div>
+        <div class="legend-item"><span class="color-box color-skipped"></span>Skipped</div>
+        <div class="legend-item"><span class="color-box color-marked"></span>Marked</div>
+        <div class="legend-item"><span class="color-box color-marked-answered"></span>Marked & Answered</div>
+        <div class="legend-item"><span class="color-box color-marked-skipped"></span>Marked & Skipped</div>
+        <div class="legend-item"><span class="color-box color-unanswered"></span>Unanswered</div>
+    </div>
+
+    <br/>
+    <a href="{{ url_for('test_bp.submit_test', test_id=test['id']) }}">Submit Test</a>
+</body>
+</html>

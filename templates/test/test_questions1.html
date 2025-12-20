@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Questions for {{ test['test_name'] }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; max-width: 900px; }
+    h1, h2, h3 { color: #2a5db0; }
+    .question { margin-bottom: 1.5rem; }
+    ul.options { list-style-type: none; padding-left: 1rem; }
+    ul.options li {
+      margin: 0.3rem 0;
+      padding: 0.3rem 0.5rem;
+      background: #f0f4ff;
+      border-radius: 4px;
+      width: fit-content;
+    }
+    .back-link {
+      margin-top: 2rem;
+      display: inline-block;
+      color: #2a5db0;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test: {{ test['test_name'] }}</h1>
+  {% if test['description'] %}
+  <p>{{ test['description'] }}</p>
+  {% endif %}
+  <p><strong>Duration:</strong> {{ test['duration_minutes'] }} minutes</p>
+  
+  {% for subject, topics in grouped_questions.items() %}
+    <h2>Subject: {{ subject }}</h2>
+    {% for topic, questions in topics.items() %}
+      <h3>Topic: {{ topic }}</h3>
+      <ol>
+        {% for q in questions %}
+          <li class="question">
+            <strong>Q:</strong> {{ q['question'] }}
+            <ul class="options">
+              <li>A) {{ q['option_a'] }}</li>
+              <li>B) {{ q['option_b'] }}</li>
+              <li>C) {{ q['option_c'] }}</li>
+              <li>D) {{ q['option_d'] }}</li>
+            </ul>
+          </li>
+        {% endfor %}
+      </ol>
+    {% endfor %}
+  {% endfor %}
+
+
+  <a href="{{ url_for('test_bp.list_tests') }}" class="back-link">&larr; Back to Test List</a>
+</body>
+</html> generate the updated test questions.html

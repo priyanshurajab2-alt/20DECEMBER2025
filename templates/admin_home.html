@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin Home - MBBS QBank</title>
+</head>
+<body>
+    <h1>Welcome Admin {{ session.username if session.username else 'User' }}!</h1>
+
+    <nav>
+        <ul>
+            <li>
+                <a href="{{ url_for('dynamic_db_home') }}">⚙️ Admin Panel</a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </li>
+        </ul>
+    </nav>
+</body>
+</html>

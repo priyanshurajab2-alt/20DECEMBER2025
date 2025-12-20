@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Subject: {{ subject }} - Topics, Chapters, and Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            margin-bottom: 25px;
+        }
+        section {
+            margin-bottom: 40px;
+        }
+        h2 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 6px;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        a.button {
+            display: inline-block;
+            margin-top: 8px;
+            background: #007bff;
+            color: white;
+            padding: 9px 18px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        a.button:hover {
+            background: #0056b3;
+        }
+        ul.chapter-list {
+            list-style-type: disc;
+            padding-left: 20px;
+            color: #444;
+        }
+        ul.chapter-list li {
+            margin: 6px 0;
+            font-weight: 500;
+        }
+        .no-data {
+            font-style: italic;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Subject: {{ subject }}</h1>
+
+    <section>
+        <h2>Topics</h2>
+        {% if topics %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Topic Name</th>
+                        <th>Number of Questions</th>
+                        <th>Practice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for topic in topics %}
+                        <tr>
+                            <td>{{ topic['topic'] }}</td>
+                            <td>{{ topic['question_count'] }}</td>
+                            <td>
+                                <a href="{{ url_for('mcq.mcq_practice_topic', subject_name=subject, topic_name=topic['topic']) }}" class="button">Practice</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-data">No topics found for this subject.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Chapters</h2>
+        {% if chapters %}
+            <ul class="chapter-list">
+                {% for chapter in chapters %}
+                    <li>{{ chapter }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-data">No chapters data available.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Available Tests</h2>
+        {% if tests and tests|length > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Test Name</th>
+                        <th>Total Questions</th>
+                        <th>Duration (minutes)</th>
+                        <th>Difficulty Filter</th>
+                        <th>Take Test</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for test in tests %}
+                    <tr>
+                        <td>{{ test['test_name'] }}</td>
+                        <td>{{ test['total_questions'] }}</td>
+                        <td>{{ test['duration_minutes'] }}</td>
+                        <td>{{ test['difficulty_filter'] or 'Any' }}</td>
+                        <td>
+                            <a href="{{ url_for('mcq.mcq_test', test_id=test['id']) }}" class="button">Take Test</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="no-data">No public tests available for this subject.</p>
+        {% endif %}
+    </section>
+
+    <p>
+        <a href="{{ url_for('mcq.mcq_home') }}" class="button" style="background-color: #6c757d;">← Back to All Subjects</a>
+    </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<h1>{{ test['test_name'] }}</h1>
+<p>Time Remaining: <span id="timer"></span></p>
+<p>Question {{ q_num }} of {{ total }}</p>
+
+<form method="post" id="question-form">
+
+    <div><strong>{{ question['question'] }}</strong></div>
+
+    <div id="options">
+        {% for opt, txt in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
+        <label>
+            <input type="radio" name="answer" value="{{ opt }}" 
+                {% if selected_answer == opt %}checked{% endif %}>
+            {{ txt }}
+        </label><br>
+        {% endfor %}
+    </div>
+
+    <button type="submit" name="nav" value="mark_toggle" 
+        id="mark-btn" style="font-size: 1.5em; background: none; border: none; cursor: pointer;"
+        title="Mark question">
+
+        {% if question['id']|string in marked_questions %}
+            ★ <!-- filled star -->
+        {% else %}
+            ☆ <!-- empty star -->
+        {% endif %}
+    </button>
+
+    <div style="margin-top: 20px;">
+        {% if q_num > 1 %}
+            <button type="submit" name="nav" value="previous">Previous</button>
+        {% endif %}
+        {% if q_num < total %}
+            <button type="submit" name="nav" value="next">Next</button>
+        {% else %}
+            <button type="submit" name="nav" value="submit">Submit</button>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+// -------- Timer --------
+const totalSeconds = {{ duration_minutes * 60 }};
+let timeLeft = sessionStorage.getItem('timeLeft') || totalSeconds;
+
+const timerElem = document.getElementById('timer');
+
+function updateTimer() {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    timerElem.textContent = minutes.toString().padStart(2,'0') + ':' + seconds.toString().padStart(2,'0');
+
+    if (timeLeft <= 0) {
+        alert('Time is up! Submitting test automatically.');
+        // Submit the form to submit endpoint
+        window.location.href = '{{ url_for("test_bp.submit_test", test_id=test["id"]) }}';
+    }
+    timeLeft--;
+    sessionStorage.setItem('timeLeft', timeLeft);
+}
+updateTimer();
+setInterval(updateTimer, 1000);
+
+// Clear timer on submit page or when test finishes (you might want to adapt this as needed)
+// You can clear sessionStorage['timeLeft'] on testing submit page load if you want.
+
+// -------- Double click to deselect --------
+const inputs = document.querySelectorAll('input[type=radio][name=answer]');
+let lastClicked = null;
+inputs.forEach(input => {
+    input.addEventListener('click', () => {
+        if (lastClicked === input) {
+            input.checked = false;
+            lastClicked = null;
+        } else {
+            lastClicked = input;
+        }
+    });
+});
+
+// -------- Star Mark button submits form with mark_toggle nav --------
+document.getElementById('mark-btn').addEventListener('click', function(e){
+    e.preventDefault();
+    // Add hidden input nav=mark_toggle
+    let form = document.getElementById('question-form');
+    let navInput = document.createElement('input');
+    navInput.type = 'hidden';
+    navInput.name = 'nav';
+    navInput.value = 'mark_toggle';
+    form.appendChild(navInput);
+    form.submit();
+});
+
+</script>

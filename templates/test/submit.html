@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Test Submitted - {{ test_id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: green; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { margin-bottom: 8px; }
+        a { text-decoration: none; color: #0066cc; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Test Submitted!</h1>
+    <p>Thank you for completing the test: <strong>{{ test_id }}</strong></p>
+
+    {% if answers %}
+        <h2>Your Answers:</h2>
+        <ul>
+            {% for qid, answer in answers.items() %}
+                <li>Question ID {{ qid }}: Answered <strong>{{ answer }}</strong></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No answers recorded.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('test_bp.list_tests') }}">Back to Tests</a></p>
+</body>
+</html>

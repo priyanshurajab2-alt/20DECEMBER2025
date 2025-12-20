@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Report - {{ test.test_name }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .score-card { text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; margin-bottom: 30px; }
+        .score { font-size: 4em; font-weight: bold; margin: 0; }
+        .score-details { display: flex; justify-content: space-around; margin-top: 20px; font-size: 1.2em; }
+        .detail { text-align: center; }
+        .detail-number { font-size: 2em; font-weight: bold; display: block; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: all 0.3s; }
+        .btn-primary { background: #28a745; color: white; }
+        .btn-primary:hover { background: #218838; transform: translateY(-2px); }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; transform: translateY(-2px); }
+        .back-link { color: #007bff; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ test.test_name }} - Results</h1>
+        
+        <div class="score-card">
+            <div class="score">{{ correct }}/{{ total }}</div>
+            <div style="font-size: 1.5em; margin: 10px 0;">Score: {{ "%.1f"|format((correct/total)*100) }}%</div>
+            <div class="score-details">
+                <div class="detail">
+                    <span class="detail-number" style="color: #28a745;">{{ correct }}</span>
+                    Correct
+                </div>
+                <div class="detail">
+                    <span class="detail-number" style="color: #dc3545;">{{ wrong }}</span>
+                    Incorrect
+                </div>
+                <div class="detail">
+                    <span class="detail-number" style="color: #ffc107;">{{ unanswered }}</span>
+                    Unanswered
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ url_for('test_bp.review_attempted', test_id=test.id) }}" class="btn btn-primary">
+                📋 Review Attempted Questions
+            </a>
+            <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-secondary">
+                ← Back to Tests
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('test_bp.list_tests') }}" class="back-link">← All Tests</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MCQ Results - MBBS QBank</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .result-item { background: #f8f9fa; border-radius: 6px; padding: 20px; margin: 15px 0; border-left: 4px solid #007bff; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .result-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 10px 0; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.5em; font-weight: bold; color: #007bff; }
+        .stat-label { font-size: 0.9em; color: #666; }
+        .btn { display: inline-block; padding: 8px 16px; margin: 5px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .percentage { font-size: 1.2em; font-weight: bold; }
+        .grade-a { color: #28a745; }
+        .grade-b { color: #ffc107; }
+        .grade-c { color: #fd7e14; }
+        .grade-f { color: #dc3545; }
+        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .summary-card { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .summary-value { font-size: 2em; font-weight: bold; }
+        .summary-label { font-size: 0.9em; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1>📊 My MCQ Results</h1>
+            <a href="{{ url_for('mcq.mcq_home') }}" class="btn btn-primary">← Back to MCQ Home</a>
+        </div>
+
+        {% if results %}
+            <!-- Summary Statistics -->
+            <div class="summary-stats">
+                <div class="summary-card">
+                    <div class="summary-value">{{ results|length }}</div>
+                    <div class="summary-label">Tests Taken</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #28a745, #1e7e34);">
+                    <div class="summary-value">{{ "%.1f"|format((results|sum(attribute='percentage'))/results|length) }}%</div>
+                    <div class="summary-label">Average Score</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #ffc107, #d39e00);">
+                    <div class="summary-value">{{ results|sum(attribute='score') }}</div>
+                    <div class="summary-label">Total Correct</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #17a2b8, #117a8b);">
+                    <div class="summary-value">{{ results|sum(attribute='time_taken_minutes') }}</div>
+                    <div class="summary-label">Total Minutes</div>
+                </div>
+            </div>
+
+            <h2>📝 Test History</h2>
+            {% for result in results %}
+            <div class="result-item">
+                <div class="result-header">
+                    <h3>{{ result.test_name }}</h3>
+                    <span class="percentage {% if result.percentage >= 80 %}grade-a{% elif result.percentage >= 60 %}grade-b{% elif result.percentage >= 40 %}grade-c{% else %}grade-f{% endif %}">
+                        {{ result.percentage }}%
+                    </span>
+                </div>
+                
+                <div class="result-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ result.score }}</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ result.total_questions }}</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ result.time_taken_minutes }}</div>
+                        <div class="stat-label">Minutes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ result.subject }}</div>
+                        <div class="stat-label">Subject</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">
+                            {% if result.percentage >= 80 %}A
+                            {% elif result.percentage >= 60 %}B
+                            {% elif result.percentage >= 40 %}C
+                            {% else %}F
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">Grade</div>
+                    </div>
+                </div>
+                
+                <p style="color: #666; font-size: 0.9em;">
+                    📅 Completed: {{ result.completed_at }}
+                </p>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; color: #666; padding: 40px;">
+                <h3>No test results yet</h3>
+                <p>Take some MCQ tests to see your results here</p>
+                <a href="{{ url_for('mcq.mcq_home') }}" class="btn btn-primary">Start Practicing</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
