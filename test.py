@@ -404,10 +404,7 @@ def submit_test(test_id):
                 VALUES (?, ?, ?, ?, ?, 1)
             ''', (test_id, user_id, q['id'], user_answer, is_correct))
                     # Insert a durable completion marker (one row per user+test)
-            conn.execute('''
-            INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-            VALUES (?, ?, 0, NULL, 0, 1, 1)
-        ''', (test_id, user_id))
+            
         # Mark test as submitted
         conn.execute('''
             UPDATE user_responses
