@@ -101,6 +101,8 @@ class DynamicDatabaseHandler:
                 taken_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (test_id) REFERENCES test_info (id),
                 FOREIGN KEY (question_id) REFERENCES test_questions (id)
+                test_started INTEGER DEFAULT 0,
+                test_submitted INTEGER DEFAULT 0,                
             )
         '''
         }
