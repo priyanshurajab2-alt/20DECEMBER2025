@@ -6,12 +6,19 @@ test_bp = Blueprint('test_bp', __name__, url_prefix='/test', template_folder='te
 # then the URL becomes /test/tests
 
 # At top of test.py
-DATABASE = os.environ.get('TEST_DB_FILE', '/var/data/tests.db')
-
+BASE_TEST_DIR = '/var/data'  # same place you created neet_ug_1_test.db
 
 def get_test_db_connection():
     """Return connection to the tests database."""
-    conn = sqlite3.connect(DATABASE)
+    goal_key = session.get('current_goal')
+
+    # If a goal is set, use its test DB; otherwise fall back to old default
+    if goal_key:
+        db_path = os.path.join(BASE_TEST_DIR, f'{goal_key}_1_test.db')
+    else:
+        db_path = os.path.join(BASE_TEST_DIR, 'tests.db')
+
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
