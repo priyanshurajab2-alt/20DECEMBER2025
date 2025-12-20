@@ -6,7 +6,7 @@ test_bp = Blueprint('test_bp', __name__, url_prefix='/test', template_folder='te
 # then the URL becomes /test/tests
 
 # At top of test.py
-DATABASE = os.environ.get('TEST_DB_FILE', '/var/data/testrash.db')
+DATABASE = os.environ.get('TEST_DB_FILE', '/var/data/tests.db')
 
 
 def get_test_db_connection():
