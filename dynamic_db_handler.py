@@ -52,7 +52,7 @@ class DynamicDatabaseHandler:
             },
             # ------ Add this block ------
             'test': {
-                'pattern': 'test*.db',
+                'pattern': '*test.db',
                 'description': 'Test Databases',
                 'required_tables': ['test_info', 'test_questions'],
                 'schema': self.get_test_schema()
@@ -90,7 +90,7 @@ class DynamicDatabaseHandler:
                     FOREIGN KEY (test_id) REFERENCES test_info (id)
                 )
             ''',
-            'test_results': '''
+            'user_responses': '''
                 CREATE TABLE IF NOT EXISTS user_responses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     test_id INTEGER NOT NULL,
