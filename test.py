@@ -6,21 +6,38 @@ test_bp = Blueprint('test_bp', __name__, url_prefix='/test', template_folder='te
 # then the URL becomes /test/tests
 
 # At top of test.py
-BASE_TEST_DIR = '/var/data'  # same place you created neet_ug_1_test.db
+from dynamic_db_handler import dynamic_db_handler
+
+BASE_TEST_DIR = '/var/data'  # keep if you use it elsewhere
 
 def get_test_db_connection():
-    """Return connection to the tests database."""
-    goal_key = session.get('current_goal')
+    """Return connection to the tests database for the current goal, like MCQ does."""
+    goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs', etc.
 
-    # If a goal is set, use its test DB; otherwise fall back to old default
+    # Refresh discovery
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_databases = dynamic_db_handler.discovered_databases.get('test', [])
+
+    # 1) Try to find a test DB whose filename contains the goal key
     if goal_key:
-        db_path = os.path.join(BASE_TEST_DIR, f'{goal_key}_1_test.db')
-    else:
-        db_path = os.path.join(BASE_TEST_DIR, 'tests.db')
+        for db_info in test_databases:
+            if goal_key.lower() in db_info['file'].lower():
+                conn = dynamic_db_handler.get_connection(db_info['file'])
+                conn.row_factory = sqlite3.Row
+                return conn
 
+    # 2) Fallback: first available test DB
+    if test_databases:
+        conn = dynamic_db_handler.get_connection(test_databases[0]['file'])
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    # 3) Last resort: use /var/data/tests.db
+    db_path = os.path.join(BASE_TEST_DIR, 'tests.db')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 
 
