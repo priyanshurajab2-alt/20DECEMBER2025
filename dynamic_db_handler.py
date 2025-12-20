@@ -103,7 +103,7 @@ class DynamicDatabaseHandler:
                 FOREIGN KEY (question_id) REFERENCES test_questions (id),
                 test_started INTEGER DEFAULT 0,
                 test_submitted INTEGER DEFAULT 0               
-            )
+            );
         '''
         }
 
