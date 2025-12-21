@@ -86,7 +86,7 @@ def get_db_connection_for_test(test_id):
             continue
 
     # If not found in any discovered DB, fallback (should rarely happen)
-    conn = get_test_db_connection()  # This already sets row_factory
+    conn = get_db_connection_for_test(test_id)  # This already sets row_factory
     return conn
 
 
@@ -120,14 +120,15 @@ def list_tests():
             
             tests = conn.execute('''
                 SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-                       ti.start_time, ti.end_time, ti.created_at,
-                       CASE WHEN EXISTS (
-                           SELECT 1 FROM user_responses ur 
-                           WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
-                       ) THEN 1 ELSE 0 END AS test_submitted
+                    ti.start_time, ti.end_time, ti.created_at,
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM user_responses ur 
+                        WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
+                    ) THEN 1 ELSE 0 END AS test_submitted
                 FROM test_info ti
                 ORDER BY ti.created_at DESC
-            ''', (user_id,)).fetchall()
+                ''', (user_id,)).fetchall()
+
             
             # Add DB info
             for test_row in tests:
@@ -146,7 +147,7 @@ def list_tests():
 
 @test_bp.route('/tests/<int:test_id>/questions')
 def view_test_questions(test_id):
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
         if not test:
@@ -186,7 +187,7 @@ def start_test(test_id):
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
 def single_question(test_id, q_num):
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer
@@ -286,7 +287,7 @@ def single_question(test_id, q_num):
 # AJAX toggle mark
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>/toggle_mark', methods=['POST'])
 def toggle_mark_ajax(test_id, q_num):
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         questions = conn.execute('SELECT id FROM test_questions WHERE test_id = ? ORDER BY id', (test_id,)).fetchall()
     finally:
@@ -316,7 +317,7 @@ def toggle_mark_ajax(test_id, q_num):
 
 @test_bp.route('/tests/<int:test_id>/review')
 def review_test(test_id):
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         questions = conn.execute('''SELECT id FROM test_questions WHERE test_id = ? ORDER BY id''', (test_id,)).fetchall()
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
@@ -459,7 +460,15 @@ def submit_test(test_id):
             conn.row_factory = sqlite3.Row
             break
     else:
-        conn = get_test_db_connection()
+        conn = get_db_connection_for_test(test_id)
+
+         # 🔥 ADD DEBUG LOCATION (3 lines):
+        db_path = conn.execute("PRAGMA database_list").fetchall()
+        current_db = [row for row in db_path if row['name'] == 'main'][0]['file']
+        print(f"✅ SAVING to DB: {os.path.basename(current_db)}")  # Shows: mbbs_prof_testmbbs_test.db
+        # 🔥 END ADD
+
+
 
     try:
         # DEBUG: Check test exists
@@ -516,8 +525,21 @@ def submit_test(test_id):
         conn.commit()
         print("DEBUG: user_responses table READY")
         # 🔥 END ADD
+        try:
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
+                VALUES (?, ?, 0, 1)
+            ''', (test_id, user_id))
+            print("✅ FALLBACK marker added")
+        except:
+            print("⚠️ Fallback marker skipped")
+        
+        conn.commit()
+        print("DEBUG: Responses saved")
 
-              
+            
+  
+
         conn.commit()
 
 
