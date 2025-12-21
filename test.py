@@ -54,7 +54,7 @@ def list_tests():
                        FROM user_responses ur
                        WHERE ur.test_id = ti.id
                          AND ur.user_id = ?
-                         AND ur.question_id = 0
+                
                          AND ur.test_submitted = 1
                    ) AS test_submitted
             FROM test_info ti
@@ -407,7 +407,7 @@ def submit_test(test_id):
             conn.execute('''
             INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
             VALUES (?, ?, 0, NULL, 0, 1, 1)
-        ''', (test_id, user_id))
+        ''', (test_id, user_id, first_question_id))
         # Mark test as submitted
         conn.execute('''
             UPDATE user_responses
