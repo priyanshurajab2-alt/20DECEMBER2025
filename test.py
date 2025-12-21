@@ -10,6 +10,22 @@ from dynamic_db_handler import dynamic_db_handler
 
 BASE_TEST_DIR = '/var/data'  # keep if you use it elsewhere
 
+# Auto-create user_responses if missing
+conn.execute('''
+    CREATE TABLE IF NOT EXISTS user_responses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        test_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        question_id INTEGER,
+        user_answer TEXT,
+        is_correct INTEGER,
+        test_started INTEGER DEFAULT 0,
+        test_submitted INTEGER DEFAULT 0,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(test_id, user_id, question_id)
+    )
+''')
+conn.commit()
 def get_test_db_connection():
     """Return connection to the tests database for the current goal, like MCQ does."""
     goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs', etc.
