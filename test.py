@@ -481,22 +481,19 @@ def submit_test(test_id):
         return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
     # Find CORRECT DB for this test_id (4 lines only)
-    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
-    for db_info in test_dbs:
-        if dynamic_db_handler.get_connection(db_info['file']).execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
-            conn = dynamic_db_handler.get_connection(db_info['file'])
-            conn.row_factory = sqlite3.Row
-            break
-    else:
-        conn = get_db_connection_for_test(test_id)
+    # 🔥 USE SESSION DB (5 lines):
+    db_file = session.get(f'test_{test_id}_db_file')
+    if not db_file or not os.path.exists(db_file):
+        flash("Test session expired!", "error")
+        return redirect(url_for('test_bp.list_tests'))
+
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+    print(f"✅ SESSION DB: {os.path.basename(db_file)}")
+
 
          # 🔥 ADD DEBUG LOCATION (3 lines):
-        db_path = conn.execute("PRAGMA database_list").fetchall()
-        current_db = [row for row in db_path if row['name'] == 'main'][0]['file']
-        print(f"✅ SAVING to DB: {os.path.basename(current_db)}")  # Shows: mbbs_prof_testmbbs_test.db
-        # 🔥 END ADD
-
+       
 
 
     try:
