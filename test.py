@@ -401,7 +401,17 @@ def submit_test(test_id):
         print("DEBUG: Redirecting to review")
         return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
-    conn = get_test_db_connection()
+    # Find CORRECT DB for this test_id (4 lines only)
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    for db_info in test_dbs:
+        if dynamic_db_handler.get_connection(db_info['file']).execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            break
+    else:
+        conn = get_test_db_connection()
+
     try:
         # DEBUG: Check test exists
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
