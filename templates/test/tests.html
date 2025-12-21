@@ -259,10 +259,9 @@
                 Review Test
             </a>
         {% else %}
-            <a href="{{ url_for('test_bp.start_test', test_id=test['id']) }}"
-               class="btn btn-sm btn-success mt-1">
-                Start Test
-            </a>
+            <!-- NEW -->
+           <a href="{{ url_for('test_bp.start_test', test_id=test.id, db_file=test.database_file) }}" class="btn btn-primary">Start Test</a>
+
         {% endif %}
     </li>
     <hr/>
