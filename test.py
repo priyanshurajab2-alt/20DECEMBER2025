@@ -44,49 +44,27 @@ def get_test_db_connection():
 @test_bp.route('/tests')
 def list_tests():
     user_id = session.get('user_id', 1)
-    
-    # Get ALL test databases for current goal
-    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    test_databases = dynamic_db_handler.discovered_databases.get('test', [])
-    print(f"DEBUG: Found {len(test_databases)} test DBs")
-    
-    all_tests = []
-    
-    # Query EACH test database separately
-    for db_info in test_databases:
-        print(f"DEBUG: Checking DB {db_info['file']}")
-        try:
-            conn = dynamic_db_handler.get_connection(db_info['file'])
-            conn.row_factory = sqlite3.Row
-            
-            tests = conn.execute('''
-                SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-                       ti.start_time, ti.end_time, ti.created_at,
-                       CASE WHEN EXISTS (
-                           SELECT 1 FROM user_responses ur 
-                           WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
-                       ) THEN 1 ELSE 0 END AS test_submitted
-                FROM test_info ti
-                ORDER BY ti.created_at DESC
-            ''', (user_id,)).fetchall()
-            
-            # FIXED: Convert Row to dict (mutable)
-            for test_row in tests:
-                test_dict = dict(test_row)
-                test_dict['database_file'] = db_info['file']
-                all_tests.append(test_dict)
-            
-            conn.close()
-            print(f"DEBUG: {db_info['file']} → {len(tests)} tests")
-            
-        except Exception as e:
-            print(f"DEBUG: Error in {db_info['file']}: {e}")
-    
-    # Sort all tests by creation date
-    all_tests.sort(key=lambda t: t['created_at'] or '', reverse=True)
-    
-    print(f"DEBUG: Total tests to show: {len(all_tests)}")
-    return render_template('test/tests.html', tests=all_tests)
+    conn = get_test_db_connection()
+    try:
+        cur = conn.execute('''
+            SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+                   ti.start_time, ti.end_time,
+                   EXISTS (
+                       SELECT 1
+                       FROM user_responses ur
+                       WHERE ur.test_id = ti.id
+                         AND ur.user_id = ?
+                
+                         AND ur.test_submitted = 1
+                   ) AS test_submitted
+            FROM test_info ti
+            ORDER BY ti.created_at DESC
+        ''', (user_id,))
+        tests = cur.fetchall()
+    finally:
+        conn.close()
+
+    return render_template('test/tests.html', tests=tests)
 
 
 @test_bp.route('/tests/<int:test_id>/questions')
