@@ -44,44 +44,46 @@ def get_test_db_connection():
 @test_bp.route('/tests')
 def list_tests():
     user_id = session.get('user_id', 1)
-
     
-    conn = get_test_db_connection()
-
-    print("=== DEBUG get_test_db_connection() ===")
-    print("Using DB:", conn.execute("PRAGMA database_list").fetchall())
-    print("Tables in DB:", [row[1] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()])
-
-
-    try:
-        cur = conn.execute('''
-    SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-           ti.start_time, ti.end_time,
-           CASE 
-               WHEN EXISTS (
-                   SELECT 1 FROM user_responses ur 
-                   WHERE ur.test_id = ti.id 
-                     AND ur.user_id = ? 
-                     AND ur.test_submitted = 1
-               ) THEN 1 ELSE 0 
-           END AS test_submitted,
-           CASE 
-               WHEN EXISTS (
-                   SELECT 1 FROM user_responses ur 
-                   WHERE ur.test_id = ti.id 
-                     AND ur.user_id = ?
-                     AND ur.test_started = 1
-               ) THEN 1 ELSE 0 
-           END AS test_started
-    FROM test_info ti
-    ORDER BY ti.created_at DESC
-''', (user_id, user_id))
-
-        tests = cur.fetchall()
-    finally:
-        conn.close()
-
-    return render_template('test/tests.html', tests=tests)
+    # Get ALL test databases for current goal
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_databases = dynamic_db_handler.discovered_databases.get('test', [])
+    print(f"DEBUG: Found {len(test_databases)} test DBs")
+    
+    all_tests = []
+    
+    # Query EACH test database separately
+    for db_info in test_databases:
+        print(f"DEBUG: Checking DB {db_info['file']}")
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            
+            tests = conn.execute('''
+                SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+                       ti.start_time, ti.end_time,
+                       CASE WHEN EXISTS (
+                           SELECT 1 FROM user_responses ur 
+                           WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
+                       ) THEN 1 ELSE 0 END AS test_submitted
+                FROM test_info ti
+                ORDER BY ti.created_at DESC
+            ''', (user_id,)).fetchall()
+            
+            # Add database info to each test
+            for test in tests:
+                test['database_file'] = db_info['file']
+            
+            all_tests.extend(tests)
+            conn.close()
+            
+        except Exception as e:
+            print(f"DEBUG: Error in {db_info['file']}: {e}")
+    
+    # Sort all tests by creation date
+    all_tests.sort(key=lambda t: t['created_at'] or '', reverse=True)
+    
+    return render_template('test/tests.html', tests=all_tests)
 
 
 @test_bp.route('/tests/<int:test_id>/questions')
