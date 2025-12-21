@@ -196,22 +196,33 @@ def view_test_questions(test_id):
 
 @test_bp.route('/tests/<int:test_id>/start')
 def start_test(test_id):
-    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    db_file = request.args.get('db_file')  # From template!
     
-    # 🔥 FIND & STORE CORRECT DB:
-    for db_info in test_dbs:
-        conn = dynamic_db_handler.get_connection(db_info['file'])
-        if conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
-            session[f'test_{test_id}_db_file'] = db_info['file']  # REMEMBER DB!
-            conn.close()
-            break
-        conn.close()
+    if db_file:
+        full_path = os.path.join('/var/data', db_file)
+        if os.path.exists(full_path):
+            # Verify test exists in this DB
+            conn = dynamic_db_handler.get_connection(full_path)
+            if conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+                session[f'test_{test_id}_db_file'] = full_path
+                print(f"✅ start_test(): test_id={test_id} in {db_file}")
+                conn.close()
+                # Initialize sessions
+                session[f'test_{test_id}_answers'] = {}
+                session[f'test_{test_id}_marked'] = []
+                session[f'test_{test_id}_skipped'] = []
+                return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=1))
+            else:
+                conn.close()
+                flash(f"Test ID {test_id} not found in {db_file}!", "error")
+                return redirect(url_for('test_bp.list_tests'))
+        else:
+            flash(f"Database {db_file} not found!", "error")
+            return redirect(url_for('test_bp.list_tests'))
     
-    session[f'test_{test_id}_answers'] = {}
-    session[f'test_{test_id}_marked'] = []
-    session[f'test_{test_id}_skipped'] = []
-    return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=1))
+    # Fallback if no db_file
+    flash("No database specified!", "error")
+    return redirect(url_for('test_bp.list_tests'))
 
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
