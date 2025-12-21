@@ -61,7 +61,7 @@ def list_tests():
             
             tests = conn.execute('''
                 SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-                       ti.start_time, ti.end_time,
+                       ti.start_time, ti.end_time, ti.created_at,
                        CASE WHEN EXISTS (
                            SELECT 1 FROM user_responses ur 
                            WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
@@ -70,12 +70,14 @@ def list_tests():
                 ORDER BY ti.created_at DESC
             ''', (user_id,)).fetchall()
             
-            # Add database info to each test
-            for test in tests:
-                test['database_file'] = db_info['file']
+            # FIXED: Convert Row to dict (mutable)
+            for test_row in tests:
+                test_dict = dict(test_row)
+                test_dict['database_file'] = db_info['file']
+                all_tests.append(test_dict)
             
-            all_tests.extend(tests)
             conn.close()
+            print(f"DEBUG: {db_info['file']} → {len(tests)} tests")
             
         except Exception as e:
             print(f"DEBUG: Error in {db_info['file']}: {e}")
@@ -83,6 +85,7 @@ def list_tests():
     # Sort all tests by creation date
     all_tests.sort(key=lambda t: t['created_at'] or '', reverse=True)
     
+    print(f"DEBUG: Total tests to show: {len(all_tests)}")
     return render_template('test/tests.html', tests=all_tests)
 
 
