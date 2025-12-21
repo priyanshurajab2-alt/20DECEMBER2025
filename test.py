@@ -47,19 +47,28 @@ def list_tests():
     conn = get_test_db_connection()
     try:
         cur = conn.execute('''
-            SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-                   ti.start_time, ti.end_time,
-                   EXISTS (
-                       SELECT 1
-                       FROM user_responses ur
-                       WHERE ur.test_id = ti.id
-                         AND ur.user_id = ?
-                
-                         AND ur.test_submitted = 1
-                   ) AS test_submitted
-            FROM test_info ti
-            ORDER BY ti.created_at DESC
-        ''', (user_id,))
+    SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+           ti.start_time, ti.end_time,
+           CASE 
+               WHEN EXISTS (
+                   SELECT 1 FROM user_responses ur 
+                   WHERE ur.test_id = ti.id 
+                     AND ur.user_id = ? 
+                     AND ur.test_submitted = 1
+               ) THEN 1 ELSE 0 
+           END AS test_submitted,
+           CASE 
+               WHEN EXISTS (
+                   SELECT 1 FROM user_responses ur 
+                   WHERE ur.test_id = ti.id 
+                     AND ur.user_id = ?
+                     AND ur.test_started = 1
+               ) THEN 1 ELSE 0 
+           END AS test_started
+    FROM test_info ti
+    ORDER BY ti.created_at DESC
+''', (user_id, user_id))
+
         tests = cur.fetchall()
     finally:
         conn.close()
