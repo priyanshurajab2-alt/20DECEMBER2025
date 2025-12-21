@@ -44,27 +44,55 @@ def get_test_db_connection():
 @test_bp.route('/tests')
 def list_tests():
     user_id = session.get('user_id', 1)
-    conn = get_test_db_connection()
-    try:
-        cur = conn.execute('''
-            SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
-                   ti.start_time, ti.end_time,
-                   EXISTS (
-                       SELECT 1
-                       FROM user_responses ur
-                       WHERE ur.test_id = ti.id
-                         AND ur.user_id = ?
-                
-                         AND ur.test_submitted = 1
-                   ) AS test_submitted
-            FROM test_info ti
-            ORDER BY ti.created_at DESC
-        ''', (user_id,))
-        tests = cur.fetchall()
-    finally:
-        conn.close()
-
-    return render_template('test/tests.html', tests=tests)
+    goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs_prof', etc.
+    
+    # Get ALL test databases
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    all_test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    
+    # FILTER by current goal
+    goal_test_dbs = []
+    if goal_key:
+        for db_info in all_test_dbs:
+            if goal_key.lower() in db_info['file'].lower():
+                goal_test_dbs.append(db_info)
+    else:
+        goal_test_dbs = all_test_dbs  # No goal = show all
+    
+    print(f"DEBUG: Goal='{goal_key}', Found {len(goal_test_dbs)} goal-specific test DBs")
+    
+    all_tests = []
+    
+    # Query ONLY goal-specific databases
+    for db_info in goal_test_dbs:
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            
+            tests = conn.execute('''
+                SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+                       ti.start_time, ti.end_time, ti.created_at,
+                       CASE WHEN EXISTS (
+                           SELECT 1 FROM user_responses ur 
+                           WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
+                       ) THEN 1 ELSE 0 END AS test_submitted
+                FROM test_info ti
+                ORDER BY ti.created_at DESC
+            ''', (user_id,)).fetchall()
+            
+            # Add DB info
+            for test_row in tests:
+                test_dict = dict(test_row)
+                test_dict['database_file'] = os.path.basename(db_info['file'])
+                all_tests.append(test_dict)
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error in {db_info['file']}: {e}")
+    
+    all_tests.sort(key=lambda t: t.get('created_at', ''), reverse=True)
+    
+    return render_template('test/tests.html', tests=all_tests)
 
 
 @test_bp.route('/tests/<int:test_id>/questions')
