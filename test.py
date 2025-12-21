@@ -132,9 +132,25 @@ def list_tests():
             
             # Add DB info
             for test_row in tests:
-                test_dict = dict(test_row)
-                test_dict['database_file'] = os.path.basename(db_info['file'])
-                all_tests.append(test_dict)
+                    test_dict = dict(test_row)
+                    test_dict['database_file'] = os.path.basename(db_info['file'])
+                    
+                    # 🔥 CHECK COMPLETION IN THIS DB:
+                    user_id = session.get('user_id', 1)
+                    try:
+                        check_conn = dynamic_db_handler.get_connection(db_info['file'])
+                        check_conn.row_factory = sqlite3.Row
+                        result = check_conn.execute('''
+                            SELECT 1 FROM user_responses 
+                            WHERE test_id=? AND user_id=? AND test_submitted=1
+                        ''', (test_dict['id'], user_id)).fetchone()
+                        test_dict['test_submitted'] = 1 if result else 0
+                        check_conn.close()
+                    except:
+                        test_dict['test_submitted'] = 0
+                    
+                    all_tests.append(test_dict)
+
             
             conn.close()
         except Exception as e:
@@ -180,10 +196,23 @@ def view_test_questions(test_id):
 
 @test_bp.route('/tests/<int:test_id>/start')
 def start_test(test_id):
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    
+    # 🔥 FIND & STORE CORRECT DB:
+    for db_info in test_dbs:
+        conn = dynamic_db_handler.get_connection(db_info['file'])
+        if conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+            session[f'test_{test_id}_db_file'] = db_info['file']  # REMEMBER DB!
+            conn.close()
+            break
+        conn.close()
+    
     session[f'test_{test_id}_answers'] = {}
     session[f'test_{test_id}_marked'] = []
     session[f'test_{test_id}_skipped'] = []
     return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=1))
+
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
 def single_question(test_id, q_num):
