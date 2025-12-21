@@ -402,15 +402,22 @@ def submit_test(test_id):
         return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
     # Find CORRECT DB for this test_id (4 lines only)
+    # Find correct database
+    print(f"Finding DB for test_id={test_id}")
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
     test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
     for db_info in test_dbs:
-        if dynamic_db_handler.get_connection(db_info['file']).execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+        test_conn = dynamic_db_handler.get_connection(db_info['file'])
+        if test_conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+            test_conn.close()
             conn = dynamic_db_handler.get_connection(db_info['file'])
             conn.row_factory = sqlite3.Row
+            print(f"✅ USING {os.path.basename(db_info['file'])}")
             break
+        test_conn.close()
     else:
-        conn = get_test_db_connection()
+     conn = get_test_db_connection()
+    
 
     try:
         # DEBUG: Check test exists
@@ -431,28 +438,7 @@ def submit_test(test_id):
         answers = session.get(answer_key, {})
         print(f"DEBUG: Session answers: {answers}")
         
-        for q in questions:
-            qid = str(q['id'])
-            user_answer = answers.get(qid)
-            is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
-            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
-            
-            conn.execute('''
-                INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-                VALUES (?, ?, ?, ?, ?, 1, 1)
-            ''', (test_id, user_id, q['id'], user_answer, is_correct))
-                    # Insert a durable completion marker (one row per user+test)
-            first_question_id = questions[0]['id'] if questions else 1                         
-            conn.execute('''
-            INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-            VALUES (?, ?, ?, NULL, 0, 1, 1)
-        ''', (test_id, user_id, first_question_id))
-        # Mark test as submitted
-        conn.execute('''
-            UPDATE user_responses
-            SET test_submitted = 1
-            WHERE test_id = ? AND user_id = ?
-        ''', (test_id, user_id))
+    
 
         conn.commit()
 
