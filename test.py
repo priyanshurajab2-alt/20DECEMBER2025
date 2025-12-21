@@ -487,22 +487,37 @@ def submit_test(test_id):
             print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
             
             conn.execute('''
-                INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
                 VALUES (?, ?, ?, ?, ?, 1, 1)
             ''', (test_id, user_id, q['id'], user_answer, is_correct))
                     # Insert a durable completion marker (one row per user+test)
-            first_question_id = questions[0]['id'] if questions else 1                         
-            conn.execute('''
-            INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-            VALUES (?, ?, ?, NULL, 0, 1, 1)
-        ''', (test_id, user_id, first_question_id))
-        # Mark test as submitted
-        conn.execute('''
-            UPDATE user_responses
-            SET test_submitted = 1
-            WHERE test_id = ? AND user_id = ?
-        ''', (test_id, user_id))
 
+            questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        print(f"DEBUG: Questions found: {len(questions)}")
+
+            # 🔥 ADD TABLE CREATION HERE:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                question_id INTEGER,
+                user_answer TEXT,
+                is_correct INTEGER,
+                test_started INTEGER DEFAULT 0,
+                test_submitted INTEGER DEFAULT 0,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(test_id, user_id, question_id)
+            )
+        ''')
+        conn.commit()
+        print("DEBUG: user_responses table READY")
+        # 🔥 END ADD
+
+              
         conn.commit()
 
 
