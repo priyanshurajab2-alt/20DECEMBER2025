@@ -407,7 +407,7 @@ def submit_test(test_id):
             first_question_id = questions[0]['id'] if questions else 1                         
             conn.execute('''
             INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-            VALUES (?, ?, 0, NULL, 0, 1, 1)
+            VALUES (?, ?, ?, NULL, 0, 1, 1)
         ''', (test_id, user_id, first_question_id))
         # Mark test as submitted
         conn.execute('''
