@@ -45,14 +45,14 @@ def get_test_db_connection():
 def list_tests():
     user_id = session.get('user_id', 1)
 
+    
     conn = get_test_db_connection()
+
     print("=== DEBUG get_test_db_connection() ===")
     print("Using DB:", conn.execute("PRAGMA database_list").fetchall())
     print("Tables in DB:", [row[1] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()])
-    
-    try:
-        #     
-    conn = get_test_db_connection()
+
+
     try:
         cur = conn.execute('''
     SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
