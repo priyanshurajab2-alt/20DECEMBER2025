@@ -137,10 +137,7 @@ def start_test(test_id):
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
 def single_question(test_id, q_num):
-    db_file = session.get(f'test_{test_id}_db')
-    conn = dynamic_db_handler.get_connection(db_file or '/var/data/tests.db')
-    conn.row_factory = sqlite3.Row
-
+    conn = get_test_db_connection()
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer
@@ -298,10 +295,7 @@ def review_test(test_id):
 def review_attempted(test_id):
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
     
-    db_file = session.get(f'test_{test_id}_db')
-    conn = dynamic_db_handler.get_connection(db_file or '/var/data/tests.db')
-    conn.row_factory = sqlite3.Row
-
+    conn = get_test_db_connection()
     try:
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
         print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
@@ -344,10 +338,7 @@ def review_attempted(test_id):
 def review_question(test_id, filter_type, q_index):
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
     
-    db_file = session.get(f'test_{test_id}_db')
-    conn = dynamic_db_handler.get_connection(db_file or '/var/data/tests.db')
-    conn.row_factory = sqlite3.Row
-
+    conn = get_test_db_connection()
     try:
         # 1. Verify test exists
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
@@ -411,22 +402,15 @@ def submit_test(test_id):
         return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
     # Find CORRECT DB for this test_id (4 lines only)
-    # Find correct database
-    print(f"Finding DB for test_id={test_id}")
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
     test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
     for db_info in test_dbs:
-        test_conn = dynamic_db_handler.get_connection(db_info['file'])
-        if test_conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
-            test_conn.close()
+        if dynamic_db_handler.get_connection(db_info['file']).execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
             conn = dynamic_db_handler.get_connection(db_info['file'])
             conn.row_factory = sqlite3.Row
-            print(f"✅ USING {os.path.basename(db_info['file'])}")
             break
-        test_conn.close()
     else:
-     conn = get_test_db_connection()
-    
+        conn = get_test_db_connection()
 
     try:
         # DEBUG: Check test exists
@@ -447,7 +431,28 @@ def submit_test(test_id):
         answers = session.get(answer_key, {})
         print(f"DEBUG: Session answers: {answers}")
         
-    
+        for q in questions:
+            qid = str(q['id'])
+            user_answer = answers.get(qid)
+            is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
+            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
+            
+            conn.execute('''
+                INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
+                VALUES (?, ?, ?, ?, ?, 1, 1)
+            ''', (test_id, user_id, q['id'], user_answer, is_correct))
+                    # Insert a durable completion marker (one row per user+test)
+            first_question_id = questions[0]['id'] if questions else 1                         
+            conn.execute('''
+            INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
+            VALUES (?, ?, ?, NULL, 0, 1, 1)
+        ''', (test_id, user_id, first_question_id))
+        # Mark test as submitted
+        conn.execute('''
+            UPDATE user_responses
+            SET test_submitted = 1
+            WHERE test_id = ? AND user_id = ?
+        ''', (test_id, user_id))
 
         conn.commit()
 
