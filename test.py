@@ -421,30 +421,28 @@ def submit_test(test_id):
         answers = session.get(answer_key, {})
         print(f"DEBUG: Session answers: {answers}")
         
-        for q in questions:
-            qid = str(q['id'])
-            user_answer = answers.get(qid)
-            is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
-            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
-            
-            conn.execute('''
-                INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started)
-                VALUES (?, ?, ?, ?, ?, 1)
-            ''', (test_id, user_id, q['id'], user_answer, is_correct))
-                    # Insert a durable completion marker (one row per user+test)
-            first_question_id = questions[0]['id'] if questions else 1                         
-            conn.execute('''
-            INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-            VALUES (?, ?, ?, NULL, 0, 1, 1)
-        ''', (test_id, user_id, first_question_id))
-        # Mark test as submitted
-        conn.execute('''
-            UPDATE user_responses
-            SET test_submitted = 1
-            WHERE test_id = ? AND user_id = ?
-        ''', (test_id, user_id))
+        # Get first question ID for marker
+first_question_id = questions[0]['id'] if questions else 1
 
-        conn.commit()
+# 1. FIRST: Insert marker (sets test_submitted=1)
+conn.execute('''
+    INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
+    VALUES (?, ?, ?, NULL, 0, 1, 1)
+''', (test_id, user_id, first_question_id))
+
+# 2. THEN: Insert all question responses
+for q in questions:
+    qid = str(q['id'])
+    user_answer = answers.get(qid)
+    is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
+    print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
+    
+    conn.execute('''
+        INSERT INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started)
+        VALUES (?, ?, ?, ?, ?, 1)
+    ''', (test_id, user_id, q['id'], user_answer, is_correct))
+
+conn.commit()
 
 
         print("DEBUG: Responses saved")
