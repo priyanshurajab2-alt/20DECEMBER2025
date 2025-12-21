@@ -38,7 +38,31 @@ def get_test_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_db_connection_for_test(test_id):
+    """
+    Find and return the exact database connection where the given test_id exists.
+    This ensures consistency between submit and review.
+    """
+    # Refresh discovered databases
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
 
+    for db_info in test_dbs:
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            # Check if this test exists in this DB
+            if conn.execute('SELECT 1 FROM test_info WHERE id = ?', (test_id,)).fetchone():
+                return conn  # Found the right one!
+        except Exception as e:
+            print(f"Error checking {db_info['file']}: {e}")
+            if 'conn' in locals():
+                conn.close()
+            continue
+
+    # If not found in any discovered DB, fallback (should rarely happen)
+    conn = get_test_db_connection()  # This already sets row_factory
+    return conn
 
 
 @test_bp.route('/tests')
@@ -295,7 +319,7 @@ def review_test(test_id):
 def review_attempted(test_id):
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
     
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
         print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
@@ -338,7 +362,7 @@ def review_attempted(test_id):
 def review_question(test_id, filter_type, q_index):
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
     
-    conn = get_test_db_connection()
+    conn = get_db_connection_for_test(test_id)
     try:
         # 1. Verify test exists
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
