@@ -88,6 +88,13 @@ def get_db_connection_for_test(test_id):
     # If not found in any discovered DB, fallback (should rarely happen)
     conn = get_db_connection_for_test(test_id)  # This already sets row_factory
     return conn
+def get_session_db(test_id):
+    db_file = session.get(f'test_{test_id}_db_file')
+    if not db_file:
+        return None
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 @test_bp.route('/tests')
@@ -227,7 +234,9 @@ def start_test(test_id):
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
 def single_question(test_id, q_num):
-    conn = get_db_connection_for_test(test_id)
+    conn = get_session_db(test_id) 
+    if not conn:
+     abort(404)
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer
@@ -357,7 +366,7 @@ def toggle_mark_ajax(test_id, q_num):
 
 @test_bp.route('/tests/<int:test_id>/review')
 def review_test(test_id):
-    conn = get_db_connection_for_test(test_id)
+    conn = get_session_db(test_id)
     try:
         questions = conn.execute('''SELECT id FROM test_questions WHERE test_id = ? ORDER BY id''', (test_id,)).fetchall()
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
@@ -384,8 +393,11 @@ def review_test(test_id):
 @test_bp.route('/tests/<int:test_id>/review-attempted')
 def review_attempted(test_id):
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
-    
-    conn = get_db_connection_for_test(test_id)
+    conn = get_session_db(test_id)
+    if not conn:
+     return redirect(url_for('test_bp.list_tests'))
+
+      
     try:
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
         print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
@@ -428,7 +440,10 @@ def review_attempted(test_id):
 def review_question(test_id, filter_type, q_index):
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
     
-    conn = get_db_connection_for_test(test_id)
+    conn = get_session_db(test_id)
+    if not conn:
+     return redirect(url_for('test_bp.review_attempted', test_id=test_id))
+    
     try:
         # 1. Verify test exists
         test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
