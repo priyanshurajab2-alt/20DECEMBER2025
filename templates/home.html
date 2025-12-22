@@ -525,6 +525,29 @@
             {% endif %}
         </div>
 
+                <form action="{{ url_for('subscribe') }}" method="POST">
+          <label>Name</label>
+          <input type="text" name="name" value="{{ user_name }}" required>
+        
+          <label>Goal</label>
+          <select name="goal" required>
+            <option value="neet_ug">NEET UG</option>
+            <option value="mbbs_prof">MBBS Prof</option>
+            <!-- add others if needed -->
+          </select>
+        
+          <button type="submit">Subscribe</button>
+        </form>
+        
+        {% if user_subscription_status == 'subscribed' %}
+          <p>You are subscribed for: {{ user_subscription_goal }}</p>
+        {% else %}
+          <p>You are not subscribed.</p>
+        {% endif %}
+
+
+
+        
         <div class="main-section space-y-6">
             {% for year, subjects in grouped_subjects.items() %}
                 <div class="year-section">
