@@ -22,6 +22,22 @@
         }
     </script>
     <style>
+
+.hover-shadow {
+    transition: all 0.2s ease;
+}
+.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+.card {
+    transition: all 0.2s ease;
+    border-radius: 12px;
+}
+
+
+
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -239,37 +255,70 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="main-section">
-            <h1>Available Tests</h1>
-            <ul>
+            <div class="d-flex align-items-center mb-4">
+                <span class="display-6 me-3 text-primary">🧪</span>
+                <h1 class="mb-0 fw-bold">Available Tests</h1>
+            </div>
+                        <div class="row g-4">
                 {% for test in tests %}
-    <li>
-        <strong>{{ test['test_name'] }}</strong>
-        {% if test['test_submitted'] %}
-            <span class="badge bg-success ms-2">Completed</span>
-        {% endif %}
-        <br />
-        {{ test['description'] }}<br />
-        Duration: {{ test['duration_minutes'] }} minutes<br />
-        Start Time: {{ test['start_time'] }}<br />
-        End Time: {{ test['end_time'] }}<br />
-
-        {% if test['test_submitted'] %}
-            <a href="{{ url_for('test_bp.review_attempted', test_id=test['id']) }}"
-               class="btn btn-sm btn-primary mt-1">
-                Review Test
-            </a>
-        {% else %}
-            <!-- NEW -->
-           <a href="{{ url_for('test_bp.start_test', test_id=test.id, db_file=test.database_file) }}" class="btn btn-primary">Start Test</a>
-
-        {% endif %}
-    </li>
-    <hr/>
-{% else %}
-
-                    <p>No tests available at the moment.</p>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h6 class="card-title mb-2 fw-bold">{{ test['test_name'] }}</h6>
+                                {% if test['test_submitted'] %}
+                                    <span class="badge bg-success">✓ Completed</span>
+                                {% elif test.effective_locked %}
+                                    <span class="badge bg-warning text-dark">🔒 Locked</span>
+                                {% endif %}
+                            </div>
+                            
+                            <p class="card-text text-muted small flex-grow-1">{{ test['description'] }}</p>
+                            
+                            <hr class="my-2">
+                            
+                            <div class="small mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>⏱️ {{ test['duration_minutes'] }} min</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-nowrap">
+                                    <span>📅 {{ test['start_time'] }}</span>
+                                    <span>⏰ {{ test['end_time'] }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                {% if test['test_submitted'] %}
+                                    <a href="{{ url_for('test_bp.review_attempted', test_id=test['id']) }}"
+                                       class="btn btn-sm btn-primary w-100">
+                                        📋 Review Test
+                                    </a>
+                                {% elif test.effective_locked %}
+                                    <button class="btn btn-sm btn-outline-warning w-100 text-warning border-warning disabled">
+                                        🔒 Subscribe to Unlock
+                                    </button>
+                                    <small class="text-muted d-block text-center mt-1">Premium test</small>
+                                {% else %}
+                                    <a href="{{ url_for('test_bp.start_test', test_id=test['id'], db_file=test.database_file) }}" 
+                                       class="btn btn-primary btn-sm w-100">
+                                        🚀 Start Test
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5 my-5">
+                        <div class="display-6 text-muted mb-3">🧪</div>
+                        <h5 class="text-muted mb-3">No tests available</h5>
+                        <p class="text-muted">Check back later for new test series!</p>
+                    </div>
+                </div>
                 {% endfor %}
-            </ul>
+            </div>
+            
         </div>
         
     </div>
