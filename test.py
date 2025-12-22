@@ -149,15 +149,33 @@ def list_tests():
                     if test_dict.get('is_locked', 0) == 1:
 
                     # Locked test: only unlock if user subscribed for this goal
-                       if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
-                        tests['effective_locked'] = 0  # unlocked for this user
-                       else:
-                        tests['effective_locked'] = 1  # remains locked
+                      # 🔥 FIXED LOCK LOGIC (COMPLETE):
+                     user_sub_status = session.get('subscription_status', 'nonsubscribed')
+                    user_sub_goal = session.get('subscription_goal')
+                    
+                    if test_dict.get('is_locked', 0) == 1:
+                        if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
+                            test_dict['effective_locked'] = 0  # Unlock
+                        else:
+                            test_dict['effective_locked'] = 1  # Lock
                     else:
-                    # Free test
-                        tests['effective_locked'] = 0
-
-                    all_tests.append(tests)
+                        test_dict['effective_locked'] = 0  # Free
+                    
+                    # ✅ Completion check (KEEP)
+                    user_id = session.get('user_id', 1)
+                    try:
+                        check_conn = dynamic_db_handler.get_connection(db_info['file'])
+                        check_conn.row_factory = sqlite3.Row
+                        result = check_conn.execute('''
+                            SELECT 1 FROM user_responses 
+                            WHERE test_id=? AND user_id=? AND test_submitted=1
+                        ''', (test_dict['id'], user_id)).fetchone()
+                        test_dict['test_submitted'] = 1 if result else 0
+                        check_conn.close()
+                    except:
+                        test_dict['test_submitted'] = 0
+                    
+                    all_tests.append(test_dict)  # ✅ SINGLE TEST ONLY
 
 
                     # 🔥 CHECK COMPLETION IN THIS DB:
