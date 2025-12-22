@@ -171,12 +171,14 @@ def list_tests():
 
                     # Locked test: only unlock if user subscribed for this goal
                       # 🔥 FIXED LOCK LOGIC (COMPLETE):
-                     user_sub_status = session.get('subscription_status', 'nonsubscribed')
-                    user_sub_goal = session.get('subscription_goal')
-                    user_id = session.get('user_id', 1)
-                    user_name = session.get('user_name', 'Unknown')
-                    user_email = session.get('user_email', 'no-email@example.com')
-                    print(f"DEBUG: User {user_name} ({user_email}) | sub_status='{user_sub_status}', sub_goal='{user_sub_goal}'")
+                     # 🔥 SIMPLE SESSION (No DB needed!)
+                            user_id = session.get('user_id', 1)
+                            user_name = session.get('user_name', session.get('username', f'User#{user_id}'))
+                            user_email = session.get('user_email', f'{user_id}@noemail.com')
+                            user_sub_status = session.get('subscription_status', 'nonsubscribed')
+                            user_sub_goal = session.get('subscription_goal')
+
+                            print(f"👤 {user_id}:{user_name} ({user_email}) → sub='{user_sub_status}' goal='{user_sub_goal}'")
 
                     
                     if test_dict.get('is_locked', 0) == 1:
@@ -674,6 +676,7 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
+    
     
 
     
