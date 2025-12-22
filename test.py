@@ -173,6 +173,11 @@ def list_tests():
                       # 🔥 FIXED LOCK LOGIC (COMPLETE):
                      user_sub_status = session.get('subscription_status', 'nonsubscribed')
                     user_sub_goal = session.get('subscription_goal')
+                    user_id = session.get('user_id', 1)
+                    user_name = session.get('user_name', 'Unknown')
+                    user_email = session.get('user_email', 'no-email@example.com')
+                    print(f"DEBUG: User {user_name} ({user_email}) | sub_status='{user_sub_status}', sub_goal='{user_sub_goal}'")
+
                     
                     if test_dict.get('is_locked', 0) == 1:
                         if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
@@ -668,6 +673,8 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
+    
 
     
     
