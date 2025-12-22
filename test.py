@@ -105,7 +105,14 @@ def get_session_db(test_id):
 def list_tests():
     user_id = session.get('user_id', 1)
     goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs_prof', etc.
-    
+    user_sub_status = session.get('subscription_status', 'nonsubscribed')
+    user_sub_goal = session.get('subscription_goal')
+    print(f"DEBUG: sub_status='{user_sub_status}', sub_goal='{user_sub_goal}'")
+
+
+
+
+
     # Get ALL test databases
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
     all_test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
@@ -131,6 +138,8 @@ def list_tests():
             
             tests = conn.execute('''
                 SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+             
+                    ti.is_locked,              
                     ti.start_time, ti.end_time, ti.created_at,
                     CASE WHEN EXISTS (
                         SELECT 1 FROM user_responses ur 
@@ -647,5 +656,7 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
+    
 
     
