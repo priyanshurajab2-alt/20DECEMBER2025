@@ -16,6 +16,10 @@ def get_test_db_connection():
     """Return connection to the tests database for the current goal, like MCQ does."""
     goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs', etc.
 
+
+
+
+
     # Refresh discovery
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
     test_databases = dynamic_db_handler.discovered_databases.get('test', [])
@@ -142,7 +146,8 @@ def list_tests():
                     test_dict = dict(test_row)
                     test_dict['database_file'] = os.path.basename(db_info['file'])
                     
-                    if tests['is_locked'] == 1:
+                    if test_dict.get('is_locked', 0) == 1:
+
                     # Locked test: only unlock if user subscribed for this goal
                        if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
                         tests['effective_locked'] = 0  # unlocked for this user
@@ -625,7 +630,4 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
-    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
-        session.pop(key, None)
-
-    return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+    
