@@ -142,6 +142,19 @@ def list_tests():
                     test_dict = dict(test_row)
                     test_dict['database_file'] = os.path.basename(db_info['file'])
                     
+                    if tests['is_locked'] == 1:
+                    # Locked test: only unlock if user subscribed for this goal
+                       if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
+                        tests['effective_locked'] = 0  # unlocked for this user
+                       else:
+                        tests['effective_locked'] = 1  # remains locked
+                    else:
+                    # Free test
+                        tests['effective_locked'] = 0
+
+                    all_tests.append(tests)
+
+
                     # 🔥 CHECK COMPLETION IN THIS DB:
                     user_id = session.get('user_id', 1)
                     try:
@@ -606,6 +619,11 @@ def submit_test(test_id):
         
     finally:
         conn.close()
+
+    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
+        session.pop(key, None)
+
+    return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
     for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
         session.pop(key, None)
