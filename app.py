@@ -1433,7 +1433,7 @@ def subscribe():
         flash("Name and goal are required.", "error")
         return redirect(url_for('home'))
 
-    conn = sqlite3.connect('/var/data/admin_user.db')
+    conn = sqlite3.connect('/var/data/admin_users.db')
     conn.row_factory = sqlite3.Row
     try:
         # Optional: update name if you want to sync it
