@@ -1418,6 +1418,39 @@ def show_question(subject_name, topic_name, qid):
         bookmarked=bookmarked
     )
 
+
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    if 'user_id' not in session:
+        flash("Please log in first.", "error")
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    name = request.form.get('name', '').strip()
+    goal = request.form.get('goal')
+
+    if not name or not goal:
+        flash("Name and goal are required.", "error")
+        return redirect(url_for('home'))
+
+    conn = sqlite3.connect('/var/data/admin_user.db')
+    conn.row_factory = sqlite3.Row
+    try:
+        # Optional: update name if you want to sync it
+        conn.execute(
+            "UPDATE users SET username = ?, subscription_status = ?, subscription_goal = ? WHERE id = ?",
+            (name, 'subscribed', goal, user_id)
+        )
+        conn.commit()
+        flash(f"Subscribed to {goal}!", "success")
+    finally:
+        conn.close()
+
+    # Also keep in session for quick access
+    session['subscription_status'] = 'subscribed'
+    session['subscription_goal'] = goal
+
+    return redirect(url_for('home'))
 @app.route('/subject/<subject_name>/topic/<topic_name>/answer/<int:qid>')
 def show_answer(subject_name, topic_name, qid):
     """UPDATED: Answer route - Uses dynamic database"""
