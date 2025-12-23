@@ -190,20 +190,7 @@ def list_tests():
                         test_dict['effective_locked'] = 0  # Free
                     
                     # ✅ Completion check (KEEP)
-                    user_id = session.get('user_id', 1)
-                    try:
-                        check_conn = dynamic_db_handler.get_connection(db_info['file'])
-                        check_conn.row_factory = sqlite3.Row
-                        result = check_conn.execute('''
-                            SELECT 1 FROM user_responses 
-                            WHERE test_id=? AND user_id=? AND test_submitted=1
-                        ''', (test_dict['id'], user_id)).fetchone()
-                        test_dict['test_submitted'] = 1 if result else 0
-                        check_conn.close()
-                    except:
-                        test_dict['test_submitted'] = 0
                     
-                    all_tests.append(test_dict)  # ✅ SINGLE TEST ONLY
 
 
                     # 🔥 CHECK COMPLETION IN THIS DB:
