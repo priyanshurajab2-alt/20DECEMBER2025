@@ -10,17 +10,13 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+       
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #1a1a1a;
             background: #f5f5f5;
         }
-
-
-
-
         /* Navbar */
         .navbar {
             background: #1a3d4a;
@@ -31,10 +27,6 @@
             width: 100%;
             z-index: 1000;
         }
-
-
-
-
         .nav-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -43,46 +35,26 @@
             justify-content: space-between;
             align-items: center;
         }
-
-
-
-
         .navbar-brand {
             font-size: 24px;
             font-weight: 600;
             color: white;
             text-decoration: none;
         }
-
-
-
-
         .nav-links {
             display: flex;
             gap: 30px;
             align-items: center;
         }
-
-
-
-
         .nav-link {
             color: #b0bec5;
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s ease;
         }
-
-
-
-
         .nav-link:hover {
             color: white;
         }
-
-
-
-
         .btn-login {
             background: #2a4d5a;
             color: white;
@@ -92,18 +64,10 @@
             font-weight: 500;
             transition: background-color 0.3s ease;
         }
-
-
-
-
         .btn-login:hover {
             background: #3a5d6a;
             color: white;
         }
-
-
-
-
         /* Hero Section */
         .hero-section {
             background: white;
@@ -112,57 +76,33 @@
             align-items: center;
             padding-top: 80px;
         }
-
-
-
-
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
-
-
-
-
         .hero-content {
             text-align: center;
             max-width: 600px;
             margin: 0 auto;
         }
-
-
-
-
         .hero-title {
             font-size: 48px;
             font-weight: 700;
             color: #1a1a1a;
             margin-bottom: 20px;
         }
-
-
-
-
         .hero-subtitle {
             font-size: 18px;
             color: #2d2d2d;
             margin-bottom: 40px;
         }
-
-
-
-
         .hero-cta {
             display: flex;
             gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
         }
-
-
-
-
         .btn-primary {
             background: #1a3d4a;
             color: white;
@@ -175,18 +115,10 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-
-
-
-
         .btn-primary:hover {
             background: #2a4d5a;
             color: white;
         }
-
-
-
-
         .btn-secondary {
             background: white;
             color: #1a3d4a;
@@ -199,108 +131,99 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
-
-
-
         .btn-secondary:hover {
             background: #1a3d4a;
             color: white;
         }
 
-
-
+        /* New: Goals Section */
+        .goals-section {
+            background: white;
+            padding: 80px 0;
+        }
+        .goals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+        .goal-card {
+            background: #f9f9f9;
+            padding: 40px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .goal-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .goal-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .goal-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .goal-desc {
+            font-size: 16px;
+            color: #555;
+        }
 
         /* Stats Section */
         .stats-section {
             background: white;
             padding: 80px 0;
         }
-
-
-
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 40px;
             text-align: center;
         }
-
-
-
-
         .stat-item {
             padding: 20px;
         }
-
-
-
-
         .stat-number {
             font-size: 36px;
             font-weight: 700;
             color: #1a3d4a;
             margin-bottom: 10px;
         }
-
-
-
-
         .stat-label {
             color: #2d2d2d;
             font-weight: 500;
         }
-
-
-
-
         /* Features Section */
         .features-section {
             background: #f5f5f5;
             padding: 80px 0;
         }
-
-
-
-
         .section-title {
             text-align: center;
             margin-bottom: 60px;
         }
-
-
-
-
         .section-title h2 {
             font-size: 36px;
             font-weight: 700;
             color: #1a1a1a;
             margin-bottom: 15px;
         }
-
-
-
-
         .section-subtitle {
             font-size: 18px;
             color: #2d2d2d;
             max-width: 600px;
             margin: 0 auto;
         }
-
-
-
-
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 40px;
         }
-
-
-
-
         .feature-card {
             background: white;
             padding: 40px 30px;
@@ -308,10 +231,6 @@
             text-align: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-
-
-
-
         .feature-icon {
             width: 60px;
             height: 60px;
@@ -324,48 +243,28 @@
             color: #333;
             font-size: 24px;
         }
-
-
-
-
         .feature-title {
             font-size: 20px;
             font-weight: 600;
             color: #1a1a1a;
             margin-bottom: 15px;
         }
-
-
-
-
         .feature-description {
             color: #2d2d2d;
             line-height: 1.6;
         }
-
-
-
-
         /* CTA Section */
         .cta-section {
             background: white;
             padding: 80px 0;
             text-align: center;
         }
-
-
-
-
         .cta-title {
             font-size: 36px;
             font-weight: 700;
             color: #1a1a1a;
             margin-bottom: 15px;
         }
-
-
-
-
         .cta-subtitle {
             font-size: 18px;
             color: #2d2d2d;
@@ -374,39 +273,23 @@
             margin-left: auto;
             margin-right: auto;
         }
-
-
-
-
         /* Footer */
         .footer {
             background: #1a1a1a;
             color: white;
             padding: 60px 0 20px;
         }
-
-
-
-
         .footer-content {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 40px;
             margin-bottom: 40px;
         }
-
-
-
-
         .footer-section h4 {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 20px;
         }
-
-
-
-
         .footer-section p,
         .footer-section a {
             color: #ccc;
@@ -415,58 +298,50 @@
             display: block;
             transition: color 0.3s ease;
         }
-
-
-
-
         .footer-section a:hover {
             color: white;
         }
-
-
-
-
         .footer-bottom {
             border-top: 1px solid #333;
             padding-top: 20px;
             text-align: center;
             color: #ccc;
         }
-
-
-
-
         /* Responsive */
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
             }
-            
+           
             .hero-title {
                 font-size: 32px;
             }
-            
+           
             .hero-subtitle {
                 font-size: 16px;
             }
-            
+           
             .hero-cta {
                 flex-direction: column;
                 align-items: center;
             }
-            
+           
             .btn-primary,
             .btn-secondary {
                 width: 100%;
                 max-width: 300px;
             }
-            
+           
             .section-title h2 {
                 font-size: 28px;
             }
-            
+           
             .cta-title {
                 font-size: 28px;
+            }
+
+            .goal-icon {
+                font-size: 60px;
             }
         }
     </style>
@@ -484,17 +359,13 @@
             </div>
         </div>
     </nav>
-
-
-
-
     <!-- Hero Section -->
     <section class="hero-section">
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">Transform Your Medical Career</h1>
                 <p class="hero-subtitle">
-                    Master every aspect of MBBS with our comprehensive question bank. 
+                    Master every aspect of MBBS with our comprehensive question bank.
                     Built by doctors, for future doctors.
                 </p>
                 <div class="hero-cta">
@@ -504,29 +375,40 @@
             </div>
         </div>
     </section>
-    <div class="mb-3">
-  <form method="POST" action="{{ url_for('set_goal') }}" class="d-flex align-items-end gap-2">
-    <div>
-      <label for="goal" class="form-label mb-1">Goal</label>
-      <select name="goal" id="goal" class="form-select form-select-sm">
-        {% for key, g in goals.items() %}
-          <option value="{{ key }}" {% if session.current_goal == key %}selected{% endif %}>
-            {{ g.label }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="btn btn-sm btn-primary mb-1">Set</button>
-  </form>
 
-  {% if session.current_goal %}
-    <small class="text-muted">
-      Current goal: {{ goals[session.current_goal].label }}
-    </small>
-  {% endif %}
-</div>
-
-
+    <!-- New Goals Selection Section -->
+    <section class="goals-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Choose Your Goal</h2>
+                <p class="section-subtitle">Select the exam you're preparing for and get personalized content after login</p>
+            </div>
+            <div class="goals-grid">
+                <!-- Example goals - adjust labels/keys to match your backend 'goals' dict -->
+                <a href="{{ url_for('login') }}" class="goal-card">
+                    <div class="goal-icon">🩺</div>
+                    <h3 class="goal-title">MBBS University Exams</h3>
+                    <p class="goal-desc">Comprehensive coverage for all MBBS subjects</p>
+                </a>
+                <a href="{{ url_for('login') }}" class="goal-card">
+                    <div class="goal-icon">🇮🇳</div>
+                    <h3 class="goal-title">NEET-PG / INI-CET</h3>
+                    <p class="goal-desc">High-yield questions for Indian PG entrance</p>
+                </a>
+                <a href="{{ url_for('login') }}" class="goal-card">
+                    <div class="goal-icon">🇺🇸</div>
+                    <h3 class="goal-title">USMLE</h3>
+                    <p class="goal-desc">Step 1, Step 2 CK & Step 3 preparation</p>
+                </a>
+                <a href="{{ url_for('login') }}" class="goal-card">
+                    <div class="goal-icon">🇬🇧</div>
+                    <h3 class="goal-title">PLAB / UKMLA</h3>
+                    <p class="goal-desc">Professional and Linguistic Assessments Board</p>
+                </a>
+                <!-- Add more goals here if needed -->
+            </div>
+        </div>
+    </section>
 
     <!-- Stats Section -->
     <section class="stats-section">
@@ -551,10 +433,6 @@
             </div>
         </div>
     </section>
-
-
-
-
     <!-- Features Section -->
     <section class="features-section" id="features">
         <div class="container">
@@ -564,7 +442,7 @@
                     Experience the most comprehensive and effective way to prepare for your medical exams
                 </p>
             </div>
-            
+           
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🧠</div>
@@ -573,7 +451,7 @@
                         AI-powered adaptive learning that adjusts to your pace and identifies weak areas.
                     </p>
                 </div>
-                
+               
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
                     <h3 class="feature-title">Progress Analytics</h3>
@@ -581,7 +459,7 @@
                         Detailed performance insights with visual charts to track your improvement.
                     </p>
                 </div>
-                
+               
                 <div class="feature-card">
                     <div class="feature-icon">📱</div>
                     <h3 class="feature-title">Mobile Optimized</h3>
@@ -592,10 +470,6 @@
             </div>
         </div>
     </section>
-
-
-
-
     <!-- CTA Section -->
     <section class="cta-section">
         <div class="container">
@@ -609,10 +483,6 @@
             </div>
         </div>
     </section>
-
-
-
-
     <!-- Footer -->
     <footer class="footer" id="about">
         <div class="container">
@@ -621,14 +491,14 @@
                     <h4>MBBS QBank</h4>
                     <p>Empowering medical students with comprehensive question banks and smart learning tools.</p>
                 </div>
-                
+               
                 <div class="footer-section">
                     <h4>Quick Links</h4>
                     <a href="/home">Question Bank</a>
                     <a href="{{ url_for('signup') }}">Sign Up</a>
                     <a href="{{ url_for('login') }}">Login</a>
                 </div>
-                
+               
                 <div class="footer-section">
                     <h4>Support</h4>
                     <a href="#">Help Center</a>
@@ -636,7 +506,7 @@
                     <a href="#">Privacy Policy</a>
                 </div>
             </div>
-            
+           
             <div class="footer-bottom">
                 <p>&copy; 2025 MBBS QBank. All rights reserved.</p>
             </div>
