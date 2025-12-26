@@ -547,8 +547,8 @@ def review_question(test_id, filter_type, q_index):
         
         if not questions or q_index < 1 or q_index > len(questions):
             flash("No questions found for this filter")
-            return redirect(url_for('test_bp.review_attempted', test_id=test_id))
-        
+            return redirect(url_for('test_bp.review_attempted', test_id=test_id, db_file=db_file))
+
         # 4. Current question + navigation
         question = questions[q_index - 1]
         prev_q = q_index - 1 if q_index > 1 else None
@@ -685,6 +685,10 @@ def submit_test(test_id):
     
     
 
+    
+    
+
+    
     
     
 
