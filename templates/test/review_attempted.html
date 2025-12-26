@@ -13,9 +13,20 @@
     
     <div class="row mt-4 g-3">
         <div class="col-md-4">
-            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='correct', q_index=1) }}">                ✅ Correct<br><strong>{{ correct_count }}</strong>
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='correct', q_index=1) }}">                <a href="..." class="btn btn-success filter-btn w-100"> ✅ Correct<br><strong>{{ correct_count }}</strong></a>
+
             </a>
         </div>
+
+        <div class="col-md-4">
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='incorrect', q_index=1) }}" 
+               class="btn btn-danger filter-btn w-100">
+                ❌ Wrong<br><strong>{{ incorrect_count }}</strong>
+            </a>
+        </div>
+        
+
+
         <div class="col-md-4">
     <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='all', q_index=1) }}" 
        class="btn btn-primary filter-btn w-100 {% if filter_type == 'all' %}active{% endif %}">
@@ -30,5 +41,7 @@
     </div>
 </body>
 </html>
+
+
 
 
