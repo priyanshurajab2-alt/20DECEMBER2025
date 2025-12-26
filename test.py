@@ -443,6 +443,15 @@ def review_test(test_id):
 
 @test_bp.route('/tests/<int:test_id>/review-attempted')
 def review_attempted(test_id):
+    db_file = request.args.get('db_file')
+    if not db_file:
+        flash("Database required for review")
+        return redirect(url_for('test_bp.list_tests'))
+    
+    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
     conn = get_session_db(test_id)
     if not conn:
@@ -489,6 +498,14 @@ def review_attempted(test_id):
 
 @test_bp.route('/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
 def review_question(test_id, filter_type, q_index):
+    db_file = request.args.get('db_file')
+    if not db_file:
+        return redirect(url_for('test_bp.review_attempted', test_id=test_id, db_file=db_file))
+    
+    print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}, db_file={db_file}")
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
     
     conn = get_session_db(test_id)
@@ -662,6 +679,9 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
+    
+    
 
     
     
