@@ -93,7 +93,7 @@
         </div>
         
         <div class="d-flex gap-2">
-            <a href="{{ url_for('test_bp.review_attempted', test_id=test.id) }}" class="btn btn-outline-secondary">Filters</a>
+            <a href="{{ url_for('test_bp.review_attempted', test_id=test.id, db_file=request.args.get('db_file')) }}" class="btn btn-outline-secondary">Filters</a>
             <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-outline-secondary">All Tests</a>
         </div>
     </div>
