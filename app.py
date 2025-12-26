@@ -221,6 +221,10 @@ def setup_free_content():
     print(f"Content setup completed. {len(free_topics)} topics are free across all databases.")
     return True
 
+
+
+
+
 def is_topic_login_required(subject, topic):
     """Check if a topic requires user login (returns True if login required)"""
     source_db = find_subject_database(subject)
@@ -733,6 +737,17 @@ def save_note():
 def landing():
     return render_template('index.html', goals=GOALS)
 
+
+@app.route('/select_goal/<goal_key>')
+def select_goal(goal_key):
+    if goal_key in GOALS:
+        session['current_goal'] = goal_key
+        flash(f"Goal set to {GOALS[goal_key]['label']}", "success")
+    else:
+        flash("Invalid goal selected", "error")
+    return redirect(url_for('login'))
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     # Check if user came from login-required content redirect
@@ -794,6 +809,9 @@ def login():
             create_user_session(user['id'], user['username'], user['user_type'])
 
             flash(f'Welcome back, {user["username"]}!')
+            current_goal = session.get('current_goal')
+            if current_goal:
+                return redirect(url_for('home'))  # Or your goal page route
             return redirect(url_for('home'))
         else:
             flash('Invalid credentials.')
