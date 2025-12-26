@@ -13,9 +13,7 @@
     
     <div class="row mt-4 g-3">
         <div class="col-md-4">
-            <a href="{{ url_for('test_bp.review_question', test_id=test.id, filter_type='correct', q_index=1) }}" 
-               class="btn btn-success filter-btn w-100 {% if filter_type == 'correct' %}active{% endif %}">
-                ✅ Correct<br><strong>{{ correct_count }}</strong>
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='correct', q_index=1) }}">                ✅ Correct<br><strong>{{ correct_count }}</strong>
             </a>
         </div>
         <div class="col-md-4">
@@ -37,4 +35,5 @@
     </div>
 </body>
 </html>
+
 
