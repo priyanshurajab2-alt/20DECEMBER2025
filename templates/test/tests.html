@@ -289,7 +289,8 @@
                             
                             <div class="mt-auto">
                                 {% if test['test_submitted'] %}
-                                    <a href="{{ url_for('test_bp.review_attempted', test_id=test['id']) }}"
+                                <a href="{{ url_for('test_bp.review_attempted', test_id=test['id'], db_file=test.database_file) }}"
+
                                        class="btn btn-sm btn-primary w-100">
                                         📋 Review Test
                                     </a>
