@@ -448,7 +448,10 @@ def review_attempted(test_id):
         flash("Database required for review")
         return redirect(url_for('test_bp.list_tests'))
     
-
+    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
+    conn.row_factory = sqlite3.Row
 
       
     try:
@@ -671,11 +674,6 @@ def submit_test(test_id):
 
 
     
-    
-
-    
-    
-
     
     
     
