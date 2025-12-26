@@ -80,13 +80,15 @@
     <div class="d-flex gap-2 justify-content-between">
         <div>
             {% if prev_q %}
-            <a href="{{ url_for('test_bp.review_question', test_id=test.id, filter_type=filter_type, q_index=prev_q) }}" 
-               class="btn btn-secondary nav-btn">← Previous</a>
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=filter_type, q_index=prev_q) }}" 
+   class="btn btn-secondary nav-btn">← Previous</a>
+
             {% endif %}
             
             {% if next_q %}
-            <a href="{{ url_for('test_bp.review_question', test_id=test.id, filter_type=filter_type, q_index=next_q) }}" 
-               class="btn btn-primary nav-btn">Next →</a>
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=filter_type, q_index=next_q) }}" 
+   class="btn btn-primary nav-btn">Next →</a>
+
             {% endif %}
         </div>
         
