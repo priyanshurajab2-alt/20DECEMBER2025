@@ -448,15 +448,7 @@ def review_attempted(test_id):
         flash("Database required for review")
         return redirect(url_for('test_bp.list_tests'))
     
-    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
-    full_db_path = f"/var/data/{db_file}"
-    conn = dynamic_db_handler.get_connection(full_db_path)
-    conn.row_factory = sqlite3.Row
 
-    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
-    conn = get_session_db(test_id)
-    if not conn:
-     return redirect(url_for('test_bp.list_tests'))
 
       
     try:
@@ -508,11 +500,6 @@ def review_question(test_id, filter_type, q_index):
     conn = dynamic_db_handler.get_connection(full_db_path)
     conn.row_factory = sqlite3.Row
 
-    print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
-    
-    conn = get_session_db(test_id)
-    if not conn:
-     return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
     try:
         # 1. Verify test exists
@@ -681,6 +668,7 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
 
     
     
