@@ -449,7 +449,8 @@ def review_attempted(test_id):
         return redirect(url_for('test_bp.list_tests'))
     
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
-    conn = dynamic_db_handler.get_connection(db_file)
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
     conn.row_factory = sqlite3.Row
 
     print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}")
@@ -503,7 +504,8 @@ def review_question(test_id, filter_type, q_index):
         return redirect(url_for('test_bp.review_attempted', test_id=test_id, db_file=db_file))
     
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}, db_file={db_file}")
-    conn = dynamic_db_handler.get_connection(db_file)
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
     conn.row_factory = sqlite3.Row
 
     print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}")
@@ -681,6 +683,11 @@ def submit_test(test_id):
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
     
+    
+
+    
+    
+
     
 
     
