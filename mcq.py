@@ -32,9 +32,11 @@ def get_mcq_db_connection(subject=None):
     for db in goal_dbs:
         print(f"   ✅ {db['file']}")
     
+    # 🚀 NO FALLBACK: MBBS users see NOTHING if no MBBS DBs
     if not goal_dbs:
-        print("⚠️  DEBUG: No goal DBs found, using all DBs")
-        goal_dbs = all_mcq_dbs
+        print("❌ DEBUG: NO MBBS DBs found → SHOWING EMPTY")
+        return None  # RETURN NONE → No subjects/chapters!
+
     
     if subject:
         print(f"🔍 DEBUG: Looking for subject='{subject}' in goal DBs...")
