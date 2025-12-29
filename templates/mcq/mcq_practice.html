@@ -3,6 +3,7 @@
 <head>
     <title>{{ subject }} - {{ topic }} Practice - MBBS QBank</title>
     <style>
+        /* Keep your existing styles - they work great */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #f5f5f5; }
         .container { max-width: 800px; margin: 0 auto; background: white; min-height: 100vh; }
         .header { background: #007bff; color: white; padding: 20px; text-align: center; }
@@ -12,10 +13,11 @@
         .question-text { font-size: 1.1em; font-weight: 500; margin-bottom: 20px; line-height: 1.6; }
         .options { margin: 20px 0; }
         .option { display: block; width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #e9ecef; border-radius: 6px; background: white; cursor: pointer; transition: all 0.3s; text-align: left; }
-        .option:hover { border-color: #007bff; background: #f8f9fa; }
+        .option:hover:not(.disabled) { border-color: #007bff; background: #f8f9fa; }
         .option.selected { border-color: #007bff; background: #e3f2fd; }
         .option.correct { border-color: #28a745; background: #d4edda; }
         .option.incorrect { border-color: #dc3545; background: #f8d7da; }
+        .option.disabled { opacity: 0.7; cursor: not-allowed; }
         .navigation { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
         .btn { padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
         .btn-primary { background: #007bff; color: white; }
@@ -24,56 +26,69 @@
         .explanation { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin-top: 15px; display: none; }
         .progress-bar { width: 100%; height: 4px; background: #e9ecef; border-radius: 2px; margin-bottom: 20px; }
         .progress-fill { height: 100%; background: #007bff; border-radius: 2px; transition: width 0.3s; }
-        .score-summary { text-align: center; padding: 20px; background: #e3f2fd; border-radius: 8px; margin: 20px 0; }
+        .score-summary, .review-mode { text-align: center; padding: 20px; background: #e3f2fd; border-radius: 8px; margin: 20px 0; }
+        .status-indicator { padding: 10px; border-radius: 20px; font-size: 0.9em; margin: 10px 0; }
+        .status-started { background: #d4edda; color: #155724; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧠 {{ subject }} Practice</h1>
-            <p>{{ topic }}</p>
+            <h1>🧠 {{ subject }} Practice - {{ topic }}</h1>
+            <div id="status-indicator" class="status-indicator" style="display: none;"></div>
         </div>
 
         <div class="practice-area">
             <div class="question-counter">
-                Question <span id="current-question">1</span> of {{ questions|length }}
+                Question <span id="current-question">1</span> of {{ total_questions }}
             </div>
 
             <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: {{ (1/questions|length)*100 }}%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width: {{ (1/total_questions)*100 }}%;"></div>
             </div>
 
             <div id="question-container">
                 {% for question in questions %}
-                <div class="question-card" id="question-{{ loop.index }}" style="{% if not loop.first %}display: none;{% endif %}">
+                <div class="question-card" id="question-{{ question.id }}" 
+                     style="{% if question.id|string not in responses|string %}display: none;{% endif %}">
                     <div class="question-text">{{ question.question }}</div>
                     
-                    <div class="options">
-                        <button class="option" onclick="selectOption(this, 'A', {{ loop.index }}, '{{ question.correct_answer }}')">
+                    <div class="options" id="options-{{ question.id }}">
+                        <button class="option" data-option="A" onclick="selectOption({{ question.id }}, 'A')">
                             A. {{ question.option_a }}
                         </button>
-                        <button class="option" onclick="selectOption(this, 'B', {{ loop.index }}, '{{ question.correct_answer }}')">
+                        <button class="option" data-option="B" onclick="selectOption({{ question.id }}, 'B')">
                             B. {{ question.option_b }}
                         </button>
-                        <button class="option" onclick="selectOption(this, 'C', {{ loop.index }}, '{{ question.correct_answer }}')">
+                        <button class="option" onclick="selectOption({{ question.id }}, 'C')" data-option="C">
                             C. {{ question.option_c }}
                         </button>
-                        <button class="option" onclick="selectOption(this, 'D', {{ loop.index }}, '{{ question.correct_answer }}')">
+                        <button class="option" onclick="selectOption({{ question.id }}, 'D')" data-option="D">
                             D. {{ question.option_d }}
                         </button>
                     </div>
 
                     {% if question.explanation %}
-                    <div class="explanation" id="explanation-{{ loop.index }}">
+                    <div class="explanation" id="explanation-{{ question.id }}" style="display: none;">
                         <strong>💡 Explanation:</strong><br>
                         {{ question.explanation }}
+                    </div>
+                    {% endif %}
+
+                    {% if question.id|string in responses %}
+                    <div style="margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px;">
+                        <small>Your answer: <strong>{{ responses[question.id|string].user_response or 'Not answered' }}</strong> 
+                            {% if responses[question.id|string].outcome == 'correct' %}(✅ Correct){% endif %}
+                            {% if responses[question.id|string].outcome == 'incorrect' %}(❌ Incorrect){% endif %}
+                        </small>
                     </div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
 
-            <div class="navigation">
+            <div class="navigation" id="navigation">
                 <button class="btn btn-secondary" id="prev-btn" onclick="previousQuestion()" disabled>
                     ← Previous
                 </button>
@@ -91,122 +106,155 @@
 
             <div class="score-summary" id="score-summary" style="display: none;">
                 <h3>🎉 Practice Complete!</h3>
-                <p>You answered <span id="final-score">0</span> out of {{ questions|length }} questions correctly.</p>
+                <p>You answered <span id="final-score">0</span> out of {{ total_questions }} correctly.</p>
                 <p>Accuracy: <span id="final-percentage">0</span>%</p>
-                <a href="{{ url_for('mcq.mcq_subject', subject_name=subject) }}" class="btn btn-primary">Back to {{ subject }}</a>
+                <a href="/mcq/practice/review/{{ subject }}/{{ topic }}?session_id={{ session_id }}" class="btn btn-success">📋 Review Answers</a>
+                <a href="{{ url_for('mcq.mcq_subject', subject_name=subject) }}" class="btn btn-primary">← Back to {{ subject }}</a>
+            </div>
+
+            <div id="review-mode" class="review-mode" style="display: none;">
+                <h3>📋 Review Mode</h3>
+                <p>Click on questions to review your answers and explanations.</p>
             </div>
         </div>
     </div>
 
     <script>
-        let currentQuestion = 1;
-        let totalQuestions = {{ questions|length }};
+        let currentQuestionId = {{ questions[0].id if questions else 0 }};
+        let totalQuestions = {{ total_questions }};
+        let sessionId = '{{ session_id }}';
+        let subject = '{{ subject }}';
+        let topic = '{{ topic }}';
         let score = 0;
         let answered = {};
+        let testStatus = '{% if responses and responses.values()|first.test_status %}{{ responses.values()|first.test_status }}{% else %}not_started{% endif %}';
 
-        function selectOption(element, option, questionNum, correctAnswer) {
-            // Remove selection from all options in this question
-            const questionCard = document.getElementById(`question-${questionNum}`);
-            const options = questionCard.querySelectorAll('.option');
-            options.forEach(opt => {
-                opt.classList.remove('selected');
+        // Load initial state
+        window.onload = function() {
+            updateStatusIndicator();
+            loadQuestion(currentQuestionId);
+        };
+
+        async function selectOption(questionId, option) {
+            const response = await fetch('/mcq/practice/save_response', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    question_id: questionId,
+                    user_response: option
+                })
             });
-
-            // Select this option
-            element.classList.add('selected');
             
-            // Store answer
-            answered[questionNum] = option;
+            const data = await response.json();
             
-            // Show the show answer button
-            document.getElementById('show-answer-btn').style.display = 'inline-block';
+            if (data.success) {
+                answered[questionId] = option;
+                showExplanation(questionId, data.outcome, data.explanation, data.correct_answer);
+                if (testStatus === 'not_started') {
+                    testStatus = 'started';
+                    updateStatusIndicator();
+                }
+            } else {
+                alert('Error saving response: ' + data.message);
+            }
         }
 
-        function showAnswer() {
-            const questionCard = document.getElementById(`question-${currentQuestion}`);
+        function showExplanation(questionId, outcome, explanation, correctAnswer) {
+            const questionCard = document.getElementById(`question-${questionId}`);
             const options = questionCard.querySelectorAll('.option');
-            const correctAnswer = options[0].onclick.toString().match(/'([^']+)'/g)[2].replace(/'/g, '');
-            const userAnswer = answered[currentQuestion];
-
-            // Show correct/incorrect styling
-            options.forEach((option, index) => {
-                const optionLetter = ['A', 'B', 'C', 'D'][index];
+            
+            // Visual feedback
+            options.forEach(option => {
+                option.classList.add('disabled');
+                const optionLetter = option.dataset.option;
                 if (optionLetter === correctAnswer) {
                     option.classList.add('correct');
-                } else if (optionLetter === userAnswer && userAnswer !== correctAnswer) {
+                } else if (optionLetter === answered[questionId] && answered[questionId] !== correctAnswer) {
                     option.classList.add('incorrect');
                 }
-                option.disabled = true;
             });
 
-            // Update score
-            if (userAnswer === correctAnswer) {
-                score++;
-            }
-
             // Show explanation
-            const explanation = document.getElementById(`explanation-${currentQuestion}`);
-            if (explanation) {
-                explanation.style.display = 'block';
-            }
+            const explDiv = document.getElementById(`explanation-${questionId}`);
+            if (explDiv) explDiv.style.display = 'block';
 
-            // Hide show answer button
+            // Update score
+            if (outcome === 'correct') score++;
+
             document.getElementById('show-answer-btn').style.display = 'none';
         }
 
         function nextQuestion() {
-            if (currentQuestion < totalQuestions) {
-                // Hide current question
-                document.getElementById(`question-${currentQuestion}`).style.display = 'none';
-                
-                // Show next question
-                currentQuestion++;
-                document.getElementById(`question-${currentQuestion}`).style.display = 'block';
-                
-                // Update counter and progress
-                document.getElementById('current-question').textContent = currentQuestion;
-                const progress = (currentQuestion / totalQuestions) * 100;
-                document.getElementById('progress-fill').style.width = progress + '%';
-                
-                // Update navigation buttons
-                document.getElementById('prev-btn').disabled = false;
-                document.getElementById('show-answer-btn').style.display = 'none';
-                
-                if (currentQuestion === totalQuestions) {
-                    document.getElementById('next-btn').textContent = 'Finish Practice';
-                }
+            const questions = Array.from(document.querySelectorAll('.question-card')).map(q => parseInt(q.id.split('-')[1]));
+            const currentIndex = questions.indexOf(currentQuestionId);
+            
+            if (currentIndex < totalQuestions - 1) {
+                loadQuestion(questions[currentIndex + 1]);
             } else {
-                // Show final summary
-                document.getElementById('question-container').style.display = 'none';
-                document.querySelector('.navigation').style.display = 'none';
-                document.getElementById('score-summary').style.display = 'block';
-                document.getElementById('final-score').textContent = score;
-                document.getElementById('final-percentage').textContent = Math.round((score / totalQuestions) * 100);
+                // Last question - complete test
+                if (confirm('Complete practice session?')) {
+                    fetch('/mcq/practice/complete_test', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({session_id: sessionId})
+                    }).then(() => {
+                        testStatus = 'completed';
+                        updateStatusIndicator();
+                        showCompletion();
+                    });
+                }
             }
         }
 
         function previousQuestion() {
-            if (currentQuestion > 1) {
-                // Hide current question
-                document.getElementById(`question-${currentQuestion}`).style.display = 'none';
-                
-                // Show previous question
-                currentQuestion--;
-                document.getElementById(`question-${currentQuestion}`).style.display = 'block';
-                
-                // Update counter and progress
-                document.getElementById('current-question').textContent = currentQuestion;
-                const progress = (currentQuestion / totalQuestions) * 100;
-                document.getElementById('progress-fill').style.width = progress + '%';
-                
-                // Update navigation buttons
-                if (currentQuestion === 1) {
-                    document.getElementById('prev-btn').disabled = true;
-                }
-                document.getElementById('next-btn').textContent = 'Next →';
-                document.getElementById('show-answer-btn').style.display = 'none';
+            const questions = Array.from(document.querySelectorAll('.question-card')).map(q => parseInt(q.id.split('-')[1]));
+            const currentIndex = questions.indexOf(currentQuestionId);
+            
+            if (currentIndex > 0) {
+                loadQuestion(questions[currentIndex - 1]);
             }
+        }
+
+        function loadQuestion(questionId) {
+            // Hide all questions
+            document.querySelectorAll('.question-card').forEach(q => q.style.display = 'none');
+            
+            // Show current question
+            document.getElementById(`question-${questionId}`).style.display = 'block';
+            currentQuestionId = questionId;
+            
+            // Update counter (find position)
+            const questions = Array.from(document.querySelectorAll('.question-card')).map(q => parseInt(q.id.split('-')[1]));
+            const position = questions.indexOf(questionId) + 1;
+            document.getElementById('current-question').textContent = position;
+            document.getElementById('progress-fill').style.width = (position / totalQuestions * 100) + '%';
+            
+            // Update navigation
+            document.getElementById('prev-btn').disabled = position === 1;
+            document.getElementById('next-btn').textContent = position === totalQuestions ? 'Complete →' : 'Next →';
+        }
+
+        function showCompletion() {
+            document.getElementById('question-container').style.display = 'none';
+            document.getElementById('navigation').style.display = 'none';
+            document.getElementById('score-summary').style.display = 'block';
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-percentage').textContent = Math.round((score / totalQuestions) * 100);
+        }
+
+        function updateStatusIndicator() {
+            const indicator = document.getElementById('status-indicator');
+            if (testStatus === 'started') {
+                indicator.textContent = '🟡 Test Started';
+                indicator.className = 'status-indicator status-started';
+            } else if (testStatus === 'completed') {
+                indicator.textContent = '✅ Test Completed';
+                indicator.className = 'status-indicator status-completed';
+            }
+            indicator.style.display = 'inline-block';
         }
     </script>
 </body>
 </html>
+
