@@ -1664,6 +1664,40 @@ register_dynamic_db_routes(app, ensure_user_session)
 register_mcq_routes(app)
 app.register_blueprint(test_bp)
 
+
+def ensure_subscription_columns():
+    """🚀 PERMANENTLY fix columns on EVERY startup"""
+    print("🔧 Checking subscription columns...")
+    conn = get_user_db_connection()
+    cursor = conn.cursor()
+    
+    # Get current columns
+    cursor.execute("PRAGMA table_info(users)")
+    columns = [row[1] for row in cursor.fetchall()]
+    print(f"Current columns: {columns}")
+    
+    # Add missing columns (safe - ignores if exists)
+    try:
+        if 'subscription_status' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'nonsubscribed'")
+            print("✅ Added subscription_status")
+        if 'subscription_goal' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN subscription_goal TEXT")
+            print("✅ Added subscription_goal")
+        if 'subscription_plan' not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN subscription_plan TEXT")
+            print("✅ Added subscription_plan")
+        conn.commit()
+        print("✅ All subscription columns ready!")
+    except Exception as e:
+        print(f"⚠️ Column fix warning: {e}")
+    finally:
+        conn.close()
+
+# RUN ON EVERY STARTUP
+ensure_subscription_columns()
+
+
 if __name__ == '__main__':
     app.run(debug=True)
 
