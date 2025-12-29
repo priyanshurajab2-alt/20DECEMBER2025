@@ -832,7 +832,7 @@ def subscribe():
         return redirect(url_for('login'))
     return render_template('subscribe.html')
 
-@app.route('/subscribe', methods=['POST'])
+@app.route('/subscribe/step1', methods=['POST'])
 def subscribe_post():
     name = request.form.get('name')
     goal = request.form.get('goal')
