@@ -93,9 +93,34 @@ def create_default_mcq_database():
             FOREIGN KEY (question_id) REFERENCES mcq_questions (id)
         )
     ''')
+
+
     
     conn.commit()
     return conn
+
+
+def create_user_responses_table(db_conn):
+    """Create user_responses table in the specific MCQ database"""
+    db_conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            user_id INTEGER,
+            db_file TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            question_id INTEGER NOT NULL,
+            user_response TEXT,
+            outcome TEXT CHECK(outcome IN ('correct', 'incorrect', NULL)),
+            test_status TEXT CHECK(test_status IN ('started', 'completed', NULL)) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(session_id, question_id)
+        )
+    ''')
+    db_conn.commit()
+
 
 
 def ensure_user_session():
@@ -416,14 +441,20 @@ def mcq_subject(subject_name):
 
 @mcq_bp.route('/practice/<subject_name>/<topic_name>')
 def mcq_practice_topic(subject_name, topic_name):
-    """Practice MCQs for a specific topic"""
     user_id = ensure_user_session()
     if not user_id:
         flash('Please login to practice MCQs', 'info')
         return redirect(url_for('login'))
     
-    # Get questions for this topic
+    session_id = session.get('mcq_session_id', f"{user_id}_{subject_name}_{topic_name}_{int(datetime.now().timestamp())}")
+    session['mcq_session_id'] = session_id
+    session['current_subject'] = subject_name
+    session['current_topic'] = topic_name
+    
+    # Get questions
     conn = get_mcq_db_connection(subject_name)
+    create_user_responses_table(conn)
+    
     try:
         questions = conn.execute('''
             SELECT * FROM mcq_questions 
@@ -435,13 +466,132 @@ def mcq_practice_topic(subject_name, topic_name):
             flash('No MCQ questions found for this topic', 'warning')
             return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
         
+        # Get existing responses for this session
+        responses = dict(conn.execute('''
+            SELECT question_id, user_response, outcome, test_status
+            FROM user_responses 
+            WHERE session_id = ? AND subject = ? AND topic = ?
+        ''', (session_id, subject_name, topic_name)).fetchall())
+        
     finally:
         conn.close()
     
     return render_template('mcq/mcq_practice.html', 
-                         subject=subject_name,
-                         topic=topic_name,
-                         questions=questions)
+                         subject=subject_name, topic=topic_name,
+                         questions=questions, responses=responses,
+                         session_id=session_id, total_questions=len(questions))
+
+@mcq_bp.route('/practice/save_response', methods=['POST'])
+def save_practice_response():
+    """Save user response during practice"""
+    user_id = ensure_user_session()
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Login required'})
+    
+    try:
+        data = request.get_json()
+        session_id = data['session_id']
+        question_id = data['question_id']
+        user_response = data['user_response']
+        subject = session.get('current_subject')
+        topic = session.get('current_topic')
+        db_file = dynamic_db_handler.discovered_databases['mcq'][0]['file']  # Current DB
+        
+        conn = get_mcq_db_connection(subject)
+        create_user_responses_table(conn)
+        
+        # Get correct answer
+        correct_answer = conn.execute(
+            'SELECT correct_answer, explanation FROM mcq_questions WHERE id = ?', 
+            (question_id,)
+        ).fetchone()
+        
+        outcome = 'correct' if user_response == correct_answer['correct_answer'] else 'incorrect'
+        
+        # UPSERT response
+        conn.execute('''
+            INSERT INTO user_responses 
+            (session_id, user_id, db_file, subject, topic, question_id, user_response, outcome, test_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT test_status FROM user_responses WHERE session_id = ? AND question_id = ?))
+            ON CONFLICT(session_id, question_id) 
+            DO UPDATE SET 
+                user_response = excluded.user_response,
+                outcome = excluded.outcome,
+                updated_at = CURRENT_TIMESTAMP,
+                test_status = excluded.test_status
+        ''', (session_id, user_id, db_file, subject, topic, question_id, user_response, 
+              outcome, session_id, question_id))
+        
+        # Mark test as started if first response
+        conn.execute('''
+            UPDATE user_responses 
+            SET test_status = 'started' 
+            WHERE session_id = ? AND test_status IS NULL
+        ''', (session_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'outcome': outcome,
+            'explanation': correct_answer['explanation'],
+            'correct_answer': correct_answer['correct_answer']
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@mcq_bp.route('/practice/complete_test', methods=['POST'])
+def complete_practice_test():
+    """Mark practice test as completed"""
+    data = request.get_json()
+    session_id = data['session_id']
+    subject = session.get('current_subject')
+    
+    conn = get_mcq_db_connection(subject)
+    conn.execute('''
+        UPDATE user_responses 
+        SET test_status = 'completed' 
+        WHERE session_id = ?
+    ''', (session_id,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@mcq_bp.route('/practice/review/<subject_name>/<topic_name>')
+def practice_review(subject_name, topic_name):
+    """Review completed practice session"""
+    user_id = ensure_user_session()
+    if not user_id:
+        return redirect(url_for('login'))
+    
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash('No session found', 'warning')
+        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+    
+    conn = get_mcq_db_connection(subject_name)
+    try:
+        responses = conn.execute('''
+            SELECT ur.*, mq.question, mq.option_a, mq.option_b, mq.option_c, mq.option_d, mq.correct_answer
+            FROM user_responses ur
+            JOIN mcq_questions mq ON ur.question_id = mq.id
+            WHERE ur.session_id = ? AND ur.subject = ? AND ur.topic = ?
+            ORDER BY ur.id
+        ''', (session_id, subject_name, topic_name)).fetchall()
+        
+        if not responses or responses[0]['test_status'] != 'completed':
+            flash('Test not completed or not found', 'warning')
+            return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+            
+    finally:
+        conn.close()
+    
+    return render_template('mcq/mcq_review.html', responses=responses)
+
+
 
 
 @mcq_bp.route('/test/<int:test_id>')
@@ -752,7 +902,13 @@ def debug_mcq_schema():
     </div>
     <p><a href="/mcq/">Back to MCQ Home</a></p>
     <p><a href="/admin/dynamic_db_manager">Database Manager</a></p>
-    """
+ 
+       """
+
+
+
+
+
 @mcq_bp.route('/admin/debug_add_question', methods=['GET', 'POST'])
 def debug_add_question():
     """Debug route to test MCQ question addition with detailed logging"""
