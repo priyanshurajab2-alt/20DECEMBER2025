@@ -21,7 +21,7 @@
 <script>
 document.getElementById('rzp-form').onsubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/subscribe/plans', {method: 'POST', body: new FormData(e.target)});
+    const res = await fetch('/subscribe1/plans', {method: 'POST', body: new FormData(e.target)});
     const data = await res.json();
     
     razorpay.open({
