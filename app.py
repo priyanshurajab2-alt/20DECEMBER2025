@@ -14,23 +14,24 @@ from flask import Flask
 from test import test_bp   # Import the test blueprint (replace with your module name)
 from dynamic_db_handler import GOALS
 from dynamic_db_handler import GOALS, get_goal_qbank_subjects
+import razorpay
+import time
+from flask import jsonify
 
 
-  # at top of app.py [file:488]
 
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Required for sessions and flashes
 
-# Register the blueprint(s)
+
+# Razorpay (replace with YOUR keys from dashboard)
+razorpay_client = razorpay.Client(
+    auth=("rzp_test_xxxxxxxxxxxxxx", "1dxxxxxxxxxxxxxxxxxxxxxx")
+)
 
 
 
-
-# Add this line before if __name__ == '__main__':
-
-
-# Try this import method first
 try:
     from dynamic_db_handler import dynamic_db_handler, register_dynamic_db_routes, find_subject_database, get_all_qbank_subjects
 except ImportError:
@@ -88,21 +89,25 @@ def create_centralized_user_database():
     
     # Main users table - ALL users go here
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            first_name TEXT,
-            last_name TEXT,
-            year_of_study TEXT DEFAULT '1st',
-            college TEXT,
-            user_type TEXT DEFAULT 'student',
-            is_active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP
-        )
-    ''')
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        first_name TEXT,
+        last_name TEXT,
+        year_of_study TEXT DEFAULT '1st',
+        college TEXT,
+        user_type TEXT DEFAULT 'student',
+        is_active INTEGER DEFAULT 1,
+        subscription_status TEXT DEFAULT 'nonsubscribed',  ← ADD
+        subscription_goal TEXT,                            ← ADD  
+        subscription_plan TEXT,                            ← ADD
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP
+    )
+''')
+
     
     # Cross-database bookmarks - ALL bookmarks from ALL databases
     conn.execute('''
@@ -818,6 +823,93 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html')
+
+
+@app.route('/subscribe', methods=['GET'])
+def subscribe():
+    if 'user_id' not in session:
+        flash('Please log in to subscribe.')
+        return redirect(url_for('login'))
+    return render_template('subscribe.html')
+
+@app.route('/subscribe', methods=['POST'])
+def subscribe_post():
+    name = request.form.get('name')
+    goal = request.form.get('goal')
+    session['sub_name'] = name
+    session['sub_goal_temp'] = goal
+    return redirect(url_for('subscribe_plans'))
+
+@app.route('/subscribe/plans', methods=['GET', 'POST'])
+def subscribe_plans():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    name = session.get('sub_name')
+    goal = session.get('sub_goal_temp')
+    if not name or not goal:
+        return redirect(url_for('subscribe'))
+    
+    if request.method == 'POST':
+        plan_months = int(request.form['plan'])
+        amount = plan_months * 299  # ₹299/month
+        
+        order = razorpay_client.order.create({
+            'amount': amount * 100,  # paise
+            'currency': 'INR',
+            'receipt': f'sub_{session["user_id"]}_{int(time.time())}',
+            'notes': {
+                'user_id': session['user_id'],
+                'goal': goal,
+                'plan': plan_months
+            }
+        })
+        
+        session['rzp_order_id'] = order['id']
+        session['rzp_goal'] = goal
+        session['rzp_plan'] = plan_months
+        
+        return jsonify({
+            'order_id': order['id'],
+            'amount': amount * 100,
+            'key': 'rzp_test_xxxxxxxxxxxxxx',  # YOUR key_id
+            'name': 'MBBS QBank'
+        })
+    
+    return render_template('subscribe_plans.html', name=name, goal=goal)
+
+@app.route('/payment/verify', methods=['POST'])
+def payment_verify():
+    try:
+        payload = request.get_json()
+        razorpay_client.utility.verify_payment_signature(payload)
+        
+        # Payment SUCCESS
+        order = razorpay_client.order.fetch(payload['razorpay_order_id'])
+        notes = order['notes']
+        
+        user_id = notes['user_id']
+        goal = notes['goal']
+        plan = notes['plan']
+        
+        conn = get_user_db_connection()
+        conn.execute('''
+            UPDATE users SET 
+                subscription_status='subscribed',
+                subscription_goal=?,
+                subscription_plan=?
+            WHERE id=?
+        ''', (goal, plan, user_id))
+        conn.commit()
+        conn.close()
+        
+        session['subscription_status'] = 'subscribed'
+        session['subscription_goal'] = goal
+        
+        return jsonify({'status': 'success'})
+    except:
+        return jsonify({'status': 'failed'}), 400
+
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
