@@ -1,37 +1,134 @@
 <!DOCTYPE html>
-<html><head><title>Plans</title>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<html>
+<head>
+    <title>Choose Plan - MBBS QBank</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .plan-card { transition: all 0.3s ease; }
+        .plan-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1)!important; }
+        .pay-btn { background: linear-gradient(45deg, #10b981, #059669); border: none; }
+        .pay-btn:hover { background: linear-gradient(45deg, #059669, #047857); transform: scale(1.05); }
+    </style>
 </head>
-<body class="container mt-5">
-<h2>Choose Plan - {{ goal|upper }}</h2>
-<form id="rzp-form">
-    <div class="mb-3">
-        <label>Plan</label>
-        <select name="plan" class="form-select" required>
-            <option value="3">3 months - ₹897</option>
-            <option value="6">6 months - ₹1,794</option>
-            <option value="9">9 months - ₹2,691</option>
-            <option value="12">12 months - ₹3,588</option>
-        </select>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient text-white text-center py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h1 class="display-5 fw-bold mb-2">{{ goal|upper }} PREMIUM PLAN</h1>
+                    <h4 class="mb-0">Welcome, <strong>{{ name }}</strong>!</h4>
+                    <p class="lead mt-2 opacity-90">Unlock unlimited NEET UG + MBBS tests instantly</p>
+                </div>
+                
+                <div class="card-body p-5">
+                    <form id="rzp-form">
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-3">
+                                <div class="plan-card card h-100 border-success">
+                                    <div class="card-body text-center p-4">
+                                        <h5 class="text-success fw-bold">1 Month</h5>
+                                        <h3 class="fw-bold text-success mb-0">₹299</h3>
+                                        <small class="text-muted">Perfect for quick prep</small>
+                                        <div class="form-check mt-3">
+                                            <input class="form-check-input" type="radio" name="plan" value="1" id="plan1" required>
+                                            <label class="form-check-label fw-bold" for="plan1">Select</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="plan-card card h-100 border-primary">
+                                    <div class="card-body text-center p-4">
+                                        <h5 class="text-primary fw-bold">3 Months</h5>
+                                        <h3 class="fw-bold text-primary mb-0">₹897</h3>
+                                        <small class="text-muted">₹299/mo - Best Value</small>
+                                        <div class="form-check mt-3">
+                                            <input class="form-check-input" type="radio" name="plan" value="3" id="plan3">
+                                            <label class="form-check-label fw-bold" for="plan3">Select</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="plan-card card h-100 border-warning">
+                                    <div class="card-body text-center p-4">
+                                        <h5 class="text-warning fw-bold">6 Months</h5>
+                                        <h3 class="fw-bold text-warning mb-0">₹1,794</h3>
+                                        <small class="text-muted">₹299/mo - Full Prep</small>
+                                        <div class="form-check mt-3">
+                                            <input class="form-check-input" type="radio" name="plan" value="6" id="plan6">
+                                            <label class="form-check-label fw-bold" for="plan6">Select</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="plan-card card h-100 border-danger">
+                                    <div class="card-body text-center p-4">
+                                        <h5 class="text-danger fw-bold">12 Months</h5>
+                                        <h3 class="fw-bold text-danger mb-0">₹3,588</h3>
+                                        <small class="text-muted">₹299/mo - Complete Course</small>
+                                        <div class="form-check mt-3">
+                                            <input class="form-check-input" type="radio" name="plan" value="12" id="plan12">
+                                            <label class="form-check-label fw-bold" for="plan12">Select</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="pay-btn btn btn-lg w-100 py-4 fw-bold text-white shadow-lg mb-4 fs-4">
+                            💳 Pay Now with Razorpay - Instant Access!
+                        </button>
+                    </form>
+                    
+                    <div class="text-center text-muted small pt-4 border-top">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-success fw-bold mb-1">✅ Instant Activation</div>
+                                <div>Access tests immediately</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-primary fw-bold mb-1">🔒 100% Secure</div>
+                                <div>Razorpay Verified Payments</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-warning fw-bold mb-1">💰 Cancel Anytime</div>
+                                <div>No questions asked</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <button type="submit" class="btn btn-success w-100">Pay Now</button>
-</form>
+</div>
 
 <script>
 document.getElementById('rzp-form').onsubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/subscribe1/plans', {method: 'POST', body: new FormData(e.target)});
-    const data = await res.json();
     
-    razorpay.open({
-        key: data.key,
-        amount: data.amount,
-        currency: 'INR',
-        name: 'MBBS QBank',
-        order_id: data.order_id,
-        handler: async (response) => {
-            const verify = await fetch('/payment/verify', {
+    const formData = new FormData(e.target);
+    const response = await fetch('/subscribe1/plans', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    
+    var options = {
+        "key": data.key,                    // Replace with YOUR key
+        "amount": data.amount,              // Amount in paise
+        "currency": "INR",
+        "name": "MBBS QBank Premium",
+        "description": `{{ goal|upper }} - {{ plan_months }} months`,
+        "image": "https://your-logo-url.png",
+        "order_id": data.order_id,
+        "handler": async function(response){
+            // Payment success - verify signature
+            const verifyResponse = await fetch('/payment/verify', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -40,9 +137,32 @@ document.getElementById('rzp-form').onsubmit = async (e) => {
                     razorpay_signature: response.razorpay_signature
                 })
             });
-            if (verify.ok) window.location.href = '/test/tests';
+            
+            const verifyData = await verifyResponse.json();
+            if(verifyData.status === 'success'){
+                alert('✅ Payment Successful! Tests Unlocked!');
+                window.location.href = '/test/tests';
+            } else {
+                alert('❌ Payment verification failed');
+            }
+        },
+        "prefill": {
+            "name": "{{ name }}",
+            "email": "{{ session.user_email or '' }}"
+        },
+        "theme": {
+            "color": "#1e40af"
+        },
+        "modal": {
+            "ondismiss": function(){
+                alert('Payment cancelled');
+            }
         }
-    });
+    };
+    
+    var rzp1 = new Razorpay(options);
+    rzp1.open();
 };
 </script>
-</body></html>
+</body>
+</html>
