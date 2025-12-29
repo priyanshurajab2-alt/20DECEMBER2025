@@ -880,18 +880,32 @@ def subscribe_plans():
 
 @app.route('/payment/verify', methods=['POST'])
 def payment_verify():
+    payload = request.get_json()
+    
+    # 🔥 PHASE 1 DEBUG - SEE EXACTLY WHAT HAPPENS
+    print(f"🔍 ============= PAYMENT VERIFY START ==============")
+    print(f"🔍 PAYLOAD KEYS: {list(payload.keys())}")
+    print(f"🔍 FULL PAYLOAD: {payload}")
+    print(f"🔍 SESSION KEYS: {list(session.keys())}")
+    
     try:
-        payload = request.get_json()
+        print(f"🔍 STEP 1: Verifying signature...")
         razorpay_client.utility.verify_payment_signature(payload)
+        print(f"✅ STEP 1: Signature VERIFIED!")
         
-        # Payment SUCCESS
+        print(f"🔍 STEP 2: Fetching order...")
         order = razorpay_client.order.fetch(payload['razorpay_order_id'])
+        print(f"✅ STEP 2: Order fetched: {order['id']}")
+        
         notes = order['notes']
+        print(f"🔍 STEP 3: Notes: {notes}")
         
         user_id = notes['user_id']
         goal = notes['goal']
         plan = notes['plan']
+        print(f"✅ STEP 3: EXTRACTED user_id={user_id}, goal={goal}, plan={plan}")
         
+        print(f"🔍 STEP 4: Updating DB...")
         conn = get_user_db_connection()
         conn.execute('''
             UPDATE users SET 
@@ -902,13 +916,22 @@ def payment_verify():
         ''', (goal, plan, user_id))
         conn.commit()
         conn.close()
+        print(f"✅ STEP 4: DB UPDATED for user_id: {user_id}")
         
         session['subscription_status'] = 'subscribed'
         session['subscription_goal'] = goal
+        print(f"✅ STEP 5: Session updated")
         
+        print(f"✅ ============= PAYMENT SUCCESS! ==============")
         return jsonify({'status': 'success'})
-    except:
+        
+    except Exception as e:
+        print(f"🚨 ERROR at STEP: {e}")
+        import traceback
+        print(f"🚨 FULL TRACEBACK: {traceback.format_exc()}")
+        print(f"🚨 ============= PAYMENT FAILED! ==============")
         return jsonify({'status': 'failed'}), 400
+
 
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -1643,4 +1666,5 @@ app.register_blueprint(test_bp)
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
