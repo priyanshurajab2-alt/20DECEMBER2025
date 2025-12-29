@@ -826,7 +826,7 @@ def login():
 
 
 @app.route('/subscribe1', methods=['GET'])
-def subscribe():
+def show_subscribe():
     if 'user_id' not in session:
         flash('Please log in to subscribe.')
         return redirect(url_for('login'))
