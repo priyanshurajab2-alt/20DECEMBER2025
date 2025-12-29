@@ -825,14 +825,14 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/subscribe', methods=['GET'])
+@app.route('/subscribe1', methods=['GET'])
 def subscribe():
     if 'user_id' not in session:
         flash('Please log in to subscribe.')
         return redirect(url_for('login'))
     return render_template('subscribe.html')
 
-@app.route('/subscribe/step1', methods=['POST'])
+@app.route('/subscribe1/step1', methods=['POST'])
 def subscribe_post():
     name = request.form.get('name')
     goal = request.form.get('goal')
@@ -840,7 +840,7 @@ def subscribe_post():
     session['sub_goal_temp'] = goal
     return redirect(url_for('subscribe_plans'))
 
-@app.route('/subscribe/plans', methods=['GET', 'POST'])
+@app.route('/subscribe1/plans', methods=['GET', 'POST'])
 def subscribe_plans():
     if 'user_id' not in session:
         return redirect(url_for('login'))
