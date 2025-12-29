@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head><title>Plans</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+<h2>Choose Plan - {{ goal|upper }}</h2>
+<form id="rzp-form">
+    <div class="mb-3">
+        <label>Plan</label>
+        <select name="plan" class="form-select" required>
+            <option value="3">3 months - ₹897</option>
+            <option value="6">6 months - ₹1,794</option>
+            <option value="9">9 months - ₹2,691</option>
+            <option value="12">12 months - ₹3,588</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success w-100">Pay Now</button>
+</form>
+
+<script>
+document.getElementById('rzp-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/subscribe/plans', {method: 'POST', body: new FormData(e.target)});
+    const data = await res.json();
+    
+    razorpay.open({
+        key: data.key,
+        amount: data.amount,
+        currency: 'INR',
+        name: 'MBBS QBank',
+        order_id: data.order_id,
+        handler: async (response) => {
+            const verify = await fetch('/payment/verify', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            });
+            if (verify.ok) window.location.href = '/test/tests';
+        }
+    });
+};
+</script>
+</body></html>
