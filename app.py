@@ -851,7 +851,7 @@ def subscribe_plans():
     
     if request.method == 'POST':
         plan_months = int(request.form['plan'])
-        amount = plan_months * 299  # ₹299/month
+        amount = plan_months * 1  # ₹299/month
         
         order = razorpay_client.order.create({
             'amount': amount * 100,  # paise
