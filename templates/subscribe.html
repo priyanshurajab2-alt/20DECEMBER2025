@@ -4,7 +4,7 @@
 </head>
 <body class="container mt-5">
 <h2>Subscription</h2>
-<form method="post">
+<form action="/subscribe1/step1" method="POST">  <!-- ✅ FIXED -->
     <div class="mb-3">
         <label>Name</label>
         <input type="text" name="name" value="{{ session.username }}" class="form-control" required>
