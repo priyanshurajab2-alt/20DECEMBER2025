@@ -178,8 +178,8 @@ def init_db():
     print("✅ Centralized admin_users.db initialized successfully!")
 
 # Initialize database when app starts
-with app.app_context():
-    init_db()
+#with app.app_context():
+   # init_db()
 
 # --------------------
 # FREE CONTENT MANAGEMENT FUNCTIONS
