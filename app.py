@@ -838,7 +838,7 @@ def subscribe_post():
     goal = request.form.get('goal')
     session['sub_name'] = name
     session['sub_goal_temp'] = goal
-    return redirect(url_for('subscribe_plans'))
+    return redirect('/subscribe1/plans')  # ✅ CORRECT!
 
 @app.route('/subscribe1/plans', methods=['GET', 'POST'])
 def subscribe_plans():
