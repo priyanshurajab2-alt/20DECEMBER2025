@@ -127,7 +127,7 @@
         let topic = '{{ topic }}';
         let score = 0;
         let answered = {};
-        let testStatus = '{% if responses and responses.values()|first.test_status %}{{ responses.values()|first.test_status }}{% else %}not_started{% endif %}';
+       let testStatus = '{% if responses and responses|first and responses|first.test_status %}{{ responses|first.test_status }}{% else %}not_started{% endif %}';
 
         // Load initial state
         window.onload = function() {
