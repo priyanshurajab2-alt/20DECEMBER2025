@@ -26,9 +26,8 @@ app.secret_key = 'your-secret-key'  # Required for sessions and flashes
 
 
 # Razorpay (replace with YOUR keys from dashboard)
-razorpay_client = razorpay.Client(
-    auth=("rzp_test_xxxxxxxxxxxxxx", "1dxxxxxxxxxxxxxxxxxxxxxx")
-)
+razorpay_client = razorpay.Client(auth=('rzp_live_RxMEjWvYOXP8oj', 'nVo5I7Xco8PEVHPtgmdypOtB'))
+
 
 
 
@@ -872,9 +871,10 @@ def subscribe_plans():
         return jsonify({
             'order_id': order['id'],
             'amount': amount * 100,
-            'key': 'rzp_test_xxxxxxxxxxxxxx',  # YOUR key_id
+            'key': 'rzp_live_RxMEjWvYOXP8oj',  # ← YOUR Key ID ONLY (no secret!)
             'name': 'MBBS QBank'
         })
+
     
     return render_template('subscribe_plans.html', name=name, goal=goal)
 
@@ -1643,3 +1643,4 @@ app.register_blueprint(test_bp)
 
 if __name__ == '__main__':
     app.run(debug=True)
+
