@@ -2,3 +2,4 @@ flask
 flask_httpauth
 twilio
 gunicorn
+razorpay==1.4.2  
