@@ -310,25 +310,42 @@ class DynamicDatabaseHandler:
         }
     
     def get_mcq_schema(self):
-        """Schema for MCQ-type databases"""
-        return {
-            'mcq_questions': '''
-                CREATE TABLE IF NOT EXISTS mcq_questions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    subject TEXT NOT NULL,
-                    chapter TEXT,     
-                    topic TEXT NOT NULL,
-                    question TEXT NOT NULL,
-                    option_a TEXT NOT NULL,
-                    option_b TEXT NOT NULL,
-                    option_c TEXT NOT NULL,
-                    option_d TEXT NOT NULL,
-                    correct_answer TEXT NOT NULL,
-                    explanation TEXT,
-                    difficulty TEXT DEFAULT 'medium',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''',
+         """Complete schema for MCQ databases with user tracking"""
+         return {
+        'mcq_questions': """
+            CREATE TABLE IF NOT EXISTS mcq_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject TEXT NOT NULL,
+                chapter TEXT,
+                topic TEXT NOT NULL,
+                question TEXT NOT NULL,
+                option_a TEXT NOT NULL,
+                option_b TEXT NOT NULL,
+                option_c TEXT NOT NULL,
+                option_d TEXT NOT NULL,
+                correct_answer TEXT NOT NULL,
+                explanation TEXT,
+                difficulty TEXT DEFAULT 'medium',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """,
+        'user_responses': """
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_id INTEGER,
+                db_file TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                question_id INTEGER NOT NULL,
+                user_response TEXT,
+                outcome TEXT CHECK(outcome IN ('correct', 'incorrect', NULL)),
+                test_status TEXT CHECK(test_status IN ('started', 'completed', NULL)) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(session_id, question_id)
+            )
+        """,
             'mcq_tests': '''
                 CREATE TABLE IF NOT EXISTS mcq_tests (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
