@@ -467,12 +467,20 @@ def mcq_practice_topic(subject_name, topic_name):
             return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
         
         # Get existing responses for this session
-        responses = dict(conn.execute('''
+        conn.row_factory = sqlite3.Row  # ← ADD THIS ONE LINE
+        response_rows = conn.execute('''
             SELECT question_id, user_response, outcome, test_status
             FROM user_responses 
             WHERE session_id = ? AND subject = ? AND topic = ?
-        ''', (session_id, subject_name, topic_name)).fetchall())
-        
+        ''', (session_id, subject_name, topic_name)).fetchall()
+
+        responses = {}
+        for row in response_rows:
+            responses[str(row['question_id'])] = {
+                'user_response': row['user_response'],
+                'outcome': row['outcome'],
+                'test_status': row['test_status']
+            }
     finally:
         conn.close()
     
