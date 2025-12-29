@@ -17,22 +17,44 @@ mcq_bp = Blueprint('mcq', __name__, url_prefix='/mcq')
 
 # MCQ Database Configuration
 def get_mcq_db_connection(subject=None):
-    """Get connection to appropriate MCQ database"""
+    """Get MCQ DB with goal filtering + DEBUG logs"""
+    user_goal = session.get('current_goal', 'mbbs_prof')
+    print(f"🔍 DEBUG: User goal='{user_goal}', subject='{subject}'")
+    
+    all_mcq_dbs = dynamic_db_handler.discovered_databases.get('mcq', [])
+    print(f"🔍 DEBUG: Found {len(all_mcq_dbs)} total MCQ DBs:")
+    for db in all_mcq_dbs:
+        print(f"   - {db['file']}")
+    
+    # 🚀 Filter ONLY goal-specific DBs
+    goal_dbs = [db for db in all_mcq_dbs if user_goal.lower() in db['file'].lower()]
+    print(f"🔍 DEBUG: Filtered to {len(goal_dbs)} goal-specific DBs:")
+    for db in goal_dbs:
+        print(f"   ✅ {db['file']}")
+    
+    if not goal_dbs:
+        print("⚠️  DEBUG: No goal DBs found, using all DBs")
+        goal_dbs = all_mcq_dbs
+    
     if subject:
-        # Find MCQ database for specific subject
-        mcq_databases = dynamic_db_handler.discovered_databases.get('mcq', [])
-        for db_info in mcq_databases:
+        print(f"🔍 DEBUG: Looking for subject='{subject}' in goal DBs...")
+        for db_info in goal_dbs:
             db_file = db_info['file']
             if subject.lower() in db_file.lower():
+                print(f"✅ DEBUG: Found subject in {db_file}")
                 return dynamic_db_handler.get_connection(db_file)
+        print(f"❌ DEBUG: Subject '{subject}' not in any goal DB filename")
+    
+    # Use first goal DB
+    selected_db = goal_dbs[0]['file'] if goal_dbs else "NO_DB"
+    print(f"🔍 DEBUG: Selected DB: {selected_db}")
+    
+    if selected_db != "NO_DB":
+        return dynamic_db_handler.get_connection(selected_db)
+    return create_default_mcq_database()
+
     
     # Default to first available MCQ database
-    mcq_databases = dynamic_db_handler.discovered_databases.get('mcq', [])
-    if mcq_databases:
-        return dynamic_db_handler.get_connection(mcq_databases[0]['file'])
-    
-    # Fallback: create default MCQ database
-    return create_default_mcq_database()
 
 
 def get_user_db_connection():
