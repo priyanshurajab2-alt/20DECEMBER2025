@@ -975,6 +975,31 @@ def api_get_topics(subject):
     topics = get_mcq_topics(subject)
     return jsonify([{'name': topic['topic'], 'count': topic['question_count']} for topic in topics])
 
+@mcq_bp.route('/practice/mark-complete', methods=['POST'])
+def mark_topic_complete_simple():
+    userid = ensure_user_session()
+    if not userid:
+        return jsonify(success=False, message="Login required")
+    
+    data = request.get_json()
+    topic_name = data.get('topic_name')
+    subject = data.get('subject')
+    
+    # Get topic_id
+    topic_id = get_topic_id(subject, topic_name)
+    if not topic_id:
+        return jsonify(success=False, message="Topic not found")
+    
+    # MARK COMPLETE
+    conn = get_centralized_mcq_connection()
+    conn.execute("""
+        INSERT INTO user_topic_completion (user_id, topic_id) 
+        VALUES (?, ?) ON CONFLICT DO UPDATE SET completed_at=CURRENT_TIMESTAMP
+    """, (userid, topic_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify(success=True)
 
 # --------------------
 # ADMIN MCQ ROUTES
