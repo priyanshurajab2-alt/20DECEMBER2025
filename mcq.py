@@ -575,18 +575,15 @@ def mcq_subject(subject_name):
         ]
         conn.close()
     
-    # 🔥 FIXED TESTS SECTION
+    # Tests
     tests = []
-    try:
-        conn = get_mcq_db_connection(subject_name)
-        if conn:
-            tests = conn.execute("""
-                SELECT id, test_name, total_questions, duration_minutes 
-                FROM mcq_tests WHERE subject=?
-            """, (subject_name,)).fetchall()
-            conn.close()
-    except:
-        pass
+    conn = get_mcq_db_connection(subject_name)
+    if conn:
+        tests = conn.execute("""
+            SELECT id, test_name, total_questions, duration_minutes 
+            FROM mcq_tests WHERE subject=? AND is_public=1
+        """, (subject_name,)).fetchall()
+        conn.close()
     
     return render_template('mcq/mcq_subject.html',
                           subject=subject_name,
