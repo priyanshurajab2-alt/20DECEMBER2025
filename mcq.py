@@ -23,6 +23,63 @@ def get_centralized_mcq_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def sync_mcqs_to_topics():
+    """🔄 Update mcq_topics question_count from ALL MCQ databases"""
+    print("🔄 Syncing mcq_questions → mcq_topics...")
+    
+    conn = sqlite3.connect('/var/data/centralized_mcq_management.db')
+    
+    # Get ALL MCQ databases
+    all_dbs = dynamicdbhandler.discovered_databases.get('mcq', [])
+    topic_counts = {}
+    
+    for db_info in all_dbs:
+        db_file = db_info['file']
+        print(f"📊 Counting {db_file}...")
+        
+        try:
+            src_conn = dynamicdbhandler.get_connection(db_file)
+            rows = src_conn.execute("""
+                SELECT subject, topic, COUNT(*) as count 
+                FROM mcq_questions 
+                GROUP BY subject, topic
+            """).fetchall()
+            
+            for row in rows:
+                key = f"{row['subject']}|{row['topic']}"
+                topic_counts[key] = topic_counts.get(key, 0) + row['count']
+            
+            src_conn.close()
+        except Exception as e:
+            print(f"❌ Error {db_file}: {e}")
+    
+    # UPDATE mcq_topics with accurate counts
+    total_updated = 0
+    for key, count in topic_counts.items():
+        subject, topic = key.split('|')
+        result = conn.execute("""
+            INSERT OR IGNORE INTO mcq_topics (topic_name, subject, question_count, premium_tag)
+            VALUES (?, ?, ?, 'free')
+        """, (topic, subject, count))
+        
+        if result.rowcount > 0:
+            total_updated += 1
+        else:
+            # UPDATE existing
+            conn.execute("""
+                UPDATE mcq_topics 
+                SET question_count = ? 
+                WHERE subject = ? AND topic_name = ?
+            """, (count, subject, topic))
+            total_updated += 1
+    
+    conn.commit()
+    conn.close()
+    print(f"✅ Synced {total_updated} topics with accurate counts!")
+    return total_updated
+
+
+
 def get_topic_id(subject, topic_name):
     """Get topic_id for subject+topic combo"""
     conn = get_centralized_mcq_connection()
@@ -437,6 +494,11 @@ def get_mcq_topics(subject):
 
 @mcq_bp.route('/')
 def mcq_home():
+     
+
+    sync_mcqs_to_topics()
+
+
     """MCQ Home page showing all subjects"""
     # Auto-fix schema issues for both tables
     try:
@@ -471,6 +533,13 @@ def mcq_home():
             conn.close()
     
     return render_template('mcq/mcq_home.html', subjects=subject_stats)
+
+
+@mcq_bp.route('/admin/sync-topics', methods=['POST'])
+def admin_sync_topics():
+    sync_mcqs_to_topics()
+    flash("✅ Topics synced with latest question counts!", "success")
+    return redirect(url_for('mcq.mcqhome'))
 
 
 @mcq_bp.route('/subject/<subject_name>')
