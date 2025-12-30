@@ -696,37 +696,66 @@ def save_practice_response():
         subject = session.get('current_subject')
         topic = session.get('current_topic')
         
-        # 🚀 Save to CENTRALIZED table
+        # 🚀 Get FULL QUESTION DATA (options + explanation + correct_answer)
+        source_conn = get_mcq_db_connection(subject)
+        question_data = source_conn.execute("""
+            SELECT question, option_a, option_b, option_c, option_d, 
+                   correct_answer, explanation 
+            FROM mcq_questions WHERE id=?
+        """, (question_id,)).fetchone()
+        source_conn.close()
+        
+        if not question_data:
+            return jsonify(success=False, message='Question not found')
+        
+        # 🔥 SAVE ALL 5 NEW FIELDS to CENTRALIZED table
         topic_id = get_topic_id(subject, topic)
         if topic_id:
             conn_central = get_centralized_mcq_connection()
-            # Get question text
-            source_conn = get_mcq_db_connection(subject)
-            question = source_conn.execute(
-                "SELECT question FROM mcq_questions WHERE id=?", (question_id,)
-            ).fetchone()
-            source_conn.close()
-            
             conn_central.execute("""
                 INSERT INTO question_topic_responses 
-                (topic_id, user_id, question_id, question_text, user_response, is_correct)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (topic_id, user_id, question_id, question['question'], user_response, None))
+                (topic_id, user_id, question_id, question_text, 
+                 option_a, option_b, option_c, option_d, explanation,
+                 user_response, is_correct)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                topic_id, user_id, question_id,
+                question_data['question'],
+                question_data['option_a'] or '',
+                question_data['option_b'] or '',
+                question_data['option_c'] or '',
+                question_data['option_d'] or '',
+                question_data['explanation'] or '',
+                user_response,
+                None  # is_correct (calculated later)
+            ))
             conn_central.commit()
             conn_central.close()
         
-        # Original response saving code...
-        conn = get_mcq_db_connection(subject)
-        correct_answer = conn.execute(
-            "SELECT correct_answer, explanation FROM mcq_questions WHERE id=?", 
-            (question_id,)
-        ).fetchone()
-        outcome = 'correct' if user_response == correct_answer['correct_answer'] else 'incorrect'
+        # 🔥 Calculate outcome
+        correct_answer = question_data['correct_answer']
+        outcome = 'correct' if user_response == correct_answer else 'incorrect'
         
-        # Rest of your existing save logic...
-        return jsonify(success=True, outcome=outcome, explanation=correct_answer['explanation'])
+        # Original local DB save (your existing logic)...
+        conn = get_mcq_db_connection(subject)
+        conn.execute("""
+            INSERT OR REPLACE INTO user_responses 
+            (session_id, question_id, user_response, outcome, test_status)
+            VALUES (?, ?, ?, ?, 'in_progress')
+        """, (session_id, question_id, user_response, outcome))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'outcome': outcome, 
+            'explanation': question_data['explanation'] or 'No explanation available'
+        })
+        
     except Exception as e:
+        print(f"❌ Save response error: {e}")
         return jsonify(success=False, message=str(e))
+
 
 @mcq_bp.route('/api/mark_topic_complete', methods=['POST'])
 def mark_topic_complete():
