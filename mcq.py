@@ -542,7 +542,7 @@ def admin_sync_topics():
     return redirect(url_for('mcq.mcqhome'))
 
 
-@mcqbp.route('/<subject_name>')
+@mcq_bp.route('/<subject_name>')
 def mcq_subject(subject_name):
     chapter_topics = get_chapters_with_topics(subject_name)
     
