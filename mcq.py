@@ -709,6 +709,14 @@ def save_practice_response():
 
 
             source_conn.close()
+
+
+            conn = get_mcq_db_connection(subject)
+            correct_answer = conn.execute(
+            "SELECT correct_answer, explanation FROM mcq_questions WHERE id=?", 
+            (question_id,)
+            ).fetchone()
+            outcome = 'correct' if user_response == correct_answer['correct_answer'] else 'incorrect'
             
             conn_central.execute("""
                     INSERT OR REPLACE INTO question_topic_responses 
@@ -721,23 +729,19 @@ def save_practice_response():
                     question_data['option_c'] or '',
                     question_data['option_d'] or '',
                     question_data['explanation'] or '',
-                    user_response, outcome))
+                    user_response,outcome))
 
             conn_central.commit()
             conn_central.close()
         
         # Original response saving code...
-        conn = get_mcq_db_connection(subject)
-        correct_answer = conn.execute(
-            "SELECT correct_answer, explanation FROM mcq_questions WHERE id=?", 
-            (question_id,)
-        ).fetchone()
-        outcome = 'correct' if user_response == correct_answer['correct_answer'] else 'incorrect'
+       
         
         # Rest of your existing save logic...
         return jsonify(success=True, outcome=outcome, explanation=correct_answer['explanation'])
     except Exception as e:
         return jsonify(success=False, message=str(e))
+
 
 
 @mcq_bp.route('/api/mark_topic_complete', methods=['POST'])
