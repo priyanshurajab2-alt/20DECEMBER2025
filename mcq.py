@@ -495,6 +495,7 @@ def get_mcq_topics(subject):
 @mcq_bp.route('/')
 def mcq_home():
      
+    dynamic_db_handler.discover_databases()
 
     sync_mcqs_to_topics()
 
@@ -544,6 +545,10 @@ def admin_sync_topics():
 
 @mcq_bp.route('/<subject_name>')
 def mcq_subject(subject_name):
+
+    dynamic_db_handler.discover_databases()
+
+
     chapter_topics = get_chapters_with_topics(subject_name)
     
     userid = ensure_user_session()
