@@ -191,6 +191,28 @@
             box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
         }
 
+
+        .topic-completed::after {
+    content: '✓';
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #10b981;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.topic-link.topic-completed {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+}
+
         /* Topic Content Layout */
         .topic-content {
             display: flex;
