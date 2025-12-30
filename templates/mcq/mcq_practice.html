@@ -257,4 +257,23 @@ let testStatus = '{% if responses and responses|length > 0 %}{{ responses[0].tes
     </script>
 </body>
 </html>
+<button onclick="markComplete()" class="btn btn-success" style="margin:20px auto; display:block;">
+    ✅ Mark Topic Complete
+</button>
+
+<script>
+function markComplete() {
+    fetch('/mcq/practice/mark-complete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            topic_name: '{{ topic }}',
+            subject: '{{ subject }}'
+        })
+    }).then(r=>r.json()).then(data=>{
+        if(data.success) alert('✅ Topic completed! Check admin panel.');
+    });
+}
+</script>
+
 
