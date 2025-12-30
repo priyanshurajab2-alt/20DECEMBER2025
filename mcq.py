@@ -542,48 +542,57 @@ def admin_sync_topics():
     return redirect(url_for('mcq.mcqhome'))
 
 
-@mcq_bp.route('/<subject_name>')
+@mcqbp.route('/<subject_name>')
 def mcq_subject(subject_name):
-    userid = ensure_user_session()
     chapter_topics = get_chapters_with_topics(subject_name)
     
-    # 🔥 NEW: User subscription status
+    userid = ensure_user_session()
+    completed_topic_ids = []
     user_subscribed = False
-    user_goal = session.get('current_goal', 'neet_ug')
+    user_goal = 'neet_ug'  # Default
     
     if userid:
-        user_conn = get_user_db_connection()
-        user_data = user_conn.execute(
-            "SELECT is_subscribed, subscription_goal FROM users WHERE id=?", (userid,)
-        ).fetchone()
-        if user_data:
-            user_subscribed = user_data['is_subscribed'] == 1
-            user_goal = user_data['subscription_goal'] or user_goal
+        # 🔥 USE EXISTING COLUMNS
+        user_conn = sqlite3.connect('/var/data/admin_users.db')
+        user_conn.row_factory = sqlite3.Row
+        user_data = user_conn.execute("""
+            SELECT subscription_status, subscription_goal FROM users WHERE id=?
+        """, (userid,)).fetchone()
         user_conn.close()
-    
-    # 🔥 NEW: User completions
-    completions = []
-    if userid:
+        
+        if user_data:
+            user_subscribed = user_data['subscription_status'] == 'subscribed'
+            user_goal = user_data['subscription_goal'] or 'neet_ug'
+        
+        # 🔥 Get completions
         conn = get_centralized_mcq_connection()
-        completions = conn.execute("""
-            SELECT utc.topic_id FROM user_topic_completion utc
-            JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
-            WHERE utc.user_id=? AND mt.subject=?
-        """, (userid, subject_name)).fetchall()
+        completed_topic_ids = [
+            row['topic_id'] for row in conn.execute("""
+                SELECT utc.topic_id FROM user_topic_completion utc
+                JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
+                WHERE utc.user_id=? AND mt.subject=?
+            """, (userid, subject_name)).fetchall()
+        ]
         conn.close()
     
-    # Existing tests code...
-    conn = get_mcq_db_connection(subject_name)
+    # Tests
     tests = []
+    conn = get_mcq_db_connection(subject_name)
     if conn:
-        tests = conn.execute("SELECT * FROM mcq_tests WHERE subject=? AND is_public=1", (subject_name,)).fetchall()
+        tests = conn.execute("""
+            SELECT id, test_name, total_questions, duration_minutes 
+            FROM mcq_tests WHERE subject=? AND is_public=1
+        """, (subject_name,)).fetchall()
         conn.close()
     
     return render_template('mcq/mcq_subject.html',
-                          subject=subject_name, chapter_topics=chapter_topics,
-                          tests=tests, current_user_id=userid,
-                          user_subscribed=user_subscribed, user_goal=user_goal,
-                          completions=completions)
+                          subject=subject_name,
+                          chapter_topics=chapter_topics,
+                          tests=tests,
+                          current_user_id=userid,
+                          user_subscribed=user_subscribed,
+                          user_goal=user_goal,
+                          completed_topic_ids=completed_topic_ids)
 
 @mcq_bp.route('/practice/<subject_name>/<topic_name>')
 def mcq_practice_topic(subject_name, topic_name):
