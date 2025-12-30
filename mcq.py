@@ -604,6 +604,56 @@ def mcq_subject(subject_name):
                           user_goal=user_goal,
                           completed_topic_ids=completed_topic_ids)
 
+
+
+
+@mcq_bp.route('/<subject_name>/practice/<topic_name>')
+def mcq_practice_topic(subject_name, topic_name):
+    """Start topic-wise MCQ practice"""
+    user_goal = session.get('user_goal', 'neet_ug')
+
+    try:
+        conn = get_mcq_db_connection(subject_name)
+        if conn is None:
+            flash("No questions available for this subject.", "warning")
+            return redirect(url_for('mcq.mcq_home'))
+    except:
+        flash("Database error.", "error")
+        return redirect(url_for('mcq.mcq_home'))
+
+    questions = conn.execute("""
+        SELECT id, question, option_a, option_b, option_c, option_d,
+               correct_answer, explanation
+        FROM mcq_questions
+        WHERE subject = ? AND topic = ?
+        ORDER BY id
+    """, (subject_name, topic_name)).fetchall()
+
+    conn.close()
+
+    if not questions:
+        flash(f"No questions found for topic: {topic_name}", "info")
+        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+
+    import uuid
+    session_id = str(uuid.uuid4())
+    responses = {}  # fresh start
+    total_questions = len(questions)
+
+    # Save for save_response route
+    session['current_subject'] = subject_name
+    session['current_topic'] = topic_name
+
+    return render_template(
+        'mcq/mcq_practice.html',
+        subject=subject_name,
+        topic=topic_name,
+        questions=questions,
+        total_questions=total_questions,
+        session_id=session_id,
+        responses=responses,
+        user_goal=user_goal
+    )
 @mcq_bp.route('/practice/save_response', methods=['POST'])
 def save_practice_response():
     user_id = ensure_user_session()
