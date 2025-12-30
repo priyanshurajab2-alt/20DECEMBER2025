@@ -620,62 +620,58 @@
         </div>
 
         <!-- Chapters and Topics -->
-        {% if chapter_topics %}
-            {% for chapter_info in chapter_topics %}
-                <div class="chapter-card">
-                    <h2 class="chapter-title">
-                        <div class="chapter-icon"></div>
-                        {{ chapter_info.chapter }}
-                        <span class="topic-count">({{ chapter_info.topics|length }} topics)</span>
-                    </h2>
-                    <div class="space-y-3">
-                       {% for topic_name in chapter_info.topics %}
-{% set is_completed = current_user_id and topic_name|string in completed_topic_ids %}
-{% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
-{% set topic_status = topic_info.premium_tag %}
+        <!-- Chapters and Topics -->
+{% if chapter_topics %}
+    {% for chapter_info in chapter_topics %}
+        <div class="chapter-card">
+            <h2 class="chapter-title">
+                <div class="chapter-icon"></div>
+                {{ chapter_info.chapter }}
+                <span class="topic-count">({{ chapter_info.topics|length }} topics)</span>
+            </h2>
+            <div class="space-y-3">
+                {% for topic_name in chapter_info.topics %}
+                    {% set is_completed = current_user_id and topic_name|string in completed_topic_ids %}
+                    {% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
+                    {% set topic_status = topic_info.premium_tag %}
 
-<a href="{% if topic_status == 'pro' and not user_subscribed %}#{% else %}/mcq/practice/{{ subject }}/{{ topic_name }}{% endif %}"
-   class="topic-link {% if is_completed %}topic-completed{% endif %}">
-  <div class="topic-content" style="position: relative;">
-
-        <div class="topic-content">
-            <div class="topic-info">
-                <h3 class="topic-title">{{ topic_name }}</h3>
-                <div class="topic-meta">
-                   {% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
-<span class="question-count">{{ topic_info.question_count }} Questions</span>
-<span class="status-badge {% if topic_info.premium_tag == 'pro' %}status-pro{% else %}status-free{% endif %}">{{ topic_info.premium_tag|upper }}</span>
-
-                </div>
+                    <a href="{% if topic_status == 'pro' and not user_subscribed %}#{% else %}/mcq/practice/{{ subject }}/{{ topic_name }}{% endif %}"
+                       class="topic-link {% if is_completed %}topic-completed{% endif %}">
+                        <div class="topic-content" style="position: relative;">
+                            <div class="topic-info">
+                                <h3 class="topic-title">{{ topic_name }}</h3>
+                                <div class="topic-meta">
+                                    <span class="question-count">{{ topic_info.question_count }} Questions</span>
+                                    <span class="status-badge {% if topic_status == 'pro' %}status-pro{% else %}status-free{% endif %}">
+                                        {{ topic_status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="topic-arrow">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                            
+                            <!-- 🔥 PRO LOCK OVERLAY -->
+                            {% if topic_status == 'pro' and not user_subscribed %}
+                            <div class="topic-lock-overlay">
+                                <span class="lock-icon">🔒 PRO REQUIRED</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
             </div>
-            <div class="topic-arrow">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </div>
-                  {% if topic_status == 'pro' and not user_subscribed %}
-    <div class="topic-lock-overlay">
-      <span class="lock-icon">🔒 PRO REQUIRED</span>
-    </div>
-    {% endif %}
-  </div>
-</a>
-{% endfor %}
-            
         </div>
-    </a>
-{% endfor %}
-
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="no-content">
-                <div class="no-content-icon">📚</div>
-                <h3>No chapters available</h3>
-                <p>No chapters or topics found for {{ subject }}. Please check back later.</p>
-            </div>
-        {% endif %}
+    {% endfor %}
+{% else %}
+    <div class="no-content">
+        <div class="no-content-icon">📚</div>
+        <h3>No chapters available</h3>
+        <p>No chapters or topics found for {{ subject }}. Please check back later.</p>
+    </div>
+{% endif %}
 
         <!-- Tests -->
         <div class="chapter-card">
