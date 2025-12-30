@@ -30,7 +30,7 @@ def sync_mcqs_to_topics():
     conn = sqlite3.connect('/var/data/centralized_mcq_management.db')
     
     # Get ALL MCQ databases
-    all_dbs = dynamicdbhandler.discovered_databases.get('mcq', [])
+    all_dbs = dynamic_db_handler.discovered_databases.get('mcq', [])
     topic_counts = {}
     
     for db_info in all_dbs:
@@ -38,7 +38,7 @@ def sync_mcqs_to_topics():
         print(f"📊 Counting {db_file}...")
         
         try:
-            src_conn = dynamicdbhandler.get_connection(db_file)
+            src_conn = dynamic_db_handler.get_connection(db_file)
             rows = src_conn.execute("""
                 SELECT subject, topic, COUNT(*) as count 
                 FROM mcq_questions 
