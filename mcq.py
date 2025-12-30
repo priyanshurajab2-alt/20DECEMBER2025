@@ -624,53 +624,64 @@ def mcq_subject(subject_name):
 
 
 
-@mcq_bp.route('/<subject_name>/practice/<topic_name>')
+@mcq_bp.route('/practice/<subject_name>/<topic_name>')
 def mcq_practice_topic(subject_name, topic_name):
-    """Start topic-wise MCQ practice"""
-    user_goal = session.get('user_goal', 'neet_ug')
-
-    try:
-        conn = get_mcq_db_connection(subject_name)
-        if conn is None:
-            flash("No questions available for this subject.", "warning")
-            return redirect(url_for('mcq.mcq_home'))
-    except:
-        flash("Database error.", "error")
-        return redirect(url_for('mcq.mcq_home'))
-
-    questions = conn.execute("""
-        SELECT id, question, option_a, option_b, option_c, option_d,
-               correct_answer, explanation
-        FROM mcq_questions
-        WHERE subject = ? AND topic = ?
-        ORDER BY id
-    """, (subject_name, topic_name)).fetchall()
-
-    conn.close()
-
-    if not questions:
-        flash(f"No questions found for topic: {topic_name}", "info")
-        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
-
-    import uuid
-    session_id = str(uuid.uuid4())
-    responses = {}  # fresh start
-    total_questions = len(questions)
-
-    # Save for save_response route
+    user_id = ensure_user_session()
+    if not user_id:
+        flash('Please login to practice MCQs', 'info')
+        return redirect(url_for('login'))
+    
+    session_id = session.get('mcq_session_id', f"{user_id}_{subject_name}_{topic_name}_{int(datetime.now().timestamp())}")
+    session['mcq_session_id'] = session_id
     session['current_subject'] = subject_name
     session['current_topic'] = topic_name
+    
+    # 🚀 SAFE: Check connection first
+    conn = get_mcq_db_connection(subject_name)
+    if not conn:
+        flash(f'No database found for {subject_name}', 'error')
+        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+    
+    questions = []
+    responses = []
+    try:
+        create_user_responses_table(conn)
+        
+        # 🚀 SAFE Query - No problematic columns
+        questions = conn.execute("""
+            SELECT * FROM mcq_questions 
+            WHERE subject=? AND topic=? 
+            ORDER BY RANDOM()
+        """, (subject_name, topic_name)).fetchall()
+        
+        if not questions:
+            flash(f'No questions found for {topic_name}', 'warning')
+            conn.close()
+            return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+        
+        # 🚀 SAFE responses query
+        responses = conn.execute("""
+            SELECT question_id, user_response, outcome, test_status 
+            FROM user_responses 
+            WHERE session_id=? AND subject=? AND topic=?
+        """, (session_id, subject_name, topic_name)).fetchall()
+        
+    except sqlite3.OperationalError as e:
+        flash(f'Database error: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    # 🚀 FIX: AFTER finally block (variables still accessible!)
+    responses_safe = [dict(r) for r in responses] if responses else []
+    
+    return render_template('mcq/mcq_practice.html', 
+                         subject=subject_name, 
+                         topic=topic_name, 
+                         questions=questions, 
+                         responses=responses_safe,  # ✅ FIXED!
+                         session_id=session_id,
+                         total_questions=len(questions))
 
-    return render_template(
-        'mcq/mcq_practice.html',
-        subject=subject_name,
-        topic=topic_name,
-        questions=questions,
-        total_questions=total_questions,
-        session_id=session_id,
-        responses=responses,
-        user_goal=user_goal
-    )
 @mcq_bp.route('/practice/save_response', methods=['POST'])
 def save_practice_response():
     user_id = ensure_user_session()
