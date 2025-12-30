@@ -17,7 +17,7 @@ mcq_bp = Blueprint('mcq', __name__, url_prefix='/mcq')
 
 # MCQ Database Configuration
 def get_mcq_db_connection(subject=None):
-    """Find DB with subject IN CONTENT (not filename)"""
+    """Find DB with subject + SHOW chapters/topics DEBUG"""
     user_goal = session.get('current_goal', 'mbbs_prof')
     print(f"🔍 DEBUG: User goal='{user_goal}', subject='{subject}'")
     
@@ -28,7 +28,7 @@ def get_mcq_db_connection(subject=None):
         print("❌ DEBUG: No goal DBs → Empty")
         return None
     
-    # 🚀 NEW: Check DATABASE CONTENT for subject
+    # 🚀 Check DATABASE CONTENT for subject + SHOW chapters/topics
     if subject:
         print(f"🔍 DEBUG: Searching '{subject}' in DB CONTENT...")
         for db_info in goal_dbs:
@@ -36,21 +36,36 @@ def get_mcq_db_connection(subject=None):
             try:
                 conn = dynamic_db_handler.get_connection(db_file)
                 conn.row_factory = sqlite3.Row
-                # ✅ CHECK SUBJECT COLUMN IN TABLE
+                
+                # ✅ Count subject questions
                 count = conn.execute(
                     "SELECT COUNT(*) FROM mcq_questions WHERE subject=?", 
                     (subject,)
                 ).fetchone()[0]
-                conn.close()
                 
                 if count > 0:
+                    # 🚀 NEW: Show chapters & topics for this subject!
+                    chapters = conn.execute(
+                        "SELECT DISTINCT chapter FROM mcq_questions WHERE subject=? ORDER BY chapter", 
+                        (subject,)
+                    ).fetchall()
                     print(f"✅ DEBUG: Found {count} '{subject}' questions in {db_file}")
+                    print(f"   📚 Chapters: {[row[0] or 'No Chapter' for row in chapters]}")
+                    
+                    topics = conn.execute(
+                        "SELECT DISTINCT topic, COUNT(*) as qcount FROM mcq_questions WHERE subject=? GROUP BY topic ORDER BY topic", 
+                        (subject,)
+                    ).fetchall()
+                    print(f"   📖 Topics: {[(row[0], row[1]) for row in topics]}")
+                    
+                    conn.close()
                     return dynamic_db_handler.get_connection(db_file)
+                
                 print(f"   ❌ No '{subject}' in {db_file}")
+                conn.close()
             except Exception as e:
                 print(f"❌ Error checking {db_file}: {e}")
     
-    # Fallback to first goal DB
     selected_db = goal_dbs[0]['file']
     print(f"🔍 DEBUG: Using first goal DB: {selected_db}")
     return dynamic_db_handler.get_connection(selected_db)
