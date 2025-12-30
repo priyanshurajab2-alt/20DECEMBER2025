@@ -721,7 +721,7 @@ def save_practice_response():
                     question_data['option_c'] or '',
                     question_data['option_d'] or '',
                     question_data['explanation'] or '',
-                    user_response, None))
+                    user_response, outcome))
 
             conn_central.commit()
             conn_central.close()
