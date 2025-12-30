@@ -713,7 +713,8 @@ def save_practice_response():
         if topic_id:
             conn_central = get_centralized_mcq_connection()
             conn_central.execute("""
-                INSERT INTO question_topic_responses 
+                "INSERT OR REPLACE INTO question_topic_responses 
+ 
                 (topic_id, user_id, question_id, question_text, 
                  option_a, option_b, option_c, option_d, explanation,
                  user_response, is_correct)
