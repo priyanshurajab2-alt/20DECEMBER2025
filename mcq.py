@@ -459,15 +459,19 @@ def mcq_subject(subject_name):
     chapter_topics = get_chapters_with_topics(subject_name)
     
     conn = get_mcq_db_connection(subject_name)
-    try:
-        tests = conn.execute('''
-            SELECT id, test_name, total_questions, duration_minutes, difficulty_filter
-            FROM mcq_tests 
-            WHERE subject = ? AND is_public = 1
-            ORDER BY created_at DESC
-        ''', (subject_name,)).fetchall()
-    finally:
-        conn.close()
+    tests = []
+    if conn:
+        try:
+            tests = conn.execute('''
+                SELECT id, test_name, total_questions, duration_minutes  # 🚀 Removed difficulty_filter
+                FROM mcq_tests 
+                WHERE subject = ? AND is_public = 1
+                ORDER BY created_at DESC
+            ''', (subject_name,)).fetchall()
+        except sqlite3.OperationalError:
+            tests = []  # Empty if table issues
+        finally:
+            conn.close()
     
     return render_template('mcq/mcq_subject.html', 
                            subject=subject_name, 
