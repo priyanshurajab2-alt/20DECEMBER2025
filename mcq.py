@@ -509,37 +509,39 @@ def mcq_practice_topic(subject_name, topic_name):
     session['current_subject'] = subject_name
     session['current_topic'] = topic_name
     
-    # 🚀 Mark topic as started
-    topic_id = get_topic_id(subject_name, topic_name)
-    if topic_id:
-        conn = get_centralized_mcq_connection()
-        conn.execute(
-            "INSERT OR IGNORE INTO user_topic_completion (user_id, topic_id) VALUES (?, ?)",
-            (user_id, topic_id)
-        )
-        conn.commit()
-        conn.close()
-    
+    # 🚀 SAFE: Check connection first
     conn = get_mcq_db_connection(subject_name)
-    create_user_responses_table(conn)
-    
-    questions = conn.execute("""
-        SELECT * FROM mcq_questions 
-        WHERE subject=? AND topic=? 
-        ORDER BY RANDOM()
-    """, (subject_name, topic_name)).fetchall()
-    
-    if not questions:
-        flash('No MCQ questions found for this topic', 'warning')
+    if not conn:
+        flash(f'No database found for {subject_name}', 'error')
         return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
     
-    responses = conn.execute("""
-        SELECT question_id, user_response, outcome, test_status 
-        FROM user_responses 
-        WHERE session_id=? AND subject=? AND topic=?
-    """, (session_id, subject_name, topic_name)).fetchall()
+    try:
+        create_user_responses_table(conn)
+        
+        # 🚀 SAFE Query - No problematic columns
+        questions = conn.execute("""
+            SELECT * FROM mcq_questions 
+            WHERE subject=? AND topic=? 
+            ORDER BY RANDOM()
+        """, (subject_name, topic_name)).fetchall()
+        
+        if not questions:
+            flash(f'No questions found for {topic_name}', 'warning')
+            return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+        
+        # 🚀 SAFE responses query
+        responses = conn.execute("""
+            SELECT question_id, user_response, outcome, test_status 
+            FROM user_responses 
+            WHERE session_id=? AND subject=? AND topic=?
+        """, (session_id, subject_name, topic_name)).fetchall()
+        
+    except sqlite3.OperationalError as e:
+        flash(f'Database error: {str(e)}', 'error')
+        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+    finally:
+        conn.close()
     
-    conn.close()
     return render_template('mcq/mcq_practice.html', 
                          subject=subject_name, 
                          topic=topic_name, 
