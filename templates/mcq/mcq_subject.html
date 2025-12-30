@@ -624,8 +624,10 @@
             <div class="topic-info">
                 <h3 class="topic-title">{{ topic_name }}</h3>
                 <div class="topic-meta">
-                    <span class="question-count">Practice Questions</span>
-                    <span class="status-badge status-free">Free</span>
+                   {% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
+<span class="question-count">{{ topic_info.question_count }} Questions</span>
+<span class="status-badge {% if topic_info.premium_tag == 'pro' %}status-pro{% else %}status-free{% endif %}">{{ topic_info.premium_tag|upper }}</span>
+
                 </div>
             </div>
             <div class="topic-arrow">
