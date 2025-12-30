@@ -617,7 +617,8 @@
                     <div class="space-y-3">
                        {% for topic_name in chapter_info.topics %}
     {% set is_completed = current_user_id and topic_name|string in completed_topic_ids %}
-    <a href="{{ url_for('mcq.mcq_practice_topic', subject_name=subject, topic_name=topic_name) }}" 
+   <a href="/mcq/practice/{{ subject }}/{{ topic_name }}" 
+
        class="topic-link {% if is_completed %}topic-completed{% endif %}">
         <div class="topic-content">
             <div class="topic-info">
