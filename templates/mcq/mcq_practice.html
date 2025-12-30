@@ -127,7 +127,7 @@
         let topic = '{{ topic }}';
         let score = 0;
         let answered = {};
-       let testStatus = '{% if responses and responses|first and responses|first.test_status %}{{ responses|first.test_status }}{% else %}not_started{% endif %}';
+let testStatus = '{% if responses and responses|length > 0 %}{{ responses[0].test_status|default("not_started") }}{% else %}not_started{% endif %}';
 
         // Load initial state
         window.onload = function() {
@@ -257,7 +257,9 @@
     </script>
 </body>
 </html>
-
+<button onclick="markComplete()" class="btn btn-success" style="margin:20px auto; display:block;">
+    ✅ Mark Topic Complete
+</button>
 
 <script>
 function markComplete() {
@@ -273,5 +275,4 @@ function markComplete() {
     });
 }
 </script>
-
 
