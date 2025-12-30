@@ -29,6 +29,20 @@
         };
     </script>
 
+
+        .topic-lock-overlay {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.7);
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 8px;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .lock-icon {
+          color: white; font-size: 1.5rem; font-weight: bold;
+        }
+    
     <style>
         /* Box sizing */
         * {
@@ -616,10 +630,14 @@
                     </h2>
                     <div class="space-y-3">
                        {% for topic_name in chapter_info.topics %}
-    {% set is_completed = current_user_id and topic_name|string in completed_topic_ids %}
-   <a href="/mcq/practice/{{ subject }}/{{ topic_name }}" 
+{% set is_completed = current_user_id and topic_name|string in completed_topic_ids %}
+{% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
+{% set topic_status = topic_info.premium_tag %}
 
-       class="topic-link {% if is_completed %}topic-completed{% endif %}">
+<a href="{% if topic_status == 'pro' and not user_subscribed %}#{% else %}/mcq/practice/{{ subject }}/{{ topic_name }}{% endif %}"
+   class="topic-link {% if is_completed %}topic-completed{% endif %}">
+  <div class="topic-content" style="position: relative;">
+
         <div class="topic-content">
             <div class="topic-info">
                 <h3 class="topic-title">{{ topic_name }}</h3>
@@ -635,6 +653,15 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
             </div>
+                  {% if topic_status == 'pro' and not user_subscribed %}
+    <div class="topic-lock-overlay">
+      <span class="lock-icon">🔒 PRO REQUIRED</span>
+    </div>
+    {% endif %}
+  </div>
+</a>
+{% endfor %}
+            
         </div>
     </a>
 {% endfor %}
