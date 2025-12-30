@@ -594,24 +594,31 @@
                     </h2>
                     <div class="space-y-3">
                         {% for topic in chapter_info.topics %}
-                            <a href="{{ url_for('mcq.mcq_practice_topic', subject_name=subject, topic_name=topic) }}" 
-                               class="topic-link">
-                                <div class="topic-content">
-                                    <div class="topic-info">
-                                        <h3 class="topic-title">{{ topic }}</h3>
-                                        <div class="topic-meta">
-                                            <span class="question-count">Practice Questions</span>
-                                            <span class="status-badge status-free">Free</span>
-                                        </div>
-                                    </div>
-                                    <div class="topic-arrow">
-                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </a>
-                        {% endfor %}
+    {% set is_completed = topic.topic_id in completed_topic_ids %}
+    {% set is_premium = topic.premium_tag == 'pro' %}
+    {% set show_practice = not is_premium or (is_premium and user_subscribed) %}
+    
+    <div class="topic-link {% if is_completed %}topic-completed{% elif not show_practice %}opacity-50 cursor-not-allowed{% endif %}">
+        <div class="topic-content">
+            <div class="topic-info">
+                <h3 class="topic-title">{{ topic }}</h3>
+                <div class="topic-meta">
+                    {% if is_completed %}
+                        <span class="status-badge bg-green-500 text-white">✅ Completed</span>
+                    {% elif is_premium %}
+                        <span class="status-badge status-pro">⭐ PRO</span>
+                    {% else %}
+                        <span class="status-badge status-free">Free</span>
+                    {% endif %}
+                    <span class="question-count">{{ topic_info.qcount }} Questions</span>
+                </div>
+            </div>
+            
+            {% if is_completed %}
+                <div class="topic-arrow text-green-500">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1
+
                     </div>
                 </div>
             {% endfor %}
