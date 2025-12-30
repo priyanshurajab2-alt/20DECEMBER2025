@@ -515,6 +515,8 @@ def mcq_practice_topic(subject_name, topic_name):
         flash(f'No database found for {subject_name}', 'error')
         return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
     
+    questions = []
+    responses = []
     try:
         create_user_responses_table(conn)
         
@@ -527,6 +529,7 @@ def mcq_practice_topic(subject_name, topic_name):
         
         if not questions:
             flash(f'No questions found for {topic_name}', 'warning')
+            conn.close()
             return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
         
         # 🚀 SAFE responses query
@@ -538,15 +541,17 @@ def mcq_practice_topic(subject_name, topic_name):
         
     except sqlite3.OperationalError as e:
         flash(f'Database error: {str(e)}', 'error')
-        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
     finally:
         conn.close()
+    
+    # 🚀 FIX: AFTER finally block (variables still accessible!)
+    responses_safe = [dict(r) for r in responses] if responses else []
     
     return render_template('mcq/mcq_practice.html', 
                          subject=subject_name, 
                          topic=topic_name, 
                          questions=questions, 
-                         responses=responses, 
+                         responses=responses_safe,  # ✅ FIXED!
                          session_id=session_id,
                          total_questions=len(questions))
 
