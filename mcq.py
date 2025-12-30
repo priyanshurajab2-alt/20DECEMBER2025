@@ -527,52 +527,91 @@ def admin_sync_topics():
 
 @mcq_bp.route('/<subject_name>')
 def mcq_subject(subject_name):
-
+    print(f"🔍 mcq_subject('{subject_name}') START")
     dynamic_db_handler.discover_databases()
-
-
     chapter_topics = get_chapters_with_topics(subject_name)
+    print(f"📚 Loaded {len(chapter_topics)} chapters/topics")
     
     userid = ensure_user_session()
+    print(f"👤 User ID: {userid}")
     completed_topic_ids = []
     user_subscribed = False
     user_goal = 'neet_ug'
     
     if userid:
-        user_conn = sqlite3.connect('/var/data/admin_users.db')
-        user_conn.row_factory = sqlite3.Row
-        user_data = user_conn.execute("""
-            SELECT subscription_status, subscription_goal FROM users WHERE id=?
-        """, (userid,)).fetchone()
-        user_conn.close()
-        
-        if user_data:
-            user_subscribed = user_data['subscription_status'] == 'subscribed'
-            user_goal = user_data['subscription_goal'] or 'neet_ug'
-        
-        conn = get_centralized_mcq_connection()
-        completed_topic_ids = [
-            row['topic_id'] for row in conn.execute("""
+        try:
+            user_conn = sqlite3.connect('/var/data/admin_users.db')
+            user_conn.row_factory = sqlite3.Row
+            user_data = user_conn.execute("""
+                SELECT subscription_status, subscription_goal FROM users WHERE id=?
+            """, (userid,)).fetchone()
+            user_conn.close()
+            
+            if user_data:
+                user_subscribed = user_data['subscription_status'] == 'subscribed'
+                user_goal = user_data['subscription_goal'] or 'neet_ug'
+                print(f"✅ SUB: {user_subscribed}, GOAL: {user_goal}")
+            else:
+                print("⚠️ No user_data found")
+        except Exception as e:
+            print(f"❌ User DB error: {e}")
+    
+    # 🔥 Get COMPLETED topics
+    if userid:
+        try:
+            conn = get_centralized_mcq_connection()
+            completed_rows = conn.execute("""
                 SELECT utc.topic_id FROM user_topic_completion utc
                 JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
                 WHERE utc.user_id=? AND mt.subject=?
             """, (userid, subject_name)).fetchall()
-        ]
+            completed_topic_ids = [row['topic_id'] for row in completed_rows]
+            conn.close()
+            print(f"✅ Completed: {len(completed_topic_ids)} topics")
+        except Exception as e:
+            print(f"❌ Completed topics error: {e}")
+    
+    # 🔥 NEW: Get PRO/FREE status from mcq_topics (CENTRALIZED) ⭐
+    topic_premium_status = {}
+    try:
+        conn = get_centralized_mcq_connection()
+        topics_data = conn.execute("""
+            SELECT topic_name, premium_tag, question_count
+            FROM mcq_topics 
+            WHERE subject=?
+        """, (subject_name,)).fetchall()
+        
+        for row in topics_data:
+            topic_name = row['topic_name']
+            premium_tag = row['premium_tag'] or 'free'
+            question_count = row['question_count'] or 0
+            topic_premium_status[topic_name] = {
+                'premium_tag': premium_tag,
+                'question_count': question_count
+            }
+            print(f"  📂 {topic_name}: {premium_tag} ({question_count} Qs)")
+        
         conn.close()
+        print(f"🔍 {subject_name}: {len(topics_data)} topics loaded")
+    except Exception as e:
+        print(f"⚠️ No mcq_topics for {subject_name}: {e}")
+        topic_premium_status = {}  # Empty dict = all 'free'
     
     # 🔥 TESTS - PRO ONLY (premium users)
     tests = []
     try:
         conn = get_centralized_mcq_connection()
         tests = conn.execute("""
-            SELECT id, test_name, total_questions, duration_minutes 
+            SELECT id, test_name, total_questions, duration_minutes, premium_tag
             FROM mcq_tests 
-            WHERE subject=? AND premium_tag='pro'
+            WHERE subject=?
         """, (subject_name,)).fetchall()
+        print(f"🧪 {subject_name}: {len(tests)} tests (PRO only for subscribers)")
         conn.close()
-    except:
-        pass
+    except Exception as e:
+        print(f"⚠️ Tests error: {e}")
     
+    print(f"🎯 RENDER: sub={user_subscribed}, topics={len(topic_premium_status)}")
     return render_template('mcq/mcq_subject.html',
                           subject=subject_name,
                           chapter_topics=chapter_topics,
@@ -580,8 +619,8 @@ def mcq_subject(subject_name):
                           current_user_id=userid,
                           user_subscribed=user_subscribed,
                           user_goal=user_goal,
-                          completed_topic_ids=completed_topic_ids)
-
+                          completed_topic_ids=completed_topic_ids,
+                          topic_premium_status=topic_premium_status)  # 🔥 NEW!
 
 
 
