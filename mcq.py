@@ -93,62 +93,40 @@ def get_topic_id(subject, topic_name):
 
 
 def get_mcq_db_connection(subject=None):
-
-    dynamic_db_handler.discover_databases() 
-    """Find DB with subject + SHOW chapters/topics DEBUG"""
-    user_goal = session.get('current_goal', 'mbbs_prof')
-    print(f"🔍 DEBUG: User goal='{user_goal}', subject='{subject}'")
-
-
+    """Return connection to MCQ database for subject (like test.py)"""
+    # Refresh discovery (COPY FROM test.py)
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    all_dbs = dynamic_db_handler.discovered_databases.get('mcq', [])
-    goal_dbs = [db for db in all_mcq_dbs if user_goal.lower() in db['file'].lower()]
+    all_mcqs = dynamic_db_handler.discovered_databases.get('mcq', [])
     
-    if not goal_dbs:
-        print("❌ DEBUG: No goal DBs → Empty")
-        return None
+    user_goal = session.get('current_goal', 'neet_ug')
+    print(f"🔍 DEBUG: User goal='{user_goal}', subject='{subject}'")
     
-    # 🚀 Check DATABASE CONTENT for subject + SHOW chapters/topics
+    # 1) Find DB with subject
     if subject:
         print(f"🔍 DEBUG: Searching '{subject}' in DB CONTENT...")
-        for db_info in goal_dbs:
+        for db_info in all_mcqs:
             db_file = db_info['file']
             try:
                 conn = dynamic_db_handler.get_connection(db_file)
                 conn.row_factory = sqlite3.Row
-                
-                # ✅ Count subject questions
-                count = conn.execute(
-                    "SELECT COUNT(*) FROM mcq_questions WHERE subject=?", 
-                    (subject,)
-                ).fetchone()[0]
-                
+                count = conn.execute("SELECT COUNT(*) FROM mcq_questions WHERE subject=?", (subject,)).fetchone()[0]
                 if count > 0:
-                    # 🚀 NEW: Show chapters & topics for this subject!
-                    chapters = conn.execute(
-                        "SELECT DISTINCT chapter FROM mcq_questions WHERE subject=? ORDER BY chapter", 
-                        (subject,)
-                    ).fetchall()
                     print(f"✅ DEBUG: Found {count} '{subject}' questions in {db_file}")
-                    print(f"   📚 Chapters: {[row[0] or 'No Chapter' for row in chapters]}")
-                    
-                    topics = conn.execute(
-                        "SELECT DISTINCT topic, COUNT(*) as qcount FROM mcq_questions WHERE subject=? GROUP BY topic ORDER BY topic", 
-                        (subject,)
-                    ).fetchall()
-                    print(f"   📖 Topics: {[(row[0], row[1]) for row in topics]}")
-                    
-                    conn.close()
-                    return dynamic_db_handler.get_connection(db_file)
-                
-                print(f"   ❌ No '{subject}' in {db_file}")
+                    return conn
                 conn.close()
             except Exception as e:
-                print(f"❌ Error checking {db_file}: {e}")
+                print(f"❌ Error {db_file}: {e}")
+                continue
     
-    selected_db = goal_dbs[0]['file']
-    print(f"🔍 DEBUG: Using first goal DB: {selected_db}")
-    return dynamic_db_handler.get_connection(selected_db)
+    # 2) Fallback: first goal DB
+    goal_dbs = [db for db in all_mcqs if user_goal.lower() in db_file.lower()]
+    if goal_dbs:
+        selected_db = goal_dbs[0]['file']
+        print(f"🔍 DEBUG: Using first goal DB: {selected_db}")
+        return dynamic_db_handler.get_connection(selected_db)
+    
+    print("🔍 DEBUG: No goal DBs - Empty")
+    return None
 
 def get_user_db_connection():
     """Get centralized user database connection"""
