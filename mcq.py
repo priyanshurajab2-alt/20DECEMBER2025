@@ -101,7 +101,7 @@ def get_mcq_db_connection(subject=None):
 
 
 
-    all_mcq_dbs = dynamic_db_handler.discovered_databases.get('mcq', [])
+    all_mcq_dbs = dynamic_db_handler.discover_databases.get('mcq', [])
     goal_dbs = [db for db in all_mcq_dbs if user_goal.lower() in db['file'].lower()]
     
     if not goal_dbs:
