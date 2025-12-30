@@ -93,13 +93,14 @@ def get_topic_id(subject, topic_name):
 
 
 def get_mcq_db_connection(subject=None):
+
+    dynamic_db_handler.discover_databases() 
     """Find DB with subject + SHOW chapters/topics DEBUG"""
     user_goal = session.get('current_goal', 'mbbs_prof')
     print(f"🔍 DEBUG: User goal='{user_goal}', subject='{subject}'")
 
 
 
-    dynamic_db_handler.discover_databases() 
     all_mcq_dbs = dynamic_db_handler.discovered_databases.get('mcq', [])
     goal_dbs = [db for db in all_mcq_dbs if user_goal.lower() in db['file'].lower()]
     
