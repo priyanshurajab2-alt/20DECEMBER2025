@@ -549,10 +549,9 @@ def mcq_subject(subject_name):
     userid = ensure_user_session()
     completed_topic_ids = []
     user_subscribed = False
-    user_goal = 'neet_ug'  # Default
+    user_goal = 'neet_ug'
     
     if userid:
-        # 🔥 USE EXISTING COLUMNS
         user_conn = sqlite3.connect('/var/data/admin_users.db')
         user_conn.row_factory = sqlite3.Row
         user_data = user_conn.execute("""
@@ -564,7 +563,6 @@ def mcq_subject(subject_name):
             user_subscribed = user_data['subscription_status'] == 'subscribed'
             user_goal = user_data['subscription_goal'] or 'neet_ug'
         
-        # 🔥 Get completions
         conn = get_centralized_mcq_connection()
         completed_topic_ids = [
             row['topic_id'] for row in conn.execute("""
@@ -575,15 +573,18 @@ def mcq_subject(subject_name):
         ]
         conn.close()
     
-    # Tests
+    # 🔥 TESTS - PRO ONLY (premium users)
     tests = []
-    conn = get_mcq_db_connection(subject_name)
-    if conn:
+    try:
+        conn = get_centralized_mcq_connection()
         tests = conn.execute("""
             SELECT id, test_name, total_questions, duration_minutes 
-            FROM mcq_tests WHERE subject=? AND is_public=1
+            FROM mcq_tests 
+            WHERE subject=? AND premium_tag='pro'
         """, (subject_name,)).fetchall()
         conn.close()
+    except:
+        pass
     
     return render_template('mcq/mcq_subject.html',
                           subject=subject_name,
@@ -593,64 +594,6 @@ def mcq_subject(subject_name):
                           user_subscribed=user_subscribed,
                           user_goal=user_goal,
                           completed_topic_ids=completed_topic_ids)
-
-@mcq_bp.route('/practice/<subject_name>/<topic_name>')
-def mcq_practice_topic(subject_name, topic_name):
-    user_id = ensure_user_session()
-    if not user_id:
-        flash('Please login to practice MCQs', 'info')
-        return redirect(url_for('login'))
-    
-    session_id = session.get('mcq_session_id', f"{user_id}_{subject_name}_{topic_name}_{int(datetime.now().timestamp())}")
-    session['mcq_session_id'] = session_id
-    session['current_subject'] = subject_name
-    session['current_topic'] = topic_name
-    
-    # 🚀 SAFE: Check connection first
-    conn = get_mcq_db_connection(subject_name)
-    if not conn:
-        flash(f'No database found for {subject_name}', 'error')
-        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
-    
-    questions = []
-    responses = []
-    try:
-        create_user_responses_table(conn)
-        
-        # 🚀 SAFE Query - No problematic columns
-        questions = conn.execute("""
-            SELECT * FROM mcq_questions 
-            WHERE subject=? AND topic=? 
-            ORDER BY RANDOM()
-        """, (subject_name, topic_name)).fetchall()
-        
-        if not questions:
-            flash(f'No questions found for {topic_name}', 'warning')
-            conn.close()
-            return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
-        
-        # 🚀 SAFE responses query
-        responses = conn.execute("""
-            SELECT question_id, user_response, outcome, test_status 
-            FROM user_responses 
-            WHERE session_id=? AND subject=? AND topic=?
-        """, (session_id, subject_name, topic_name)).fetchall()
-        
-    except sqlite3.OperationalError as e:
-        flash(f'Database error: {str(e)}', 'error')
-    finally:
-        conn.close()
-    
-    # 🚀 FIX: AFTER finally block (variables still accessible!)
-    responses_safe = [dict(r) for r in responses] if responses else []
-    
-    return render_template('mcq/mcq_practice.html', 
-                         subject=subject_name, 
-                         topic=topic_name, 
-                         questions=questions, 
-                         responses=responses_safe,  # ✅ FIXED!
-                         session_id=session_id,
-                         total_questions=len(questions))
 
 @mcq_bp.route('/practice/save_response', methods=['POST'])
 def save_practice_response():
