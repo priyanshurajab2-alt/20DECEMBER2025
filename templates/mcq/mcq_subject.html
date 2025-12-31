@@ -619,7 +619,8 @@
             <div class="space-y-3">
                 {% for topic_name in chapter_info.topics %}
                 {% set topic_id = topic_premium_status[topic_name].get('topic_id', loop.index) %}
-                {% set is_completed = current_user_id and topic_id in completed_topic_ids %}
+                {% set is_completed = current_user_id and topic_name in completed_topic_names %}
+
                 
                     {% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
                     {% set topic_status = topic_info.premium_tag %}
