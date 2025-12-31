@@ -713,7 +713,7 @@ def save_practice_response():
             source_conn = get_mcq_db_connection(subject)
 
             question_data = source_conn.execute(
-                "SELECT question, option_a, option_b, option_c, option_d, explanation FROM mcq_questions WHERE id=?", (question_id,)
+                "SELECT question, option_a, option_b, option_c, option_d, explanation, correct_option FROM mcq_questions WHERE id=?", (question_id,)
             ).fetchone()
 
 
