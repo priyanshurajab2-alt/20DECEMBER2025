@@ -790,38 +790,67 @@ def complete_practice_test():
     conn.close()
     
     return jsonify({'success': True})
-
 @mcq_bp.route('/practice/review/<subject_name>/<topic_name>')
-def practice_review(subject_name, topic_name):
-    """Review completed practice session"""
+@mcq_bp.route('/practice/review/<subject_name>/<topic_name>/<tab_type>')
+def practice_review(subject_name, topic_name, tab_type='all'):
     user_id = ensure_user_session()
     if not user_id:
         return redirect(url_for('login'))
     
-    session_id = request.args.get('session_id')
-    if not session_id:
-        flash('No session found', 'warning')
-        return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
+    conn = get_centralized_mcq_connection()
+    conn.row_factory = sqlite3.Row
     
-    conn = get_mcq_db_connection(subject_name)
     try:
-        responses = conn.execute('''
-            SELECT ur.*, mq.question, mq.option_a, mq.option_b, mq.option_c, mq.option_d, mq.correct_answer
-            FROM user_responses ur
-            JOIN mcq_questions mq ON ur.question_id = mq.id
-            WHERE ur.session_id = ? AND ur.subject = ? AND ur.topic = ?
-            ORDER BY ur.id
-        ''', (session_id, subject_name, topic_name)).fetchall()
+        # 🔥 STEP 1: topic_name → topic_id
+        topic_row = conn.execute("""
+            SELECT topic_id FROM mcq_topics 
+            WHERE subject=? AND topic_name=?
+        """, (subject_name, topic_name)).fetchone()
         
-        if not responses or responses[0]['test_status'] != 'completed':
-            flash('Test not completed or not found', 'warning')
+        if not topic_row:
+            flash('Topic not found!')
             return redirect(url_for('mcq.mcq_subject', subject_name=subject_name))
-            
+        
+        topic_id = topic_row['topic_id']
+        print(f"🔍 {topic_name} → topic_id={topic_id}")
+        
+        # 🔥 STEP 2: Get stats
+        stats = conn.execute("""
+            SELECT 
+                SUM(CASE WHEN is_correct=1 THEN 1 ELSE 0 END) as correct_count,
+                SUM(CASE WHEN is_correct=0 THEN 1 ELSE 0 END) as incorrect_count,
+                COUNT(*) as total_count
+            FROM user_responses 
+            WHERE user_id=? AND topic_id=?
+        """, (user_id, topic_id)).fetchone()
+        
+        # 🔥 STEP 3: Get questions by tab
+        params = [user_id, topic_id]
+        where_clause = "WHERE ur.user_id=? AND ur.topic_id=?"
+        
+        if tab_type == 'correct':
+            where_clause += " AND ur.is_correct=1"
+        elif tab_type == 'incorrect':
+            where_clause += " AND ur.is_correct=0"
+        
+        questions = conn.execute(f"""
+            SELECT ur.*, mq.question_text, mq.options_a, mq.options_b, 
+                   mq.options_c, mq.options_d, mq.correct_option, mq.explanation
+            FROM user_responses ur
+            JOIN mcq_questions mq ON ur.question_id = mq.question_id
+            {where_clause}
+            ORDER BY ur.answered_at DESC
+        """, params).fetchall()
+        
+        print(f"📊 {topic_name}: {stats['correct_count']}✓/{stats['incorrect_count']}✗")
+        
     finally:
         conn.close()
     
-    return render_template('mcq/mcq_review.html', responses=responses)
-
+    return render_template('mcq/mcq_review.html',
+                         subject=subject_name, topic=topic_name,
+                         questions=questions, stats=stats,
+                         tab_type=tab_type, current_user_id=user_id)
 
 
 
