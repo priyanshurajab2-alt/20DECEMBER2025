@@ -1,1 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ topic }} Review | MBBS QBank</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar { position: fixed; top: 0; left: 0; width: 200px; height: 100vh; background: #1a3d4a; color: white; padding: 20px 0; }
+        .main-content { margin-left: 200px; padding: 20px; min-height: 100vh; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar (copy from mcq_subject.html - same exact code) -->
+    <nav class="sidebar">
+        <div class="px-5 pb-8">
+            <a href="/mcq" class="text-2xl font-bold text-cyan-400">MBBS QBANK</a>
+        </div>
+        <!-- ... rest of sidebar ... -->
+    </nav>
 
+    <main class="main-content">
+        <!-- Header -->
+        <a href="/mcq/{{ subject }}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 p-3 bg-white rounded-lg shadow-sm">
+            ← Back to {{ subject }}
+        </a>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm text-center">
+                <div class="text-3xl font-bold text-green-600">{{ stats.correct_count }}</div>
+                <div class="text-sm text-gray-600 mt-1">Correct</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm text-center">
+                <div class="text-3xl font-bold text-red-600">{{ stats.incorrect_count }}</div>
+                <div class="text-sm text-gray-600 mt-1">Incorrect</div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm text-center">
+                <div class="text-3xl font-bold text-blue-600">{{ stats.total_count }}</div>
+                <div class="text-sm text-gray-600 mt-1">Total</div>
+                <div class="text-xs text-blue-600 mt-1">{{ "%.1f"|format((stats.correct_count/stats.total_count*100) if stats.total_count else 0) }}%</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-8">
+            <div class="flex space-x-1">
+                <a href="/mcq/practice/review/{{ subject }}/{{ topic|urlencode }}/all" 
+                   class="flex-1 px-4 py-3 text-center font-medium rounded-lg 
+                          {% if tab_type == 'all' %}bg-blue-500 text-white shadow-md{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                    All ({{ stats.total_count }})
+                </a>
+                <a href="/mcq/practice/review/{{ subject }}/{{ topic|urlencode }}/correct" 
+                   class="flex-1 px-4 py-3 text-center font-medium rounded-lg 
+                          {% if tab_type == 'correct' %}bg-green-500 text-white shadow-md{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                    ✓ Correct ({{ stats.correct_count }})
+                </a>
+                <a href="/mcq/practice/review/{{ subject }}/{{ topic|urlencode }}/incorrect" 
+                   class="flex-1 px-4 py-3 text-center font-medium rounded-lg 
+                          {% if tab_type == 'incorrect' %}bg-red-500 text-white shadow-md{% else %}bg-gray-100 hover:bg-gray-200{% endif %}">
+                    ✗ Incorrect ({{ stats.incorrect_count }})
+                </a>
+            </div>
+        </div>
+
+        <!-- Questions -->
+        {% if questions %}
+            {% for q in questions %}
+            <div class="bg-white rounded-xl shadow-sm border p-8 mb-6 
+                        {% if q.is_correct %}border-l-4 border-green-500 bg-green-50/50
+                        {% else %}border-l-4 border-red-500 bg-red-50/50{% endif %}">
+                <div class="flex justify-between items-start mb-6">
+                    <span class="px-4 py-2 rounded-full text-sm font-semibold text-white
+                               {% if q.is_correct %}bg-green-500{% else %}bg-red-500{% endif %}">
+                        {{ '✓ Correct' if q.is_correct else '✗ Incorrect' }}
+                    </span>
+                    <div class="text-sm text-gray-500">{{ q.answered_at }}</div>
+                </div>
+                <h3 class="text-xl font-semibold mb-6">{{ q.question_text }}</h3>
+                <div class="grid grid-cols-2 gap-4 p-6 bg-gray-50 rounded-xl mb-6">
+                    <div><strong>A.</strong> {{ q.options_a }}</div>
+                    <div><strong>B.</strong> {{ q.options_b }}</div>
+                    <div><strong>C.</strong> {{ q.options_c }}</div>
+                    <div><strong>D.</strong> {{ q.options_d }}</div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="{% if q.is_correct %}bg-green-50{% else %}bg-blue-50{% endif %} p-6 rounded-xl">
+                        <h4 class="font-semibold mb-3">Your Answer</h4>
+                        <div class="text-3xl font-bold">{{ q.selected_option }}</div>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-xl">
+                        <h4 class="font-semibold mb-3">Correct</h4>
+                        <div class="text-3xl font-bold text-green-600">{{ q.correct_option }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-20 bg-white rounded-xl shadow-sm border">
+                <div class="text-6xl mb-6 text-gray-300">📝</div>
+                <p class="text-gray-600 mb-8">Practice first to see results!</p>
+            </div>
+        {% endif %}
+    </main>
+</body>
+</html>
