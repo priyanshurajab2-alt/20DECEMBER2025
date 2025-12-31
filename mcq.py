@@ -557,29 +557,59 @@ def mcq_subject(subject_name):
             print(f"❌ User DB error: {e}")
     
     # 🔥 Get COMPLETED topics
-completed_topic_ids = []
-completed_details = []
-
-if userid:
+    if userid:
+        try:
+            conn = get_centralized_mcq_connection()
+            completed_rows = conn.execute("""
+                SELECT utc.topic_id FROM user_topic_completion utc
+                JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
+                WHERE utc.user_id=? AND mt.subject=?
+            """, (userid, subject_name)).fetchall()
+            completed_topic_ids = [row['topic_id'] for row in completed_rows]
+            conn.close()
+            print(f"✅ Completed: {len(completed_topic_ids)} topics")
+        except Exception as e:
+            print(f"❌ Completed topics error: {e}")
+    
+    # 🔥 NEW: Get PRO/FREE status from mcq_topics (CENTRALIZED) ⭐
+    topic_premium_status = {}
     try:
         conn = get_centralized_mcq_connection()
-        conn.row_factory = sqlite3.Row
-        completed_rows = conn.execute("""
-            SELECT utc.topic_id, mt.topic_name, utc.completed_at
-            FROM user_topic_completion utc
-            JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
-            WHERE utc.user_id=? AND mt.subject=?
-        """, (userid, subject_name)).fetchall()
+        topics_data = conn.execute("""
+            SELECT topic_name, premium_tag, question_count
+            FROM mcq_topics 
+            WHERE subject=?
+        """, (subject_name,)).fetchall()
+        
+        for row in topics_data:
+            topic_name = row['topic_name']
+            premium_tag = row['premium_tag'] or 'free'
+            question_count = row['question_count'] or 0
+            topic_premium_status[topic_name] = {
+                'premium_tag': premium_tag,
+                'question_count': question_count
+            }
+            print(f"  📂 {topic_name}: {premium_tag} ({question_count} Qs)")
+        
         conn.close()
-
-        completed_topic_ids = [row['topic_id'] for row in completed_rows]
-        completed_details = [(row['topic_id'], row['topic_name']) for row in completed_rows]
-
-        print(f"✅ Completed topics for user {userid} / {subject_name}: {completed_details}")
-        print(f"✅ completed_topic_ids raw: {completed_topic_ids}")
+        print(f"🔍 {subject_name}: {len(topics_data)} topics loaded")
     except Exception as e:
-        print(f"❌ Completed topics error: {e}")
-
+        print(f"⚠️ No mcq_topics for {subject_name}: {e}")
+        topic_premium_status = {}  # Empty dict = all 'free'
+    
+    # 🔥 TESTS - PRO ONLY (premium users)
+    tests = []
+    try:
+        conn = get_centralized_mcq_connection()
+        tests = conn.execute("""
+            SELECT id, test_name, total_questions, duration_minutes, premium_tag
+            FROM mcq_tests 
+            WHERE subject=?
+        """, (subject_name,)).fetchall()
+        print(f"🧪 {subject_name}: {len(tests)} tests (PRO only for subscribers)")
+        conn.close()
+    except Exception as e:
+        print(f"⚠️ Tests error: {e}")
     
     print(f"🎯 RENDER: sub={user_subscribed}, topics={len(topic_premium_status)}")
     return render_template('mcq/mcq_subject.html',
@@ -590,8 +620,6 @@ if userid:
                           user_subscribed=user_subscribed,
                           user_goal=user_goal,
                           completed_topic_ids=completed_topic_ids,
-
-                          completed_details=completed_details,
                           topic_premium_status=topic_premium_status)  # 🔥 NEW!
 
 
