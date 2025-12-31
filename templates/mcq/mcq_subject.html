@@ -629,7 +629,7 @@
                     {% set topic_info = topic_premium_status.get(topic_name, {'premium_tag': 'free', 'question_count': 0}) %}
                     {% set topic_status = topic_info.premium_tag %}
 
-           <a href="{% if topic_status == 'pro' and not user_subscribed %}#{% else %}{% if is_completed %}/mcq/review/{{ subject }}/{{ topic_name|urlencode }}{% else %}/mcq/practice/{{ subject }}/{{ topic_name }}{% endif %}{% endif %}"
+<a href="{% if topic_status == 'pro' and not user_subscribed %}#{% else %}{% if is_completed %}/mcq/practice/review/{{ subject }}/{{ topic_name|urlencode }}{% else %}/mcq/practice/{{ subject }}/{{ topic_name }}{% endif %}{% endif %}"
                        class="topic-link {% if is_completed %}topic-completed{% endif %}">
                         <div class="topic-content" style="position: relative;">
                             <div class="topic-info">
