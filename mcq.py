@@ -571,6 +571,9 @@ def mcq_subject(subject_name):
                 WHERE utc.user_id=? AND mt.subject=?
             """, (userid, subject_name)).fetchall()
             completed_topic_ids = [row['topic_id'] for row in completed_rows]
+
+            completed_topic_names = [row['topic_name'] for row in completed_rows]  # 🔥 LINE 1
+            print(f"✅ Names: {completed_topic_names}")  # 🔥 LINE 2
             conn.close()
             print(f"✅ Completed: {len(completed_topic_ids)} topics: {[(r['topic_id'], r['topic_name']) for r in completed_rows]}")  # 🔥 ENHANCED PRINT (line 3)
         except Exception as e:
