@@ -730,7 +730,7 @@ def save_practice_response():
             conn_central.execute("""
             INSERT OR REPLACE INTO question_topic_responses 
             (topic_id, user_id, question_id, question_text, option_a, option_b, option_c, option_d, 
-            explanation, user_response, is_correct, correct_answer)  # 🔥 ADDED correct_option
+            explanation, user_response, is_correct, correct_answer)  
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)  
                 """, (topic_id, user_id, question_id, 
                     question_data['question'],
