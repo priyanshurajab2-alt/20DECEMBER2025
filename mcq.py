@@ -628,6 +628,7 @@ def mcq_subject(subject_name):
                           user_subscribed=user_subscribed,
                           user_goal=user_goal,
                           completed_topic_ids=completed_topic_ids,
+                          completed_topic_names=completed_topic_names,                          
                           topic_premium_status=topic_premium_status)  # 🔥 NEW!
 
 
