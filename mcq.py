@@ -708,7 +708,6 @@ def save_practice_response():
         # 🚀 Save to CENTRALIZED table
         topic_id = get_topic_id(subject, topic)
         if topic_id:
-            conn_central = get_centralized_mcq_connection()
             # Get question text
             source_conn = get_mcq_db_connection(subject)
 
