@@ -797,12 +797,12 @@ def practice_review(subject_name, topic_name, tab_type='all'):
     if not user_id:
         return redirect(url_for('login'))
     
-    # 🔥 FIX 1: Subject-specific DB
-    conn = get_mcq_db_connection(subject_name)  # ← CHANGED
+    # 🔥 SINGLE CONNECTION - centralized_mcq_management.db (HAS question_topic_responses)
+    conn = get_centralized_mcq_connection()
     conn.row_factory = sqlite3.Row
     
     try:
-        # Keep topic_id lookup (works on centralized DB)
+        # 🔥 STEP 1: Get topic_id from mcq_topics
         topic_row = conn.execute("""
             SELECT topic_id FROM mcq_topics 
             WHERE subject=? AND topic_name=?
@@ -815,33 +815,29 @@ def practice_review(subject_name, topic_name, tab_type='all'):
         topic_id = topic_row['topic_id']
         print(f"🔍 {topic_name} → topic_id={topic_id}")
         
-        # 🔥 FIX 2: Use topic STRING for user_responses
+        # 🔥 STEP 2: Stats from question_topic_responses
         stats = conn.execute("""
             SELECT 
-                SUM(CASE WHEN is_correct=1 THEN 1 ELSE 0 END) as correct_count,
-                SUM(CASE WHEN is_correct=0 THEN 1 ELSE 0 END) as incorrect_count,
+                SUM(CASE WHEN is_correct='correct' THEN 1 ELSE 0 END) as correct_count,
+                SUM(CASE WHEN is_correct='incorrect' THEN 1 ELSE 0 END) as incorrect_count,
                 COUNT(*) as total_count
-            FROM user_responses 
-            WHERE user_id=? AND topic=?  # ← CHANGED: topic STRING
-        """, (user_id, topic_name)).fetchone()  # ← CHANGED: topic_name
+            FROM question_topic_responses 
+            WHERE user_id=? AND topic_id=?
+        """, (user_id, topic_id)).fetchone()
         
-        # 🔥 FIX 3: Tab filtering
-        params = [user_id, topic_name]  # ← CHANGED: topic_name
-        where_clause = "WHERE ur.user_id=? AND ur.topic=?"  # ← CHANGED: topic
+        # 🔥 STEP 3: Questions by tab from question_topic_responses
+        params = [user_id, topic_id]
+        where_clause = "WHERE user_id=? AND topic_id=?"
         
         if tab_type == 'correct':
-            where_clause += " AND ur.is_correct=1"
+            where_clause += " AND is_correct='correct'"
         elif tab_type == 'incorrect':
-            where_clause += " AND ur.is_correct=0"
+            where_clause += " AND is_correct='incorrect'"
         
-        # 🔥 FIX 4: Correct columns + JOIN
         questions = conn.execute(f"""
-            SELECT ur.*, mq.question, mq.option_a, mq.option_b,  # ← FIXED columns
-                   mq.option_c, mq.option_d, mq.correct_answer     # ← FIXED columns
-            FROM user_responses ur
-            JOIN mcq_questions mq ON ur.question_id = mq.id      # ← FIXED JOIN
+            SELECT * FROM question_topic_responses
             {where_clause}
-            ORDER BY ur.answered_at DESC
+            ORDER BY answered_at DESC
         """, params).fetchall()
         
         print(f"📊 {topic_name}: {stats['correct_count']}✓/{stats['incorrect_count']}✗")
