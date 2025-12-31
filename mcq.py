@@ -560,14 +560,19 @@ def mcq_subject(subject_name):
     if userid:
         try:
             conn = get_centralized_mcq_connection()
+            conn.row_factory = sqlite3.Row  # 🔥 ADD THIS (line 1)
+
+
             completed_rows = conn.execute("""
-                SELECT utc.topic_id FROM user_topic_completion utc
+                                          
+
+                SELECT utc.topic_id, mt.topic_name FROM user_topic_completion utc
                 JOIN mcq_topics mt ON utc.topic_id = mt.topic_id
                 WHERE utc.user_id=? AND mt.subject=?
             """, (userid, subject_name)).fetchall()
             completed_topic_ids = [row['topic_id'] for row in completed_rows]
             conn.close()
-            print(f"✅ Completed: {len(completed_topic_ids)} topics")
+            print(f"✅ Completed: {len(completed_topic_ids)} topics: {[(r['topic_id'], r['topic_name']) for r in completed_rows]}")  # 🔥 ENHANCED PRINT (line 3)
         except Exception as e:
             print(f"❌ Completed topics error: {e}")
     
