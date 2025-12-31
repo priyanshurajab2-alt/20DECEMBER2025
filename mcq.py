@@ -709,6 +709,7 @@ def save_practice_response():
         topic_id = get_topic_id(subject, topic)
         if topic_id:
             # Get question text
+            conn_central = get_centralized_mcq_connection()          
             source_conn = get_mcq_db_connection(subject)
 
             question_data = source_conn.execute(
