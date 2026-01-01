@@ -811,12 +811,7 @@ def login():
                 return redirect(url_for('admin_login'))
 
             # Pass user_type to session in create_user_session
-            create_user_session(user['id'], user['username'], user['user_type'])
-            
-            session['user_email'] = user['email']
-            session['subscription_status'] = user.get('subscription_status', 'nonsubscribed')
-            session['subscription_goal'] = user.get('subscription_goal')
-            session['subscription_plan'] = user.get('subscription_plan')
+            create_user_session(user['id'], user['username'], user['user_type']
 
 
 
