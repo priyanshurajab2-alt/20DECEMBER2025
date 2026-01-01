@@ -129,7 +129,7 @@ def list_tests():
     print(f"DEBUG: Goal='{goal_key}', Found {len(goal_test_dbs)} goal-specific test DBs")
     
     # 🔥 COUNT PREMIUM vs FREE TESTS
-    premium_count = sum(1 for db_info in goal_test_dbs for test_row in dynamic_db_handler.get_connection(db_info['file']).execute('SELECT is_locked FROM test_info').fetchall() if test_row[0] == 1)
+    premium_count = sum(1 for db_info in goal_test_dbs for test_row in dynamic_db_handler.get_connection(db_info['file']).execute('SELECT is_locked FROM test_info').fetchall() if test_row['is_locked'] == 1)
     free_count = len(goal_test_dbs) * 10 - premium_count  # Rough estimate
     print(f"DEBUG: {premium_count}🔒 PREMIUM + {free_count}🚀 FREE tests available")
  
