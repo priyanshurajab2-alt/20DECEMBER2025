@@ -298,6 +298,7 @@ def create_user_session(user_id, username, user_type):
     session['user_name'] = username  # 🔥 ADD (for tests)
     session['user_type'] = user_type
     
+    
     # 🔥 GET email & subscription from DB
     try:
         conn = get_user_db_connection()
@@ -811,6 +812,13 @@ def login():
 
             # Pass user_type to session in create_user_session
             create_user_session(user['id'], user['username'], user['user_type'])
+            
+            session['user_email'] = user['email']
+            session['subscription_status'] = user.get('subscription_status', 'nonsubscribed')
+            session['subscription_goal'] = user.get('subscription_goal')
+            session['subscription_plan'] = user.get('subscription_plan')
+
+
 
             flash(f'Welcome back, {user["username"]}!')
             current_goal = session.get('current_goal')
@@ -1700,5 +1708,6 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
