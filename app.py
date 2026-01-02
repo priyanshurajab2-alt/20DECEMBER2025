@@ -298,7 +298,6 @@ def create_user_session(user_id, username, user_type):
     session['user_name'] = username  # 🔥 ADD (for tests)
     session['user_type'] = user_type
     
-    
     # 🔥 GET email & subscription from DB
     try:
         conn = get_user_db_connection()
@@ -811,9 +810,7 @@ def login():
                 return redirect(url_for('admin_login'))
 
             # Pass user_type to session in create_user_session
-            create_user_session(user['id'], user['username'], user['user_type']
-
-
+            create_user_session(user['id'], user['username'], user['user_type'])
 
             flash(f'Welcome back, {user["username"]}!')
             current_goal = session.get('current_goal')
