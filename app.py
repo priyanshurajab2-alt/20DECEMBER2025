@@ -297,6 +297,11 @@ def create_user_session(user_id, username, user_type):
     session['username'] = username
     session['user_name'] = username  # 🔥 ADD (for tests)
     session['user_type'] = user_type
+
+
+  
+
+
     
     # 🔥 GET email & subscription from DB
     try:
@@ -305,8 +310,8 @@ def create_user_session(user_id, username, user_type):
         conn.close()
         if user_info:
             session['user_email'] = user_info['email']
-            session['subscription_status'] = user_info.get('subscription_status', 'nonsubscribed')
-            session['subscription_goal'] = user_info.get('subscription_goal')
+            session['subscription_status'] = user_info['subscription_status'] or 'nonsubscribed'
+            session['subscription_goal'] = user_info('subscription_goal')
     except:
         session['user_email'] = f'{user_id}@noemail.com'
         session['subscription_status'] = 'nonsubscribed'
