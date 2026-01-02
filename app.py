@@ -295,28 +295,24 @@ def ensure_user_session():
 def create_user_session(user_id, username, user_type):
     session['user_id'] = user_id
     session['username'] = username
-    session['user_name'] = username  # 🔥 ADD (for tests)
+    session['user_name'] = username
     session['user_type'] = user_type
-
-
-  
-
-
     
-    # 🔥 GET email & subscription from DB
     try:
         conn = get_user_db_connection()
         user_info = conn.execute('SELECT email, subscription_status, subscription_goal FROM users WHERE id = ?', (user_id,)).fetchone()
         conn.close()
+        print(f"DEBUG: user_id={user_id} row={user_info is not None} keys={list(user_info.keys()) if user_info else 'MISSING'}")  # 🔥 TEMP
         if user_info:
             session['user_email'] = user_info['email']
             session['subscription_status'] = user_info['subscription_status'] or 'nonsubscribed'
-            session['subscription_goal'] = user_info('subscription_goal')
-    except:
+            session['subscription_goal'] = user_info['subscription_goal']
+            print(f"✅ LOADED: {session['user_email']} sub={session['subscription_status']} goal={session['subscription_goal']}")  # 🔥 TEMP
+    except Exception as e:
+        print(f"❌ SESSION ERROR: {e}")
         session['user_email'] = f'{user_id}@noemail.com'
         session['subscription_status'] = 'nonsubscribed'
         session['subscription_goal'] = None
-
 
 # --------------------
 # CENTRALIZED HELPER FUNCTIONS
@@ -1705,6 +1701,7 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
