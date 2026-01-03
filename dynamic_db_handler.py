@@ -1060,16 +1060,16 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
     
     @app.route('/admin/edit_record/<db_file>/<table_name>/<int:record_id>', methods=['GET', 'POST'])
     def edit_database_record(db_file, table_name, record_id):
-        """FIXED: Edit a specific record with robust error handling"""
+        """FIXED: Edit record with FULL PATH support"""
         try:
-            conn = dynamic_db_handler.get_connection(db_file)
+            full_db_path = os.path.join('/var/data', db_file)  # ← CRITICAL FIX
+            
+            conn = dynamic_db_handler.get_connection(full_db_path)  # ← Use full path
             safe_name = dynamic_db_handler.safe_table_name(table_name)
             
             if request.method == 'POST':
-                # Log admin action
                 admin_user_id = session.get('user_id', 'anonymous')
                 
-                # Build update query safely
                 updates = []
                 values = []
                 for key, value in request.form.items():
@@ -1081,27 +1081,25 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
                 if updates:
                     values.append(record_id)
                     update_query = f'UPDATE {safe_name} SET {", ".join(updates)} WHERE id = ?'
-                    print(f"Executing update query: {update_query}")
-                    print(f"With values: {values}")
-                    
+                    print(f"Executing: {update_query} | Values: {values}")
                     conn.execute(update_query, values)
                     
-                    # Log the action (try to add to admin_actions if it exists)
+                    # Log action if table exists
                     try:
                         if dynamic_db_handler.table_exists(conn, 'admin_actions'):
                             conn.execute('''
                                 INSERT INTO admin_actions (admin_user_id, action_type, target_db, target_table, action_details)
                                 VALUES (?, ?, ?, ?, ?)
-                            ''', (str(admin_user_id), 'UPDATE', db_file, table_name, f'Updated record ID {record_id}'))
+                            ''', (str(admin_user_id), 'UPDATE', full_db_path, table_name, f'Updated record ID {record_id}'))
                     except Exception as log_error:
-                        print(f"Could not log admin action: {log_error}")
+                        print(f"Log error: {log_error}")
                     
                     conn.commit()
                     flash('Record updated successfully!', 'success')
                     conn.close()
                     return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
             
-            # GET request - get record and schema
+            # GET: Fetch record/schema
             record_query = f'SELECT * FROM {safe_name} WHERE id = ?'
             record = conn.execute(record_query, (record_id,)).fetchone()
             
@@ -1114,19 +1112,19 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
             conn.close()
             
             return render_template('edit_record.html',
-                                 db_file=db_file,
-                                 table_name=table_name,
-                                 record=record,
-                                 schema=schema)
+                                db_file=db_file,  # Pass basename for templates
+                                table_name=table_name,
+                                record=record,
+                                schema=schema)
         
+        except FileNotFoundError:
+            flash(f'Database {db_file} not found at /var/data/{db_file}', 'error')
+            return redirect(url_for('manage_specific_database', db_file=db_file))
         except Exception as e:
-            print(f"Error in edit_database_record: {str(e)}")
+            print(f"Edit record error: {str(e)}")
             print(traceback.format_exc())
             flash(f'Error editing record: {str(e)}', 'error')
             return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-                    
-                    # 1. Insert a new test into test_info
-
 
 
 
