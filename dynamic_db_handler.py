@@ -458,77 +458,65 @@ class DynamicDatabaseHandler:
             return False, f"Error creating database: {str(e)}"
 
     def upload_database(self, uploaded_file, category):
-        """Upload and validate a database file"""
         if not uploaded_file or uploaded_file.filename == '':
             return False, "No file selected"
         
         # Secure the filename
         filename = secure_filename(uploaded_file.filename)
         
-        # Validate file extension
+        # Validate/ensure .db extension
         if not filename.lower().endswith('.db'):
-            return False, "File must have .db extension"
+            filename = f"{filename}.db"
+        
+        # CRITICAL: FORCE _test.db SUFFIX FOR TEST CATEGORY
+        if category == 'test' and not filename.lower().endswith('_test.db'):
+            base_name = os.path.splitext(filename)[0]
+            filename = f"{base_name}_test.db"
         
         # Special handling for centralized user database
         if category == 'users' and filename != 'admin_users.db':
             return False, "User database must be named 'admin_users.db'"
         
-        # Check if file already exists
-        filename = secure_filename(uploaded_file.filename)
-
-        # Ensure .db extension
-        if not filename.lower().endswith('.db'):
-            filename = f"{filename}.db"
-
         # NEW: prefix with admin_goal if present (except for centralized users)
         goal_key = session.get('admin_goal')
         if goal_key and category not in ('admin', 'users'):
             filename = f"{goal_key}_{filename}"
-
+        
         full_path = os.path.join('/var/data', filename)
-
+        
         # Check if file already exists
         if os.path.exists(full_path):
             return False, f"Database {filename} already exists"
-
+        
         try:
             uploaded_file.save(full_path)
-            ...
-
-
             
             # Validate it's a proper SQLite database
             db_path = os.path.join('/var/data', filename)
             conn = sqlite3.connect(db_path)
-
             
             # Check if it has required tables for the category
             required_tables = self.db_categories[category]['required_tables']
-            
             for table in required_tables:
                 result = conn.execute("""
                     SELECT name FROM sqlite_master 
                     WHERE type='table' AND name = ?
                 """, (table,)).fetchone()
-                
                 if not result:
                     conn.close()
-                    os.remove(filename)  # Remove invalid file
+                    os.remove(full_path)  # ← Fix: full_path, not filename
                     return False, f"Database missing required table: {table}"
-            
             conn.close()
             
-            # Refresh discovered databases
+            # Refresh discovery
             self.discovered_databases = self.discover_databases()
-            
-            return True, f"Database {filename} uploaded successfully"
-            
+            return True, f"Database '{filename}' uploaded successfully"
+        
         except Exception as e:
-            # Clean up on error
-            if os.path.exists(filename):
-                os.remove(filename)
+            if os.path.exists(full_path):
+                os.remove(full_path)
             return False, f"Error uploading database: {str(e)}"
-    
+
     def get_database_stats(self, db_file):
         """Get statistics for a database with better error handling"""
         try:
