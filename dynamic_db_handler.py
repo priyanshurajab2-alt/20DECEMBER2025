@@ -1213,32 +1213,34 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
     def delete_database(db_file):
         """Delete a database (with confirmation)"""
         try:
+            fullpath = os.path.join('/var/data', db_file)  # ← ADD THIS LINE
+            
             # Prevent deletion of centralized user database
             if os.path.basename(db_file) == 'admin_users.db':
                 flash('Cannot delete centralized user database!', 'error')
                 return redirect(url_for('dynamic_db_home'))
             
-            if os.path.exists(db_file):
+            if os.path.exists(fullpath):  # ← CHANGE: use fullpath
                 # Create backup before deletion
                 backup_dir = f"deleted_backups/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 os.makedirs(backup_dir, exist_ok=True)
-                shutil.copy2(db_file, os.path.join(backup_dir, os.path.basename(db_file)))
+                shutil.copy2(fullpath, os.path.join(backup_dir, os.path.basename(db_file)))  # ← fullpath
                 
                 # Delete the database
-                os.remove(db_file)
+                os.remove(fullpath)  # ← fullpath
                 
                 # Refresh discovered databases
                 dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
                 
                 flash(f'Database {db_file} deleted successfully. Backup saved to {backup_dir}', 'success')
             else:
-                flash('Database file not found', 'error')
-        
+                flash(f'Database NOT found at {fullpath}', 'error')  # ← Better error msg
+                
         except Exception as e:
             flash(f'Error deleting database: {str(e)}', 'error')
         
         return redirect(url_for('dynamic_db_home'))
-    
+
     @app.route('/admin/debug_table/<db_file>/<table_name>')
     def debug_table_access(db_file, table_name):
         """Debug function to diagnose table access issues"""
