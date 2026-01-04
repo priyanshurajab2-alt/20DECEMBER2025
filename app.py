@@ -1037,20 +1037,21 @@ def debug_users():
         return f"<h2>❌ Debug Error:</h2><p>{str(e)}</p><p><a href='/admin/dynamic_db_manager'>Back</a></p>"
 
 
-@app.route('/login/google')
-def google_login():
-    """Redirect to Google login"""
-    redirect_uri = url_for('google_callback', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
-
 @app.route('/auth/google/callback')
 def google_callback():
     """Google OAuth callback - create/login user"""
     try:
         token = oauth.google.authorize_access_token()
         user_info = oauth.google.parse_id_token(token, nonce=None)
-        
-        email
+        # Now use user_info: e.g., email = user_info.get('email')
+        # Find or create user in your DB
+        # login_user(user)
+        return redirect(url_for('dashboard'))  # or wherever
+    except Exception as e:
+        # Log the error: app.logger.error(f"Google auth failed: {e}")
+        flash('Google login failed. Please try again.')
+        return redirect(url_for('login'))
+
 
 
 @app.route('/admin/migrate_users_with_passwords')
@@ -1719,6 +1720,10 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
 
 
 
