@@ -623,10 +623,40 @@
         });
     </script>
 
-    <script>
-if (history.replaceState) history.replaceState(null, '', location.href);
-window.addEventListener('popstate', () => window.location.href = '/index.html');
-</script>
+<script>
+    // 🏠 ENHANCED HOME BACK NAVIGATION (FULL DEBUG)
+    console.log('🏠 Home.html loaded - Back protection ACTIVE');
+    console.log('📍 Current URL:', window.location.href);
+    console.log('📊 Initial history length:', history.length);
+    
+    // 1. CLEAN HISTORY ON LOAD
+    if (history.replaceState) {
+        history.replaceState({page: 'home'}, '', window.location.href);
+        console.log('🧹 Home history cleaned ✓');
+    }
+    
+    // 2. BACK/SWIPE INTERCEPTOR
+    let homeBackCount = 0;
+    window.addEventListener('popstate', function(e) {
+        homeBackCount++;
+        console.log(`🚨 HOME BACK #${homeBackCount} DETECTED! → index.html`, {
+            url: window.location.href,
+            state: e.state || 'no state',
+            historyLength: history.length
+        });
+        window.location.replace('/index.html');
+    });
+    
+    // 3. SWIPE DETECTION
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            console.log('👻 Home hidden (possible swipe)');
+        }
+    });
+    
+    console.log('🎯 Home back protection FULLY ACTIVE - Test browser back NOW!');
+    </script>
+    
     
 </body>
 </html>
