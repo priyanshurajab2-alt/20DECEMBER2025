@@ -624,39 +624,60 @@
     </script>
 
 <script>
-    // 🏠 ENHANCED HOME BACK NAVIGATION (FULL DEBUG)
-    console.log('🏠 Home.html loaded - Back protection ACTIVE');
-    console.log('📍 Current URL:', window.location.href);
-    console.log('📊 Initial history length:', history.length);
-    
-    // 1. CLEAN HISTORY ON LOAD
-    if (history.replaceState) {
-        history.replaceState({page: 'home'}, '', window.location.href);
-        console.log('🧹 Home history cleaned ✓');
-    }
-    
-    // 2. BACK/SWIPE INTERCEPTOR
-    let homeBackCount = 0;
-    window.addEventListener('popstate', function(e) {
-        homeBackCount++;
-        console.log(`🚨 HOME BACK #${homeBackCount} DETECTED! → index.html`, {
-            url: window.location.href,
-            state: e.state || 'no state',
-            historyLength: history.length
+// SMART BACK LINKS - NO HISTORY POLLUTION
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.smart-back').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = this.dataset.url;
+            console.log('🔗 Smart back to:', target);
+            history.replaceState({smart: true}, '', target);
+            window.location.href = target;
         });
-        window.location.replace('/index.html');
+    });
+});
+</script>
+
+<!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
+<script>
+// 🔥 COMPREHENSIVE BACK NAVIGATION DEBUG + CONTROL SYSTEM
+console.log('🔍 ANSWER PAGE LOAD DEBUG:', window.location.pathname);
+console.log('📍 Full URL:', window.location.href);
+console.log('📊 History length:', history.length);
+
+// 1. IMMEDIATE HISTORY CLEAN
+if (history.replaceState) {
+    history.replaceState({page: 'answer', timestamp: Date.now()}, '', window.location.href);
+    console.log('🧹 Answer page history cleaned');
+}
+
+// 2. BACK/SWIPE INTERCEPTOR
+let backCount = 0;
+window.addEventListener('popstate', function(e) {
+    backCount++;
+    console.log(`🚨 BACK/SWIPE #${backCount} on ANSWER page!`, {
+        state: e.state,
+        historyLength: history.length
     });
     
-    // 3. SWIPE DETECTION
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            console.log('👻 Home hidden (possible swipe)');
-        }
-    });
-    
-    console.log('🎯 Home back protection FULLY ACTIVE - Test browser back NOW!');
-    </script>
-    
+    // FORCE: Answer → Anatomy Chapters
+    console.log('❓ Answer → Anatomy Chapters');
+    window.location.replace('/subject/Anatomy');
+});
+
+// 3. SWIPE DETECTION
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        console.log('👻 Answer page hidden - SWIPE DETECTED');
+    }
+});
+
+console.log('🎯 Answer page FULL BACK DEBUG ACTIVE!');
+</script>
+
+</body>
+</html>
+
     
 </body>
 </html>
