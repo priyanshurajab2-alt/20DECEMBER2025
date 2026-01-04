@@ -880,14 +880,8 @@
 
 
 <script>
-    if (history.replaceState) {
-        history.replaceState(null, '', location.href);
-    }
-    window.addEventListener('popstate', function() {
-        window.location.href = '{{ url_for("mcq.mcq_home") }}';
-    });
-    </script>
-</body>
-</html>
+if (history.replaceState) history.replaceState(null, '', location.href);
+window.addEventListener('popstate', () => window.location.href = '/index.html');
+</script>
 
-<
+
