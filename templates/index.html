@@ -466,6 +466,30 @@
             </div>
         </div>
     </footer>
+
+<script>
+// 🏠 INDEX.HTML BACK PROTECTION (App Root)
+console.log('🏠 Index.html: Root protection ACTIVE');
+
+// Prevent going BACK from landing page (stay/exit app)
+if (history.replaceState) {
+    history.replaceState({root: true}, '', location.href);
+}
+
+window.addEventListener('popstate', function() {
+    console.log('🚫 Index.html back blocked → stay root');
+    history.replaceState({root: true}, '', location.href);
+    // Optional: alert('Welcome back to MBBS QBank!') or navigator.app.exitApp();
+});
+
+// Swipe detection
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        console.log('👻 Index hidden (swipe)');
+    }
+});
+</script>
+
 </body>
 </html>
 
