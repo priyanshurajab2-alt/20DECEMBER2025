@@ -880,9 +880,62 @@
 
     
 <script>
-if (history.replaceState) history.replaceState(null, '', location.href);
-window.addEventListener('popstate', () => window.location.href = '/home.html');
+// 🔥 FULL BACK NAVIGATION DEBUG SYSTEM
+console.log('🔍 BACK NAV DEBUG: Script loaded on', window.location.pathname);
+console.log('📍 URL:', window.location.href);
+console.log('📊 Initial history length:', history.length);
+
+// 1. UNIVERSAL HISTORY CLEAN
+if (history.replaceState) {
+    const stateObj = { debug: true, path: window.location.pathname };
+    history.replaceState(stateObj, '', window.location.href);
+    console.log('🧹 History cleaned:', history.length);
+}
+
+// 2. BACK BUTTON INTERCEPTOR
+let backCount = 0;
+window.addEventListener('popstate', function(e) {
+    backCount++;
+    console.log(`🚨 BACK #${backCount} DETECTED!`, {
+        url: window.location.href,
+        state: e.state,
+        historyLength: history.length
+    });
+    
+    // PAGE-SPECIFIC REDIRECTS
+    const path = window.location.pathname;
+    
+    if (path.includes('chapters') || path.includes('/subject/')) {
+        console.log('📂 Chapters → HOME');
+        window.location.replace('/home.html');
+    } 
+    else if (path.includes('home') || path.includes('/mcq')) {
+        console.log('🏠 Home → INDEX'); 
+        window.location.replace('/index.html');
+    }
+    else if (path.includes('question') || path.includes('answer')) {
+        console.log('❓ Question → CHAPTERS');
+        window.location.replace('/subject/Anatomy');  // Your subject
+    }
+});
+
+// 3. SWIPE/BACK MONITORING
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' || e.key === 'Escape') {
+        console.log('⌨️ Keyboard back detected');
+    }
+});
+
+// 4. PAGE VISIBILITY (mobile swipe)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        console.log('👻 Page hidden (swipe?)');
+    }
+});
+
+console.log('🎯 FULL DEBUG ACTIVE - Test swipe back NOW!');
 </script>
+
     
 </body>
 </html>
