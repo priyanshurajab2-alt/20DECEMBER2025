@@ -877,5 +877,17 @@
             document.addEventListener('touchstart', function() {}, {passive: true});
         });
     </script>
+
+
+<script>
+    if (history.replaceState) {
+        history.replaceState(null, '', location.href);
+    }
+    window.addEventListener('popstate', function() {
+        window.location.href = '{{ url_for("mcq.mcq_home") }}';
+    });
+    </script>
 </body>
 </html>
+
+<
