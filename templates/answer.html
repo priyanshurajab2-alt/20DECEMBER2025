@@ -629,5 +629,10 @@
 
         document.addEventListener('touchstart', function() {}, {passive: true});
     </script>
+<script>
+    if (history.replaceState) {
+        history.replaceState(null, '', location.href);
+    }
+    </script>
 </body>
-</html>
+</html>    
