@@ -647,44 +647,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
 <script>
-// 🔥 COMPREHENSIVE BACK NAVIGATION DEBUG + CONTROL SYSTEM
-console.log('🔍 ANSWER PAGE LOAD DEBUG:', window.location.pathname);
-console.log('📍 Full URL:', window.location.href);
-console.log('📊 History length:', history.length);
-
-// 1. IMMEDIATE HISTORY CLEAN
-if (history.replaceState) {
-    history.replaceState({page: 'answer', timestamp: Date.now()}, '', window.location.href);
-    console.log('🧹 Answer page history cleaned');
-}
-
-// 2. BACK/SWIPE INTERCEPTOR
-let backCount = 0;
-window.addEventListener('popstate', function(e) {
-    backCount++;
-    console.log(`🚨 BACK/SWIPE #${backCount} on ANSWER page!`, {
-        state: e.state,
-        historyLength: history.length
+// REPLACE STATE PATTERN FOR CLEAN BACK NAVIGATION (PREVENTS QUIZ LOOP)
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all .smart-back links (there's only one, but this is future-proof)
+    const backLinks = document.querySelectorAll('.smart-back');
+    backLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();  // Stop the default # navigation
+            
+            const targetUrl = this.dataset.url;  // Get the chapters URL, e.g., /subject/Anatomy
+            
+            // KEY: Replace the current question page in history with the chapters page
+            // This removes the question from the back stack
+            history.replaceState({ page: 'chapters' }, '', targetUrl);
+            
+            // Now navigate to chapters
+            window.location.href = targetUrl;
+        });
     });
-    
-    // FORCE: Answer → Anatomy Chapters
-    console.log('❓ Answer → Anatomy Chapters');
-    window.location.replace('/subject/Anatomy');
 });
 
-// 3. SWIPE DETECTION
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        console.log('👻 Answer page hidden - SWIPE DETECTED');
+// OPTIONAL EXTRA: Clean the history entry when the question page first loads (handles refreshes)
+window.addEventListener('load', function() {
+    if (history.replaceState) {
+        history.replaceState({ page: 'question' }, '', window.location.href);
     }
 });
-
-console.log('🎯 Answer page FULL BACK DEBUG ACTIVE!');
 </script>
-
-</body>
-</html>
-
 
 
 </body>
