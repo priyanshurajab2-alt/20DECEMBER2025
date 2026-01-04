@@ -19,6 +19,7 @@ import time
 from flask import jsonify
 from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager, login_user, UserMixin, current_user, logout_user
+import traceback
 
 
 
@@ -1066,54 +1067,51 @@ def debug_users():
 
 @app.route('/auth/google/callback')
 def google_callback():
-    """Google OAuth callback - create/login user w/ DEBUG"""
+    """Google OAuth callback - REUSES your exact login() logic"""
     print("=== GOOGLE CALLBACK START ===")
     try:
-        print("1. Fetching access token...")
         token = oauth.google.authorize_access_token()
-        print(f"   Token keys: {list(token.keys())}")
-        
-        print("2. Getting user info...")
-        # FIXED: Use token['userinfo'] (Authlib auto-parses) OR parse_id_token(token['id_token'])
-        user_info = token.get('userinfo')
-        if not user_info:
-            user_info = oauth.google.parse_id_token(token['id_token'])
-        print(f"   User: {user_info.get('email')}, {user_info.get('name')}")
-        
+        user_info = token.get('userinfo') or oauth.google.parse_id_token(token['id_token'])
         email = user_info['email']
         name = user_info.get('name', email.split('@')[0])
         
-        print(f"3. Checking DB for {email}...")
+        print(f"User: {email}, {name}")
+        
+        # YOUR EXACT LOGIN LOGIC ↓
         conn = get_user_db_connection()
-        user = conn.execute('SELECT id, username FROM users WHERE email = ?', (email,)).fetchone()
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        
         if user:
-            create_user_session(user['id'], user['username'], 'student')  # Default student        
-        if user:
-            print(f"   Found existing user ID: {user['id']}")
-            create_user_session(user['id'], user['username'], user.get('usertype', 'student'))
+            print(f"Found user ID: {user['id']}")
+            # Update last login (your code)
+            user_conn = get_user_db_connection()
+            user_conn.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (user['id'],))
+            user_conn.commit()
+            user_conn.close()
+            
+            # Your session logic
+            usertype = user.get('user_type', 'student')  # Handles missing column
+            create_user_session(user['id'], user['username'], usertype)
+            
+            flash(f'Welcome back, {user["username"]}!')
         else:
-            print("   Creating new user...")
-            conn.execute(
-                'INSERT INTO users (username, email, usertype, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
-                (name, email, 'student')
-            )
+            print("Creating new user...")
+            hashed_pw = generate_password_hash('google_oauth')  # Temp pw
+            conn.execute("INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, ?)",
+                        (name, email, hashed_pw, 'student'))
             conn.commit()
-            new_id = conn.lastrowid
-            create_user_session(new_id, name, 'student')
-            print(f"   Created user ID: {new_id}")
+            new_user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            create_user_session(new_user['id'], new_user['username'], 'student')
+            flash(f'Welcome, {name}! Account created.')
         
         conn.close()
         print("=== CALLBACK SUCCESS ===")
         return redirect(url_for('home'))
         
     except Exception as e:
-        print(f"=== CALLBACK ERROR: {e} ===")
-        import traceback
-        print("Traceback:")
-        print(traceback.format_exc())
-        flash('Google login failed. Please try again.')
+        print(f"ERROR: {e}\n{traceback.format_exc()}")
+        flash('Google login failed.')
         return redirect(url_for('login'))
-
 
 
 @app.route('/admin/migrate_users_with_passwords')
@@ -1782,6 +1780,53 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
