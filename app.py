@@ -1085,8 +1085,9 @@ def google_callback():
         
         print(f"3. Checking DB for {email}...")
         conn = get_user_db_connection()
-        user = conn.execute('SELECT id, username, usertype FROM users WHERE email = ?', (email,)).fetchone()
-        
+        user = conn.execute('SELECT id, username FROM users WHERE email = ?', (email,)).fetchone()
+        if user:
+            create_user_session(user['id'], user['username'], 'student')  # Default student        
         if user:
             print(f"   Found existing user ID: {user['id']}")
             create_user_session(user['id'], user['username'], user.get('usertype', 'student'))
