@@ -883,20 +883,7 @@
     </script>
 
     
-<script>
-// SMART BACK LINKS - NO HISTORY POLLUTION
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.smart-back').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = this.dataset.url;
-            console.log('🔗 Smart back to:', target);
-            history.replaceState({smart: true}, '', target);
-            window.location.href = target;
-        });
-    });
-});
-</script>
+
 
 <!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
 <script>
