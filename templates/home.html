@@ -562,8 +562,10 @@
                     </h2>
                     <div class="subject-list">
                         {% for subject in subjects %}
-                            <a href="{{ url_for('show_subject', subject_name=subject.name if subject.name is defined else subject) }}" class="subject-card">
-                                <div class="subject-icon {{ (subject.name if subject.name is defined else subject).lower().replace(' ', '').replace('&', '') }}">
+                        <a href="#" 
+                        class="subject-card smart-link" 
+                        data-url="{{ url_for('show_subject', subject_name=subject.name if subject.name is defined else subject) }}" 
+                        onclick="goToSubject(event, this)">                                <div class="subject-icon {{ (subject.name if subject.name is defined else subject).lower().replace(' ', '').replace('&', '') }}">
                                     {% set subject_name = subject.name if subject.name is defined else subject %}
                                     {% if 'anatomy' in subject_name.lower() %}🧠
                                     {% elif 'biochemistry' in subject_name.lower() %}🧪
@@ -640,43 +642,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
 <script>
-// 🔥 COMPREHENSIVE BACK NAVIGATION DEBUG + CONTROL SYSTEM
-console.log('🔍 ANSWER PAGE LOAD DEBUG:', window.location.pathname);
-console.log('📍 Full URL:', window.location.href);
-console.log('📊 History length:', history.length);
-
-// 1. IMMEDIATE HISTORY CLEAN
-if (history.replaceState) {
-    history.replaceState({page: 'answer', timestamp: Date.now()}, '', window.location.href);
-    console.log('🧹 Answer page history cleaned');
-}
-
-// 2. BACK/SWIPE INTERCEPTOR
-let backCount = 0;
-window.addEventListener('popstate', function(e) {
-    backCount++;
-    console.log(`🚨 BACK/SWIPE #${backCount} on ANSWER page!`, {
-        state: e.state,
-        historyLength: history.length
-    });
-    
-    // FORCE: Answer → Anatomy Chapters
-    console.log('❓ Answer → Anatomy Chapters');
-    window.location.replace('/subject/Anatomy');
-});
-
-// 3. SWIPE DETECTION
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        console.log('👻 Answer page hidden - SWIPE DETECTED');
+    // CLEAN NAVIGATION TO SUBJECT CHAPTERS – PREVENTS LOOP IN SWIPE-BACK
+    function goToSubject(event, element) {
+        event.preventDefault();  // Stop default # behavior
+        
+        const targetUrl = element.dataset.url;  // Get the chapters URL, e.g., /subject/Anatomy
+        
+        // KEY FIX: Replace current home page with chapters page in history
+        history.replaceState({ page: 'chapters' }, '', targetUrl);
+        
+        // Navigate to chapters
+        window.location.href = targetUrl;
     }
-});
-
-console.log('🎯 Answer page FULL BACK DEBUG ACTIVE!');
-</script>
-
-</body>
-</html>
+    
+    // OPTIONAL: Extra safety on page load (cleans history if refreshed)
+    window.addEventListener('load', function() {
+        if (history.replaceState) {
+            history.replaceState({ page: 'home' }, '', window.location.href);
+        }
+    });
+    </script>>
 
     
 </body>
