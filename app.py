@@ -26,16 +26,6 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Required for sessions and flashes
 
 
-oauth = OAuth(app)
-oauth.register(
-    name='google',
-    client_kwargs={'scope': 'openid email profile'},
-    server_metadata_url='https://accounts.google.com/.well-known/openid_configuration',
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET')
-)
-
-
 # Razorpay (replace with YOUR keys from dashboard)
 razorpay_client = razorpay.Client(auth=('rzp_live_RxMEjWvYOXP8oj', 'nVo5I7Xco8PEVHPtgmdypOtB'))
 
@@ -795,6 +785,17 @@ def signup():
         return redirect(url_for('login'))
 
     return render_template('signup.html', from_restricted=from_restricted)
+@app.route('/login/google')
+def google_login():
+    """Redirect to Google login"""
+    redirect_uri = url_for('google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+
+
+
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
