@@ -1067,47 +1067,56 @@ def debug_users():
 
 @app.route('/auth/google/callback')
 def google_callback():
-    """Google OAuth callback - REUSES your exact login() logic"""
     print("=== GOOGLE CALLBACK START ===")
     try:
         token = oauth.google.authorize_access_token()
         user_info = token.get('userinfo') or oauth.google.parse_id_token(token['id_token'])
-        email = user_info['email']
-        name = user_info.get('name', email.split('@')[0])
+        email = user_info['email'].strip().lower()
+        username = user_info.get('name', email.split('@')[0])
         
-        print(f"User: {email}, {name}")
-        
-        # YOUR EXACT LOGIN LOGIC ↓
+        # YOUR EXACT LOGIN LOGIC (lines 1-3)
         conn = get_user_db_connection()
         user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        conn.close()
         
         if user:
-            print(f"Found user ID: {user['id']}")
-            # Update last login (your code)
+            # YOUR EXACT UPDATE LAST LOGIN (lines 8-13)
             user_conn = get_user_db_connection()
-            user_conn.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (user['id'],))
+            user_conn.execute(
+                "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+                (user['id'],)
+            )
             user_conn.commit()
             user_conn.close()
             
-            # Your session logic
-            usertype = user.get('user_type', 'student')  # Handles missing column
-            create_user_session(user['id'], user['username'], usertype)
+            # YOUR EXACT ADMIN CHECK (lines 16-19)
+            if user['user_type'] == 'admin':
+                flash('Admins must login via the admin login page.')
+                return redirect(url_for('admin_login'))
             
+            # YOUR EXACT SESSION + FLASH + REDIRECT (lines 23-31)
+            create_user_session(user['id'], user['username'], user['user_type'])
             flash(f'Welcome back, {user["username"]}!')
+            current_goal = session.get('current_goal')
+            if current_goal:
+                return redirect(url_for('home'))
+            return redirect(url_for('home'))
         else:
-            print("Creating new user...")
-            hashed_pw = generate_password_hash('google_oauth')  # Temp pw
-            conn.execute("INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, ?)",
-                        (name, email, hashed_pw, 'student'))
-            conn.commit()
-            new_user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-            create_user_session(new_user['id'], new_user['username'], 'student')
-            flash(f'Welcome, {name}! Account created.')
-        
-        conn.close()
-        print("=== CALLBACK SUCCESS ===")
-        return redirect(url_for('home'))
-        
+            # New user: create with temp password (like signup)
+            hashed_pw = generate_password_hash('google_temp_pw')
+            new_conn = get_user_db_connection()
+            new_conn.execute(
+                "INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, ?)",
+                (username, email, hashed_pw, 'student')
+            )
+            new_conn.commit()
+            new_user = new_conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            new_conn.close()
+            
+            create_user_session(new_user['id'], new_user['username'], new_user['user_type'])
+            flash(f'Welcome, {new_user["username"]}! Account created.')
+            return redirect(url_for('home'))
+            
     except Exception as e:
         print(f"ERROR: {e}\n{traceback.format_exc()}")
         flash('Google login failed.')
@@ -1780,6 +1789,100 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
