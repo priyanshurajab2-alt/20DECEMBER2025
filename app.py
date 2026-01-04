@@ -48,6 +48,17 @@ print("Registered endpoints:")
 for rule in app.url_map.iter_rules():
     print(rule.endpoint, "->", rule.rule)
 
+oauth = OAuth(app)
+oauth.register(
+    name='google',
+    client_kwargs={'scope': 'openid email profile'},
+    server_metadata_url='https://accounts.google.com/.well-known/openid_configuration',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET')
+)
+
+
+
 
 # ✅ REGISTER ROUTES IMMEDIATELY AFTER APP CREATION
 
@@ -1731,6 +1742,11 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
 
 
 
