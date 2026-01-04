@@ -752,12 +752,13 @@
         <!-- Header -->
         <div class="page-header">
             <div class="header-left">
-                <a href="{{ url_for('home') }}" class="back-link" aria-label="Back to all subjects">
+                <a href="#" class="smart-back back-link" data-url="{{ url_for('home') }}" aria-label="Back to all subjects">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                     <span>Back</span>
                 </a>
+                
                 <h1 class="page-title">{{ subject }} – Chapters & Topics</h1>
             </div>
             <div class="sort-dropdown">
@@ -841,12 +842,13 @@
 
         <!-- Back Link -->
         <div class="mt-6">
-            <a href="{{ url_for('home') }}" class="back-to-subjects">
+            <a href="#" class="smart-back back-to-subjects" data-url="{{ url_for('home') }}">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7 7-7 7"></path>
                 </svg>
                 <span>Back to All Subjects</span>
             </a>
+            
         </div>
     </main>
 
@@ -880,62 +882,22 @@
 
     
 <script>
-// 🔥 FULL BACK NAVIGATION DEBUG SYSTEM
-console.log('🔍 BACK NAV DEBUG: Script loaded on', window.location.pathname);
-console.log('📍 URL:', window.location.href);
-console.log('📊 Initial history length:', history.length);
-
-// 1. UNIVERSAL HISTORY CLEAN
-if (history.replaceState) {
-    const stateObj = { debug: true, path: window.location.pathname };
-    history.replaceState(stateObj, '', window.location.href);
-    console.log('🧹 History cleaned:', history.length);
-}
-
-// 2. BACK BUTTON INTERCEPTOR
-let backCount = 0;
-window.addEventListener('popstate', function(e) {
-    backCount++;
-    console.log(`🚨 BACK #${backCount} DETECTED!`, {
-        url: window.location.href,
-        state: e.state,
-        historyLength: history.length
+    // SMART BACK LINKS - NO HISTORY POLLUTION
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.smart-back').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.dataset.url;
+                console.log('🔗 Smart back to:', target);
+                
+                // REPLACE history (no new entry)
+                history.replaceState({smart: true}, '', target);
+                window.location.href = target;
+            });
+        });
     });
+    </script>
     
-    // PAGE-SPECIFIC REDIRECTS
-    const path = window.location.pathname;
-    
-    if (path.includes('chapters') || path.includes('/subject/')) {
-        console.log('📂 Chapters → HOME');
-        window.location.replace('/home.html');
-    } 
-    else if (path.includes('home') || path.includes('/mcq')) {
-        console.log('🏠 Home → INDEX'); 
-        window.location.replace('/index.html');
-    }
-    else if (path.includes('question') || path.includes('answer')) {
-        console.log('❓ Question → CHAPTERS');
-        window.location.replace('/subject/Anatomy');  // Your subject
-    }
-});
-
-// 3. SWIPE/BACK MONITORING
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Backspace' || e.key === 'Escape') {
-        console.log('⌨️ Keyboard back detected');
-    }
-});
-
-// 4. PAGE VISIBILITY (mobile swipe)
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        console.log('👻 Page hidden (swipe?)');
-    }
-});
-
-console.log('🎯 FULL DEBUG ACTIVE - Test swipe back NOW!');
-</script>
-
     
 </body>
 </html>
