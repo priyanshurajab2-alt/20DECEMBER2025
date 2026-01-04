@@ -1061,16 +1061,50 @@ def debug_users():
 
 @app.route('/auth/google/callback')
 def google_callback():
-    """Google OAuth callback - create/login user"""
+    """Google OAuth callback - create/login user w/ DEBUG"""
+    print("=== GOOGLE CALLBACK START ===")
     try:
+        print("1. Fetching access token...")
         token = oauth.google.authorize_access_token()
-        user_info = oauth.google.parse_id_token(token, nonce=None)
-        # Now use user_info: e.g., email = user_info.get('email')
-        # Find or create user in your DB
-        # login_user(user)
-        return redirect(url_for('dashboard'))  # or wherever
+        print(f"   Token keys: {list(token.keys())}")
+        
+        print("2. Getting user info...")
+        # FIXED: Use token['userinfo'] (Authlib auto-parses) OR parse_id_token(token['id_token'])
+        user_info = token.get('userinfo')
+        if not user_info:
+            user_info = oauth.google.parse_id_token(token['id_token'])
+        print(f"   User: {user_info.get('email')}, {user_info.get('name')}")
+        
+        email = user_info['email']
+        name = user_info.get('name', email.split('@')[0])
+        
+        print(f"3. Checking DB for {email}...")
+        conn = get_user_db_connection()
+        user = conn.execute('SELECT id, username, usertype FROM users WHERE email = ?', (email,)).fetchone()
+        
+        if user:
+            print(f"   Found existing user ID: {user['id']}")
+            create_user_session(user['id'], user['username'], user.get('usertype', 'student'))
+        else:
+            print("   Creating new user...")
+            conn.execute(
+                'INSERT INTO users (username, email, usertype, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+                (name, email, 'student')
+            )
+            conn.commit()
+            new_id = conn.lastrowid
+            create_user_session(new_id, name, 'student')
+            print(f"   Created user ID: {new_id}")
+        
+        conn.close()
+        print("=== CALLBACK SUCCESS ===")
+        return redirect(url_for('home'))
+        
     except Exception as e:
-        # Log the error: app.logger.error(f"Google auth failed: {e}")
+        print(f"=== CALLBACK ERROR: {e} ===")
+        import traceback
+        print("Traceback:")
+        print(traceback.format_exc())
         flash('Google login failed. Please try again.')
         return redirect(url_for('login'))
 
@@ -1742,6 +1776,16 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
 
 
 
