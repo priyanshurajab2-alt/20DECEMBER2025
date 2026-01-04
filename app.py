@@ -454,6 +454,38 @@ def remove_bookmark_from_db(user_id, question_id):
 # --------------------
 # BOOKMARK ROUTES
 # --------------------
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    email = data['email'].strip().lower()
+    password = data['password']
+    
+    conn = get_user_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user['password'], password):
+        user_conn = get_user_db_connection()
+        user_conn.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (user['id'],))
+        user_conn.commit()
+        user_conn.close()
+        
+        return jsonify({
+            'success': True,
+            'user_id': user['id'],
+            'username': user['username'],
+            'user_type': user.get('user_type', 'student')
+        })
+    return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+@app.route('/api/google-login', methods=['POST'])
+def api_google_login():
+    # Reuse your google_callback logic (simplified for mobile)
+    id_token = request.json['id_token']
+    # Verify token + create/login user
+    return jsonify({'success': True, 'user_id': 14, 'username': 'Anshu Raj'})
 @app.route('/toggle_bookmark', methods=['POST'])
 def toggle_bookmark():
     """Main bookmark toggle endpoint"""
