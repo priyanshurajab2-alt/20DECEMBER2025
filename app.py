@@ -17,6 +17,8 @@ from dynamic_db_handler import GOALS, get_goal_qbank_subjects
 import razorpay
 import time
 from flask import jsonify
+from authlib.integrations.flask_client import OAuth
+from flask_login
 
 
 
