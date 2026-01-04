@@ -485,12 +485,13 @@
                         <button class="nav-btn" disabled>⏭️ Next</button>
                     {% endif %}
                 </div>
-                <div class="back-links">
-                    <a href="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
+                               <div class="back-links">
+                    <a href="#" class="smart-back" data-url="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
                     {% if session.user_id %}
                         <a href="{{ url_for('bookmarks') }}">📚 Bookmarks</a>
                     {% endif %}
                 </div>
+
             </div>
         </div>
     </div>
