@@ -26,6 +26,16 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # Required for sessions and flashes
 
 
+oauth = OAuth(app)
+oauth.register(
+    name='google',
+    client_kwargs={'scope': 'openid email profile'},
+    server_metadata_url='https://accounts.google.com/.well-known/openid_configuration',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET')
+)
+
+
 # Razorpay (replace with YOUR keys from dashboard)
 razorpay_client = razorpay.Client(auth=('rzp_live_RxMEjWvYOXP8oj', 'nVo5I7Xco8PEVHPtgmdypOtB'))
 
