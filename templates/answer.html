@@ -630,9 +630,25 @@
         document.addEventListener('touchstart', function() {}, {passive: true});
     </script>
 <script>
-    if (history.replaceState) {
-        history.replaceState(null, '', location.href);
-    }
-    </script>
+console.log('🔧 DEBUG: Question page history fix loading...');
+console.log('📍 Current URL:', window.location.href);
+console.log('📊 History length:', window.history.length);
+
+if (history.replaceState) {
+    console.log('✅ history.replaceState available');
+    history.replaceState(null, '', window.location.href);
+    console.log('🧹 History replaced - length now:', window.history.length);
+} else {
+    console.error('❌ history.replaceState not supported');
+}
+
+window.addEventListener('popstate', function(e) {
+    console.log('🚨 DEBUG: popstate triggered on question.html', e);
+    if (history.replaceState) history.replaceState(null, '', window.location.href);
+});
+
+console.log('🎯 Question history fix COMPLETE');
+</script>
+
 </body>
 </html>    
