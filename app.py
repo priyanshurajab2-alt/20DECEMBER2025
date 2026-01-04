@@ -52,9 +52,14 @@ oauth = OAuth(app)
 oauth.register(
     name='google',
     client_kwargs={'scope': 'openid email profile'},
-    server_metadata_url='https://accounts.google.com/.well-known/openid_configuration',
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET')
+    client_id="1032765074936-chf2podtss2uq3jgr9bpaqjk81q4cftm.apps.googleusercontent.com"
+    project_id=	"polynomial-land-483307-g2"
+    auth_uri=	"https://accounts.google.com/o/oauth2/auth"
+    token_uri="https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url	="https://www.googleapis.com/oauth2/v1/certs"
+    client_secret=	"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"
+    redirect_uris=	
+    0	"https://two0december2025.onrender.com/login/google"
 )
 
 
@@ -1776,6 +1781,24 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
