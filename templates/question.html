@@ -555,5 +555,11 @@
         console.log('📄 Question page loaded, bookmark functionality ready');
         console.log('🎮 Keyboard shortcuts: ← → for navigation, Space/Enter for answer, B for bookmark');
     </script>
+
+<script>
+    if (history.replaceState) {
+        history.replaceState(null, '', location.href);
+    }
+    </script>
 </body>
 </html>
