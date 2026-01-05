@@ -877,5 +877,41 @@
             document.addEventListener('touchstart', function() {}, {passive: true});
         });
     </script>
+
+<script>
+    // Ensure browser back button goes to Home instead of previous question
+    window.addEventListener('popstate', function(event) {
+        // When back button is pressed on this page, redirect to home
+        window.location.href = "{{ url_for('home') }}";
+    });
+
+    // Optional: If user somehow lands here directly or refreshes,
+    // replace current history entry with home as fallback
+    if (performance.navigation.type === 1) { // Page was refreshed
+        history.replaceState({page: 'subject_chapters'}, '', window.location.href);
+    }
+
+    // Existing tab functionality (keep your current code below)
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+       
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.removeAttribute('aria-current');
+                });
+               
+                this.classList.add('active');
+                this.setAttribute('aria-current', 'true');
+               
+                const tabText = this.textContent.trim();
+                console.log('Selected tab:', tabText);
+            });
+        });
+        
+        document.addEventListener('touchstart', function() {}, {passive: true});
+    });
+</script>    
 </body>
 </html>
