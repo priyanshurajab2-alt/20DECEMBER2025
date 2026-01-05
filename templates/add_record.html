@@ -34,7 +34,8 @@
             {% endif %}
         {% endwith %}
 
-       <form method="POST" enctype="multipart/form-data"
+        <form method="POST" enctype="multipart/form-data">
+            {{ csrf_token() }}
             {% for column in schema %}
                 {% set colname_lower = column.name.lower() %}
                 {% if colname_lower not in ['id', 'created_at', 'updated_at'] %}
