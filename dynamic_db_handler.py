@@ -1147,13 +1147,15 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
                         # MINIMAL image upload
                     if 'images' in request.files:
                         img_file = request.files['images']
-                        if img_file and img_file.filename:  # Check file + filename
-                            image_bytes = img_file.read()
-                            if image_bytes:  # Verify data
-                                columns.append('images')
-                                values.append(image_bytes)
-                                placeholders.append('?')
-                                print(f"Image uploaded: {len(image_bytes)} bytes")  # Debug
+                        img_file.seek(0)  # ← RESET STREAM POSITION (CRITICAL!)
+                        image_bytes = img_file.read()
+                        if image_bytes and len(image_bytes) > 1024:  # Valid image size
+                            columns.append('images')
+                            values.append(image_bytes)
+                            placeholders.append('?')
+                            print(f"✅ Image: {len(image_bytes)} bytes")
+                        else:
+                            print(f"❌ Invalid image: {len(image_bytes)} bytes")
 
 
                 
