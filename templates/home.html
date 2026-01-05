@@ -608,57 +608,45 @@
             {% endfor %}
         </div>
     </main>
-
-  <script>
-    window.addEventListener('DOMContentLoaded', function() {
-        // 1. Create fake Home entry (your fix - works on ALL cases)
-        history.pushState({page: 'index'}, '', '{{ url_for('index') }}');
-        
-        // 2. Handle back/swipe (goes to home instantly)
-        window.addEventListener('popstate', function(event) {
-            if (event.state?.page === 'index') {
-                window.location.replace("{{ url_for('index') }}");
-            }
-        });
-        
-        // 3. Tabs ONLY (no touchstart - it was breaking things)
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.tab-button').forEach(btn => {
-                    btn.classList.remove('active');
-                    btn.removeAttribute('aria-current');
-                });
-                this.classList.add('active');
-                this.setAttribute('aria-current', 'true');
-                console.log('Tab:', this.textContent.trim());
-            });
-        });
-    });
-    </script>
     
-
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    // FIXED: Go back to '/' (index.html landing page)
     history.pushState({page: 'landing'}, '', '{{ url_for("landing") }}');
-    
-    // Handle swipe back → index.html
     window.addEventListener('popstate', function(event) {
         if (event.state?.page === 'landing') {
             window.location.replace("{{ url_for('landing') }}");
         }
     });
-    
-    // Your animations
+    // Your animations preserved
     const subjectCards = document.querySelectorAll('.subject-card');
     subjectCards.forEach(card => {
-        card.addEventListener('click', function(e) {
+        card.addEventListener('click', function() {
             this.style.transform = 'scale(0.98)';
-            setTimeout(() => { this.style.transform = ''; }, 150);
+            setTimeout(() => this.style.transform = '', 150);
         });
     });
 });
 </script>
+
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    history.pushState({page: 'landing'}, '', '{{ url_for("landing") }}');
+    window.addEventListener('popstate', function(event) {
+        if (event.state?.page === 'landing') {
+            window.location.replace("{{ url_for('landing') }}");
+        }
+    });
+    // Your animations preserved
+    const subjectCards = document.querySelectorAll('.subject-card');
+    subjectCards.forEach(card => {
+        card.addEventListener('click', function() {
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => this.style.transform = '', 150);
+        });
+    });
+});
+</script>
+
 
 
 </body>
