@@ -515,6 +515,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Fixed toggleBookmark function (was missing name)
         function toggleBookmark(questionId, subject, topic) {
             {% if session.user_id %}
             fetch('/toggle_bookmark', {
@@ -544,7 +545,16 @@
             });
             {% endif %}
         }
-
+    
+        // ADD THIS FUNCTION — THIS IS THE MISSING ONE!
+        function navigateBackToChapters(event, url) {
+            event.preventDefault();
+            // Replace the current history entry (answer page) with subject chapters page
+            history.replaceState({page: 'subject_chapters'}, '', url);
+            // Then navigate to subject chapters
+            window.location.href = url;
+        }
+    
         function saveNote(questionId) {
             {% if session.user_id %}
             const noteText = document.getElementById('userNote').value;
@@ -578,11 +588,11 @@
             });
             {% endif %}
         }
-
+    
         function showCompletionModal() {
             document.getElementById('completionModal').style.display = 'block';
         }
-
+    
         function markComplete() {
             {% if session.user_id %}
             fetch('/complete_topic', {
@@ -609,24 +619,24 @@
                 goBackToTopics();
             {% endif %}
         }
-
+    
         function goToNextTopic() {
             {% if next_topic %}
             window.location.href = "{{ url_for('show_topic', subject_name=subject, topic_name=next_topic) }}";
             {% endif %}
         }
-
+    
         function goBackToTopics() {
             window.location.href = "{{ url_for('show_subject', subject_name=subject) }}";
         }
-
+    
         window.onclick = function(event) {
             const modal = document.getElementById('completionModal');
             if (event.target == modal) {
                 modal.style.display = "none";
             }
         }
-
+    
         document.addEventListener('touchstart', function() {}, {passive: true});
     </script>
 </body>
