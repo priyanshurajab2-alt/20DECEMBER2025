@@ -1143,6 +1143,15 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
                         columns.append(safe_column)
                         values.append(value)
                         placeholders.append('?')
+
+                        # MINIMAL image upload
+                    if 'images' in request.files:
+                        img = request.files['images']
+                        if img.filename: 
+                            columns.append('images')
+                            values.append(img.read())
+                            placeholders.append('?')
+
                 
                 if columns:
                     insert_query = f"INSERT INTO {safe_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
