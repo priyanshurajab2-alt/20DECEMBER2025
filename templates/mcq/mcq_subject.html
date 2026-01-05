@@ -733,12 +733,12 @@
        <script>
 window.addEventListener('DOMContentLoaded', function() {
     // 1. Create fake Home entry (your fix - works on ALL cases)
-    history.pushState({page: 'mcq_home'}, '', '{{ url_for('mcq_home') }}');
+    history.pushState({page: 'mcq_home'}, '', '{{ url_for('mcq.mcq_home') }}');
     
     // 2. Handle back/swipe (goes to home instantly)
     window.addEventListener('popstate', function(event) {
         if (event.state?.page === 'mcq_home') {
-            window.location.replace("{{ url_for('mcq_home') }}");
+            window.location.replace("{{ url_for('mcq.mcq_home') }}");
         }
     });
     
@@ -760,12 +760,12 @@ window.addEventListener('DOMContentLoaded', function() {
 <script>
 window.addEventListener('DOMContentLoaded', function() {
     // 1. Create fake Home entry (your fix - works on ALL cases)
-    history.pushState({page: 'mcq_home'}, '', '{{ url_for('mcq_home') }}');
+    history.pushState({page: 'mcq_home'}, '', '{{ url_for('mcq.mcq_home') }}');
     
     // 2. Handle back/swipe (goes to home instantly)
     window.addEventListener('popstate', function(event) {
         if (event.state?.page === 'mcq_home') {
-            window.location.replace("{{ url_for('mcq_home') }}");
+            window.location.replace("{{ url_for('mcq.mcq_home') }}");
         }
     });
     
