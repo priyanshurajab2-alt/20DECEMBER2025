@@ -442,7 +442,10 @@
                     {% endif %}
                 </div>
                 <div class="back-links">
-                    <a href="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
+                    <a href="{{ url_for('show_subject', subject_name=subject) }}"
+                       onclick="navigateBackToChapters(event, this.href)">
+                        ← Back to {{ subject }}
+                    </a>
                     {% if session.user_id %}
                         <a href="{{ url_for('bookmarks') }}">📚 Bookmarks</a>
                     {% endif %}
@@ -515,6 +518,15 @@
                 {% endif %}
             }
         }
+
+        function navigateBackToChapters(event, url) {
+        event.preventDefault();
+        // Replace the current history entry (the question page) with subject chapters
+        history.replaceState({page: 'subject_chapters'}, '', url);
+        // Then go to the subject chapters page
+        window.location.href = url;
+    }
+
 
         function showMessage(message, type) {
             const existingMessages = document.querySelectorAll('.bookmark-message');
