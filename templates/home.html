@@ -609,18 +609,30 @@
         </div>
     </main>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const subjectCards = document.querySelectorAll('.subject-card');
-            subjectCards.forEach(card => {
-                card.addEventListener('click', function(e) {
-                    this.style.transform = 'scale(0.98)';
-                    setTimeout(() => {
-                        this.style.transform = '';
-                    }, 150);
-                });
-            });
+   <script>
+window.addEventListener('DOMContentLoaded', function() {
+    // 1. Create fake index.html entry (swipe back goes here first)
+    history.pushState({page: 'index'}, '', '/');  // or '{{ url_for('home') }}'
+    
+    // 2. Handle back/swipe (goes to index.html instantly)
+    window.addEventListener('popstate', function(event) {
+        if (event.state?.page === 'index') {
+            window.location.replace("{{ url_for('home') }}");  // or '/'
+        }
+    });
+    
+    // 3. Keep your existing animations
+    const subjectCards = document.querySelectorAll('.subject-card');
+    subjectCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
         });
-    </script>
+    });
+});
+</script>
+
 </body>
 </html>
