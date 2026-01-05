@@ -72,6 +72,14 @@
 
 <form method="post" id="question-form">
 
+    {% if question.images %}
+<div class="mb-3">
+    <img src="data:image/jpeg;base64,{{ question.images | b64encode | safe }}" 
+         alt="Question Image" class="img-fluid" style="max-height: 300px; max-width: 100%;">
+</div>
+{% endif %}
+<h5 class="fw-bold">{{ question.question }}</h5>
+
     <div class="question-text">{{ question['question'] }}</div>
 
     <div id="options">
