@@ -1728,9 +1728,23 @@ def subscribe():
 # ========================================================
 # ULTIMATE NAVIGATION & BACK BUTTON DEBUG (FINAL IMPROVED VERSION)
 # ========================================================
+@app.before_request
+def block_back_to_question_from_subject():
+ 
+    current_path = request.path
+    referer = request.referrer or ''
 
-from datetime import datetime
+    # Detect if current page is a subject chapters page (e.g. /subject/Anatomy or /subject/Anatomy/)
+    if current_path.startswith('/subject/') and '/' not in current_path[len('/subject/'):].strip('/'):
+        # If user came from a question or answer page
+        if '/question/' in referer or '/answer/' in referer:
+            print(f"[BACK BLOCKED] User tried to go back to question/answer from {current_path}")
+            print(f"Referer was: {referer}")
+            print("Forcing redirect to /home")
+            return redirect(url_for('home'))
 
+    # Allow normal request otherwise
+    return None
 @app.after_request
 def add_no_cache_and_debug_headers(response):
     """
