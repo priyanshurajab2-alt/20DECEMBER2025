@@ -34,7 +34,7 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST">
+       <form method="POST" enctype="multipart/form-data"
             {% for column in schema %}
                 {% set colname_lower = column.name.lower() %}
                 {% if colname_lower not in ['id', 'created_at', 'updated_at'] %}
@@ -55,6 +55,14 @@
                         {% else %}
                             <input type="text" name="{{ column.name }}" id="{{ column.name }}" {% if column.notnull %}required{% endif %}>
                         {% endif %}
+
+                                        {% if table_name == 'test_questions' %}
+                <div class="form-group">
+                    <label for="images">🖼️ Images (Optional)</label>
+                    <input type="file" name="images" id="images" accept="image/jpeg,image/png,image/gif" class="form-control">
+                    <div class="field-info">Upload question image (JPG/PNG/GIF)</div>
+                </div>
+                {% endif %}
 
                         <div class="field-info">Type: {{ column.type }}{% if column.notnull %} <span class="required">(Required)</span>{% endif %}</div>
                     </div>
