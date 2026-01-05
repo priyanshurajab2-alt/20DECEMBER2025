@@ -1787,7 +1787,7 @@ def show_answer(subject_name, topic_name, qid):
     )
 
 import base64
-app.jinja_env.filters['b64encode'] = lambda data: base64.b64encode(data).decode('utf-8') if data else ''
+app.jinja_env.filters['b64encode'] = lambda data: base64.b64encode(data if isinstance(data, bytes) else data.encode('latin1')).decode('utf-8') if data else ''
 
 # Add this line before if __name__ == '__main__':
 register_dynamic_db_routes(app, ensure_user_session)
