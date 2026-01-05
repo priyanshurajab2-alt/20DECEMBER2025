@@ -326,17 +326,55 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    // Fake "home" entry - swipe back goes here first
+    // 1. Create fake Home entry (your fix - works on ALL cases)
     history.pushState({page: 'home'}, '', '{{ url_for('home') }}');
     
-    // Handle back/swipe → home.html instantly
+    // 2. Handle back/swipe (goes to home instantly)
     window.addEventListener('popstate', function(event) {
         if (event.state?.page === 'home') {
             window.location.replace("{{ url_for('home') }}");
         }
     });
+    
+    // 3. Tabs ONLY (no touchstart - it was breaking things)
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.removeAttribute('aria-current');
+            });
+            this.classList.add('active');
+            this.setAttribute('aria-current', 'true');
+            console.log('Tab:', this.textContent.trim());
+        });
+    });
 });
 </script>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    // 1. Create fake Home entry (your fix - works on ALL cases)
+    history.pushState({page: 'home'}, '', '{{ url_for('home') }}');
     
+    // 2. Handle back/swipe (goes to home instantly)
+    window.addEventListener('popstate', function(event) {
+        if (event.state?.page === 'home') {
+            window.location.replace("{{ url_for('home') }}");
+        }
+    });
+    
+    // 3. Tabs ONLY (no touchstart - it was breaking things)
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.removeAttribute('aria-current');
+            });
+            this.classList.add('active');
+            this.setAttribute('aria-current', 'true');
+            console.log('Tab:', this.textContent.trim());
+        });
+    });
+});
+</script>
 </body>
 </html>
