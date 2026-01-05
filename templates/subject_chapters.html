@@ -851,67 +851,60 @@
     </main>
 
     <script>
-        // Tab functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabButtons = document.querySelectorAll('.tab-button');
+        window.addEventListener('DOMContentLoaded', function() {
+            // 1. Create fake Home entry (your fix - works on ALL cases)
+            history.pushState({page: 'home'}, '', '{{ url_for('home') }}');
             
-            tabButtons.forEach(button => {
+            // 2. Handle back/swipe (goes to home instantly)
+            window.addEventListener('popstate', function(event) {
+                if (event.state?.page === 'home') {
+                    window.location.replace("{{ url_for('home') }}");
+                }
+            });
+            
+            // 3. Tabs ONLY (no touchstart - it was breaking things)
+            document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    tabButtons.forEach(btn => {
+                    document.querySelectorAll('.tab-button').forEach(btn => {
                         btn.classList.remove('active');
                         btn.removeAttribute('aria-current');
                     });
-                    
-                    // Add active class to clicked button
                     this.classList.add('active');
                     this.setAttribute('aria-current', 'true');
-                    
-                    // Here you could add filtering logic based on the tab
-                    const tabText = this.textContent.trim();
-                    console.log('Selected tab:', tabText);
+                    console.log('Tab:', this.textContent.trim());
                 });
             });
-
-            // Touch events for iOS
-            document.addEventListener('touchstart', function() {}, {passive: true});
         });
-    </script>
+        </script>
+        
 
 <script>
-    // Ensure browser back button goes to Home instead of previous question
-    window.addEventListener('popstate', function(event) {
-        // When back button is pressed on this page, redirect to home
-        window.location.href = "{{ url_for('home') }}";
-    });
-
-    // Optional: If user somehow lands here directly or refreshes,
-    // replace current history entry with home as fallback
-    if (performance.navigation.type === 1) { // Page was refreshed
-        history.replaceState({page: 'subject_chapters'}, '', window.location.href);
-    }
-
-    // Existing tab functionality (keep your current code below)
-    document.addEventListener('DOMContentLoaded', function() {
-        const tabButtons = document.querySelectorAll('.tab-button');
-       
-        tabButtons.forEach(button => {
+    // Create fake "Home" entry so back/swipe always goes there first
+    window.addEventListener('DOMContentLoaded', function() {
+        
+        // Push Home as previous page (works on direct access, refresh, everything)
+        history.pushState({page: 'home'}, '', '{{ url_for('home') }}');
+        
+        // Handle back navigation
+        window.addEventListener('popstate', function(event) {
+            if (event.state?.page === 'home') {
+                window.location.replace("{{ url_for('home') }}");
+            }
+        });
+        
+        // Your tabs functionality (fixed)
+        document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', function() {
-                tabButtons.forEach(btn => {
+                document.querySelectorAll('.tab-button').forEach(btn => {
                     btn.classList.remove('active');
                     btn.removeAttribute('aria-current');
                 });
-               
                 this.classList.add('active');
                 this.setAttribute('aria-current', 'true');
-               
-                const tabText = this.textContent.trim();
-                console.log('Selected tab:', tabText);
             });
         });
-        
-        document.addEventListener('touchstart', function() {}, {passive: true});
     });
-</script>    
+    </script>
+      
 </body>
 </html>
