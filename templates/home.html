@@ -638,33 +638,28 @@
     
 
 <script>
-// Create fake "Home" entry so back/swipe always goes there first
 window.addEventListener('DOMContentLoaded', function() {
+    // FIXED: Go back to '/' (index.html landing page)
+    history.pushState({page: 'landing'}, '', '{{ url_for("landing") }}');
     
-    // Push Home as previous page (works on direct access, refresh, everything)
-    history.pushState({page: 'index'}, '', '{{ url_for('index') }}');
-    
-    // Handle back navigation
+    // Handle swipe back → index.html
     window.addEventListener('popstate', function(event) {
-        if (event.state?.page === 'index') {
-            window.location.replace("{{ url_for('index') }}");
+        if (event.state?.page === 'landing') {
+            window.location.replace("{{ url_for('landing') }}");
         }
     });
     
-    // Your tabs functionality (fixed)
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-                btn.removeAttribute('aria-current');
-            });
-            this.classList.add('active');
-            this.setAttribute('aria-current', 'true');
+    // Your animations
+    const subjectCards = document.querySelectorAll('.subject-card');
+    subjectCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => { this.style.transform = ''; }, 150);
         });
     });
 });
 </script>
-  
+
 
 </body>
 </html>
