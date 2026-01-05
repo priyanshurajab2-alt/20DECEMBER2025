@@ -1728,23 +1728,57 @@ def subscribe():
 # ========================================================
 # ULTIMATE NAVIGATION & BACK BUTTON DEBUG (FINAL IMPROVED VERSION)
 # ========================================================
-@app.before_request
-def block_back_to_question_from_subject():
- 
-    current_path = request.path
-    referer = request.referrer or ''
+from flask import redirect, url_for, request
 
-    # Detect if current page is a subject chapters page (e.g. /subject/Anatomy or /subject/Anatomy/)
-    if current_path.startswith('/subject/') and '/' not in current_path[len('/subject/'):].strip('/'):
-        # If user came from a question or answer page
-        if '/question/' in referer or '/answer/' in referer:
-            print(f"[BACK BLOCKED] User tried to go back to question/answer from {current_path}")
-            print(f"Referer was: {referer}")
-            print("Forcing redirect to /home")
+@app.before_request
+def enforce_back_button_flow_with_debug():
+    """
+    Brute-force perfect back button flow with detailed debug prints:
+    - Block return to question/answer from subject chapters → force to /home
+    - Allow normal back from /home to landing page (/)
+    """
+    current_path = request.path.rstrip('/')  # normalize trailing slash
+    referer = request.referrer or ''
+    referer_path = referer.split('?')[0].rstrip('/') if referer else ''
+
+    print("\n" + "-"*70)
+    print("[BACK BUTTON FLOW DEBUG]")
+    print(f"Current path : {current_path}")
+    print(f"Referer path : {referer_path}")
+    print(f"Full referer : {referer}")
+    print(f"User agent   : {request.headers.get('User-Agent', '')[:100]}")
+
+    # 1. On subject chapters page — block back to question/answer
+    if current_path.startswith('/subject/') and len(current_path.split('/')) == 3:  # e.g. /subject/Anatomy
+        if '/question/' in referer_path or '/answer/' in referer_path:
+            print("🚫 BLOCKED: User tried to go back to question/answer from subject chapters")
+            print("   → Forcing immediate redirect to /home")
+            print("-"*70)
             return redirect(url_for('home'))
 
-    # Allow normal request otherwise
-    return None
+        print("✅ ALLOWED: Normal access to subject chapters page")
+    
+    # 2. On /home — allow normal back to landing page
+    elif current_path == '/home':
+        if referer_path.startswith('/subject/') and len(referer_path.split('/')) == 3:
+            print("⬅️ NORMAL BACK: From subject chapters to /home — allowing natural back to landing")
+        elif '/question/' in referer_path or '/answer/' in referer_path:
+            print("🚫 BLOCKED: Direct back to question/answer from /home → forcing to landing")
+            print("   → Redirecting to /")
+            print("-"*70)
+            return redirect(url_for('landing'))  # or '/' if your landing is '/'
+        else:
+            print("✅ NORMAL: On /home from elsewhere")
+
+    # 3. On root/landing — nothing to do
+    elif current_path == '':
+        print("🏠 At landing page — end of back navigation")
+
+    else:
+        print("ℹ️  Other page — no back button rules applied")
+
+    print("-"*70)
+    return None  # allow normal request
 
 
 
