@@ -562,10 +562,8 @@
                     </h2>
                     <div class="subject-list">
                         {% for subject in subjects %}
-                        <a href="#" 
-                        class="subject-card smart-link" 
-                        data-url="{{ url_for('show_subject', subject_name=subject.name if subject.name is defined else subject) }}" 
-                        onclick="goToSubject(event, this)">                                <div class="subject-icon {{ (subject.name if subject.name is defined else subject).lower().replace(' ', '').replace('&', '') }}">
+                            <a href="{{ url_for('show_subject', subject_name=subject.name if subject.name is defined else subject) }}" class="subject-card">
+                                <div class="subject-icon {{ (subject.name if subject.name is defined else subject).lower().replace(' ', '').replace('&', '') }}">
                                     {% set subject_name = subject.name if subject.name is defined else subject %}
                                     {% if 'anatomy' in subject_name.lower() %}🧠
                                     {% elif 'biochemistry' in subject_name.lower() %}🧪
@@ -624,32 +622,5 @@
             });
         });
     </script>
-
-
-
-<!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
-<script>
-    // CLEAN NAVIGATION TO SUBJECT CHAPTERS – PREVENTS LOOP IN SWIPE-BACK
-    function goToSubject(event, element) {
-        event.preventDefault();  // Stop default # behavior
-        
-        const targetUrl = element.dataset.url;  // Get the chapters URL, e.g., /subject/Anatomy
-        
-        // KEY FIX: Replace current home page with chapters page in history
-        history.replaceState({ page: 'chapters' }, '', targetUrl);
-        
-        // Navigate to chapters
-        window.location.href = targetUrl;
-    }
-    
-    // OPTIONAL: Extra safety on page load (cleans history if refreshed)
-    window.addEventListener('load', function() {
-        if (history.replaceState) {
-            history.replaceState({ page: 'home' }, '', window.location.href);
-        }
-    });
-    </script>>
-
-    
 </body>
 </html>
