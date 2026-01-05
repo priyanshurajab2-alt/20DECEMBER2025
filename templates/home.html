@@ -609,30 +609,62 @@
         </div>
     </main>
 
-   <script>
-window.addEventListener('DOMContentLoaded', function() {
-    // 1. Create fake index.html entry (swipe back goes here first)
-    history.pushState({page: 'index'}, '', '/');  // or '{{ url_for('home') }}'
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+        // 1. Create fake Home entry (your fix - works on ALL cases)
+        history.pushState({page: 'index'}, '', '{{ url_for('index') }}');
+        
+        // 2. Handle back/swipe (goes to home instantly)
+        window.addEventListener('popstate', function(event) {
+            if (event.state?.page === 'index') {
+                window.location.replace("{{ url_for('index') }}");
+            }
+        });
+        
+        // 3. Tabs ONLY (no touchstart - it was breaking things)
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.removeAttribute('aria-current');
+                });
+                this.classList.add('active');
+                this.setAttribute('aria-current', 'true');
+                console.log('Tab:', this.textContent.trim());
+            });
+        });
+    });
+    </script>
     
-    // 2. Handle back/swipe (goes to index.html instantly)
+
+<script>
+// Create fake "Home" entry so back/swipe always goes there first
+window.addEventListener('DOMContentLoaded', function() {
+    
+    // Push Home as previous page (works on direct access, refresh, everything)
+    history.pushState({page: 'index'}, '', '{{ url_for('index') }}');
+    
+    // Handle back navigation
     window.addEventListener('popstate', function(event) {
         if (event.state?.page === 'index') {
-            window.location.replace("{{ url_for('home') }}");  // or '/'
+            window.location.replace("{{ url_for('index') }}");
         }
     });
     
-    // 3. Keep your existing animations
-    const subjectCards = document.querySelectorAll('.subject-card');
-    subjectCards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            this.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                this.style.transform = '';
-            }, 150);
+    // Your tabs functionality (fixed)
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.removeAttribute('aria-current');
+            });
+            this.classList.add('active');
+            this.setAttribute('aria-current', 'true');
         });
     });
 });
 </script>
+  
 
 </body>
 </html>
