@@ -43,8 +43,7 @@ except ImportError:
 USER_DB_FILE = '/var/data/admin_users.db'
 DB_FILE = '/var/data/1st_year.db'
 
-app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+
 print("Registered endpoints:")
 for rule in app.url_map.iter_rules():
     print(rule.endpoint, "->", rule.rule)
