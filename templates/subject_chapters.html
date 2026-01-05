@@ -752,13 +752,12 @@
         <!-- Header -->
         <div class="page-header">
             <div class="header-left">
-                <a href="#" class="smart-back back-link" data-url="{{ url_for('home') }}" aria-label="Back to all subjects">
+                <a href="{{ url_for('home') }}" class="back-link" aria-label="Back to all subjects">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                     <span>Back</span>
                 </a>
-                
                 <h1 class="page-title">{{ subject }} – Chapters & Topics</h1>
             </div>
             <div class="sort-dropdown">
@@ -798,10 +797,8 @@
                     </h2>
                     <div class="space-y-3">
                         {% for topic in chapter.topics %}
-                        <a href="#" 
-                        class="topic-link {% if session.user_id and topic.completed %}topic-completed{% endif %}"
-                        data-url="{{ url_for('show_topic', subject_name=subject, topic_name=topic.name) }}"
-                        onclick="goToTopic(event, this)">
+                            <a href="{{ url_for('show_topic', subject_name=subject, topic_name=topic.name) }}" 
+                               class="topic-link {% if session.user_id and topic.completed %}topic-completed{% endif %}">
                                 <div class="topic-content">
                                     <div class="topic-info">
                                         <h3 class="topic-title">
@@ -844,13 +841,12 @@
 
         <!-- Back Link -->
         <div class="mt-6">
-            <a href="#" class="smart-back back-to-subjects" data-url="{{ url_for('home') }}">
+            <a href="{{ url_for('home') }}" class="back-to-subjects">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7 7-7 7"></path>
                 </svg>
                 <span>Back to All Subjects</span>
             </a>
-            
         </div>
     </main>
 
@@ -881,48 +877,5 @@
             document.addEventListener('touchstart', function() {}, {passive: true});
         });
     </script>
-
-    
-
-
-<!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
-<script>
-    // CLEAN NAVIGATION SYSTEM FOR SUBJECT CHAPTERS PAGE
-    
-    // 1. Handle "Back to Home" buttons (.smart-back)
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.smart-back').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetUrl = this.dataset.url;  // / (home)
-                
-                // Replace current chapters page with home in history
-                history.replaceState({ page: 'home' }, '', targetUrl);
-                window.location.href = targetUrl;
-            });
-        });
-    });
-    
-    // 2. Handle topic links – replace chapters with topic in history
-    function goToTopic(event, element) {
-        event.preventDefault();
-        const targetUrl = element.dataset.url;  // e.g., /subject/Anatomy/topic/Inguinal%20Canal
-        
-        // Replace current chapters entry with topic page
-        history.replaceState({ page: 'topic' }, '', targetUrl);
-        window.location.href = targetUrl;
-    }
-    
-    // 3. Extra safety: Clean history if coming from question page
-    window.addEventListener('load', function() {
-        if (document.referrer.includes('/question/') || document.referrer.includes('/answer/')) {
-            history.replaceState({ page: 'chapters' }, '', window.location.href);
-            console.log('🧹 Cleaned history: came from question page');
-        }
-    });
-    </script>
-
-    
-    
 </body>
 </html>
