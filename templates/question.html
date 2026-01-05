@@ -442,12 +442,11 @@
                     {% endif %}
                 </div>
                 <div class="back-links">
-                    <a href="#" class="smart-back" data-url="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
+                    <a href="{{ url_for('show_subject', subject_name=subject) }}">← Back to {{ subject }}</a>
                     {% if session.user_id %}
                         <a href="{{ url_for('bookmarks') }}">📚 Bookmarks</a>
                     {% endif %}
                 </div>
-                
             </div>
         </div>
     </div>
@@ -556,38 +555,5 @@
         console.log('📄 Question page loaded, bookmark functionality ready');
         console.log('🎮 Keyboard shortcuts: ← → for navigation, Space/Enter for answer, B for bookmark');
     </script>
-
-
-
-<!-- 🔥 ADD COMPREHENSIVE DEBUG HERE -->
-<script>
-    // REPLACE STATE PATTERN FOR CLEAN BACK NAVIGATION (PREVENTS QUIZ LOOP)
-    document.addEventListener('DOMContentLoaded', function() {
-        // Select all .smart-back links (there's only one, but this is future-proof)
-        const backLinks = document.querySelectorAll('.smart-back');
-        backLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();  // Stop the default # navigation
-                
-                const targetUrl = this.dataset.url;  // Get the chapters URL, e.g., /subject/Anatomy
-                
-                // KEY: Replace the current question page in history with the chapters page
-                // This removes the question from the back stack
-                history.replaceState({ page: 'chapters' }, '', targetUrl);
-                
-                // Now navigate to chapters
-                window.location.href = targetUrl;
-            });
-        });
-    });
-    
-    // OPTIONAL EXTRA: Clean the history entry when the question page first loads (handles refreshes)
-    window.addEventListener('load', function() {
-        if (history.replaceState) {
-            history.replaceState({ page: 'question' }, '', window.location.href);
-        }
-    });
-    </script>
-    
 </body>
 </html>
