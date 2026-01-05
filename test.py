@@ -12,6 +12,30 @@ BASE_TEST_DIR = '/var/data'  # keep if you use it elsewhere
 
 # Auto-create user_responses if missing
 
+# After imports, ADD this ENTIRE block:
+import base64
+
+def migrate_add_images_column():
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    for db_info in test_dbs:
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(test_questions)")
+            if 'images' not in [c[1] for c in cursor.fetchall()]:
+                cursor.execute("ALTER TABLE test_questions ADD COLUMN images BLOB DEFAULT NULL")
+                conn.commit()
+                print(f"✅ Added images to {os.path.basename(db_info['file'])}")
+            conn.close()
+        except Exception as e:
+            print(f"Error: {e}")
+    
+migrate_add_images_column()  # ← RUNS AUTOMATICALLY ONCE
+print("🎉 Migration COMPLETE")
+
+
+
 def get_test_db_connection():
     """Return connection to the tests database for the current goal, like MCQ does."""
     goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs', etc.
@@ -290,7 +314,7 @@ def single_question(test_id, q_num):
      abort(404)
     try:
         questions = conn.execute(
-            '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer
+            '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer,images
                FROM test_questions WHERE test_id = ? ORDER BY id''',
             (test_id,)
         ).fetchall()
@@ -672,6 +696,23 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
 
     
     
