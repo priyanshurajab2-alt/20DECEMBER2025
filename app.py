@@ -1721,52 +1721,6 @@ def subscribe():
     return redirect(url_for('home'))
 
 
-# ========================================================
-# ULTIMATE NAVIGATION & BACK BUTTON DEBUG (ALL IN app.py)
-# ========================================================
-
-# ========================================================
-# ULTIMATE NAVIGATION & BACK BUTTON DEBUG (FINAL IMPROVED VERSION)
-# ========================================================
-from flask import redirect, url_for, request, session
-
-@app.before_request
-def enforce_back_button_flow_with_session_flag():
-    """
-    Perfect back button flow using session flag:
-    - When clicking "Back to Topics" → set flag + allow subject chapters
-    - On true back/swipe → no flag → force to /home
-    """
-    current_path = request.path.rstrip('/')
-    referer = request.referrer or ''
-    referer_path = referer.split('?')[0].rstrip('/') if referer else ''
-
-    print("\n" + "-"*70)
-    print("[BACK BUTTON FLOW DEBUG - SESSION FLAG VERSION]")
-    print(f"Current path : {current_path}")
-    print(f"Referer path : {referer_path}")
-    print(f"Session flag : {session.get('allow_subject_chapters', False)}")
-
-    # 1. Coming from question/answer to subject chapters via normal click?
-    if (current_path.startswith('/subject/') and len(current_path.split('/')) == 3 and
-        ('/question/' in referer_path or '/answer/' in referer_path)):
-        
-        if session.get('allow_subject_chapters', False):
-            # This is a normal "Back to Topics" click
-            print("✅ ALLOWED: Normal 'Back to Topics' click → clearing flag")
-            session.pop('allow_subject_chapters', None)  # clear for next time
-        else:
-            # This is a true back/swipe → block it
-            print("🚫 BLOCKED: True back/swipe from question/answer → forcing to /home")
-            print("-"*70)
-            return redirect(url_for('home'))
-
-    # 2. On /home — optional: allow normal back to landing
-    elif current_path == '/home':
-        print("✅ On /home — normal back to landing allowed")
-
-    print("-"*70)
-    return None
 
 
 
