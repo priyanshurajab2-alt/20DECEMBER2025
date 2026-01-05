@@ -1130,74 +1130,59 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
             safe_name = dynamic_db_handler.safe_table_name(table_name)
             
             if request.method == 'POST':
-                admin_user_id = session.get('user_id', 'anonymous')
-                
-                # Build insert query safely
-                columns = []
-                values = []
-                placeholders = []
-                
-                for key, value in request.form.items():
-                    if key not in ['csrf_token', 'submit'] and value.strip():
-                        safe_column = dynamic_db_handler.safe_table_name(key)
-                        columns.append(safe_column)
-                        values.append(value)
-                        placeholders.append('?')
-
-                        # MINIMAL image upload
-                    if 'images' in request.files:
-                        img_file = request.files['images']
-                        img_file.seek(0)  # ← RESET STREAM POSITION (CRITICAL!)
-                        image_bytes = img_file.read()
-                        if image_bytes and len(image_bytes) > 1024:  # Valid image size
-                            columns.append('images')
-                            values.append(image_bytes)
-                            placeholders.append('?')
-                            print(f"✅ Image: {len(image_bytes)} bytes")
-                        else:
-                            print(f"❌ Invalid image: {len(image_bytes)} bytes")
-
-
-                
-                if columns:
-                    insert_query = f"INSERT INTO {safe_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
-                    print(f"Executing insert query: {insert_query}")
-                    print(f"With values: {values}")
-                    
-                    cursor = conn.execute(insert_query, values)
-                    
-                    # Log the action
-                    try:
-                        if dynamic_db_handler.table_exists(conn, 'admin_actions'):
-                            conn.execute('''
-                                INSERT INTO admin_actions (admin_user_id, action_type, target_db, target_table, action_details)
-                                VALUES (?, ?, ?, ?, ?)
-                            ''', (str(admin_user_id), 'INSERT', db_file, table_name, f'Added new record ID {cursor.lastrowid}'))
-                    except Exception as log_error:
-                        print(f"Could not log admin action: {log_error}")
-                    
-                    conn.commit()
-                    flash('Record added successfully!', 'success')
-                    conn.close()
-                    return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-                else:
-                    flash('Please fill at least one field', 'error')
-            
-            # GET request - get schema for form
-            schema = conn.execute(f'PRAGMA table_info({safe_name})').fetchall()
-            conn.close()
-            
-            return render_template('add_record.html',
-                                 db_file=db_file,
-                                 table_name=table_name,
-                                 schema=schema)
-        
-        except Exception as e:
-            print(f"Error in add_database_record: {str(e)}")
-            print(traceback.format_exc())
-            flash(f'Error adding record: {str(e)}', 'error')
-            return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
+    admin_user_id = session.get('user_id', 'anonymous')
     
+    # 1. Handle TEXT fields first
+    columns = []
+    values = []
+    placeholders = []
+    
+    for key, value in request.form.items():
+        if key not in ['csrf_token', 'submit'] and value.strip():
+            safe_column = dynamic_db_handler.safe_table_name(key)
+            columns.append(safe_column)
+            values.append(value)
+            placeholders.append('?')
+    
+    # 2. Handle IMAGE separately (CRITICAL: after form loop)
+    if 'images' in request.files:
+        img_file = request.files['images']
+        if img_file and img_file.filename:  # Valid upload check
+            img_file.seek(0)  # Reset stream
+            image_bytes = img_file.read()
+            if image_bytes and len(image_bytes) > 1024 and len(image_bytes) < 10*1024*1024:  # 1KB-10MB
+                columns.append('images')
+                values.append(image_bytes)  # Raw BLOB bytes
+                placeholders.append('?')
+                print(f"✅ Image: {len(image_bytes)} bytes, filename: {img_file.filename}")
+            else:
+                print(f"❌ Invalid image: {len(image_bytes)} bytes (min 1KB)")
+    
+    if columns:
+        insert_query = f"INSERT INTO {safe_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+        print(f"Executing: {insert_query}")
+        print(f"Values count: {len(values)}")
+        
+        cursor = conn.execute(insert_query, values)
+        new_id = cursor.lastrowid
+        
+        # Log action (unchanged)
+        try:
+            if dynamic_db_handler.table_exists(conn, 'admin_actions'):
+                conn.execute('''
+                    INSERT INTO admin_actions (admin_user_id, action_type, target_db, target_table, action_details)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (str(admin_user_id), 'INSERT', db_file, table_name, f'Added record ID {new_id}'))
+        except Exception as log_error:
+            print(f"Log error: {log_error}")
+        
+        conn.commit()
+        flash(f'Record ID {new_id} added successfully!', 'success')
+        conn.close()
+        return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
+    else:
+        flash('Fill at least one field or upload image', 'error')
+
     @app.route('/admin/database_backup')
     def backup_all_databases():
         """Backup all discovered databases"""
