@@ -1720,7 +1720,109 @@ def subscribe():
     session['subscription_goal'] = goal
 
     return redirect(url_for('home'))
-@app.route('/subject/<subject_name>/topic/<topic_name>/answer/<int:qid>')
+
+
+# ========================================================
+# ULTIMATE NAVIGATION & BACK BUTTON DEBUG (ALL IN app.py)
+# ========================================================
+
+import json
+from datetime import datetime
+
+@app.after_request
+def add_no_cache_and_debug_headers(response):
+    """
+    1. Force NO caching - this alone fixes 90% of back button issues
+    2. Add debug headers so we can see them in browser Network tab
+    """
+    # CRITICAL: Disable all caching
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    # Debug headers visible in browser Dev Tools → Network tab
+    response.headers['X-Debug-Timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    response.headers['X-Debug-URL'] = request.url
+    response.headers['X-Debug-Referer'] = request.referrer or 'None'
+    response.headers['X-Debug-Method'] = request.method
+    
+    return response
+
+@app.before_request
+def log_full_navigation_debug():
+    """
+    Logs every single request with full context to your terminal
+    """
+    print("\n" + "="*80)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] NAVIGATION DEBUG")
+    print(f"METHOD   : {request.method}")
+    print(f"URL      : {request.url}")
+    print(f"PATH     : {request.path}")
+    print(f"REFERER  : {request.referrer or 'None (direct/first visit)'}")
+    print(f"USER AGENT: {request.headers.get('User-Agent', '')}")
+    print(f"SESSION  : {dict(session) if session else 'No session'}")
+    print(f"ENDPOINT : {request.endpoint}")
+    print("="*80)
+
+# Special debug route - open this in browser to inject JS debug automatically
+@app.route('/debug/inject')
+def debug_inject():
+    """
+    Visit this URL once in your browser (while on any page)
+    It injects powerful history debugging into the current page
+    """
+    script = """
+    <script>
+    console.clear();
+    console.log('%c🚨 ULTIMATE HISTORY DEBUG INJECTED 🚨', 'color: red; font-size: 20px; font-weight: bold');
+    
+    // Log all history changes
+    ['pushState', 'replaceState'].forEach(method => {
+        const original = history[method];
+        history[method] = function(state, title, url) {
+            console.log(`%c[history.${method}]`, 'color: #ff9800; font-weight: bold', 
+                'state:', state, 'title:', title, 'url:', url, 'current:', location.href);
+            return original.apply(this, arguments);
+        };
+    });
+    
+    // Log back/forward button
+    window.addEventListener('popstate', e => {
+        console.log('%c⬅️ BACK/FORWARD BUTTON PRESSED', 'color: red; font-size: 18px; font-weight: bold');
+        console.log('New URL:', location.href);
+        console.log('State:', e.state);
+        console.log('History length:', history.length);
+    });
+    
+    // Log page load
+    console.log('%c📍 Page loaded:', 'color: cyan; font-weight: bold', location.pathname);
+    console.log('Current state:', history.state);
+    console.log('History length:', history.length);
+    
+    // Nuclear back fix for subject chapters page
+    if (location.pathname.includes('/subject/') && !location.pathname.includes('/topic/')) {
+        console.log('%c🛡️ Applying nuclear back fix for subject chapters page', 'color: green');
+        history.pushState({debugBackstop: true}, '', location.href);
+        window.addEventListener('popstate', function(e) {
+            if (e.state && e.state.debugBackstop) {
+                console.log('%c🔥 BACK BUTTON TRAPPED - FORCING REDIRECT TO HOME', 'color: red; font-weight: bold');
+                window.location.href = '/home';
+            }
+        });
+    }
+    
+    console.log('%cDebug ready. Now test your navigation flow.', 'color: yellow; font-weight: bold');
+    </script>
+    <h1>Debug Injected!</h1>
+    <p>Open Console (F12) → Now navigate normally and use back button.</p>
+    <p>All history events will be logged.</p>
+    """
+    return script, 200, {'Content-Type': 'text/html'}
+
+@app.route('/debug/clear-session')
+def clear_session_debug():
+    session.clear()
+    return "Session cleared. <a href='/home'>Go Home</a>"@app.route('/subject/<subject_name>/topic/<topic_name>/answer/<int:qid>')
 def show_answer(subject_name, topic_name, qid):
     """UPDATED: Answer route - Uses dynamic database"""
     
