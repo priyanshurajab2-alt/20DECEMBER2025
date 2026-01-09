@@ -553,13 +553,18 @@ def review_question(test_id, filter_type, q_index):
         
         # 3. Filter by filter_type
         if filter_type == 'correct':
-            where_clause = ' AND (ur.is_correct = 1 OR ur.is_correct IS NULL)'
+            where_clause = ' AND ur.is_correct = 1'
         elif filter_type == 'incorrect':
             where_clause = ' AND ur.is_correct = 0'
+        elif filter_type == 'skipped':        # 🔥 ADD THIS
+            where_clause = ' AND ur.is_skipped = 1'
+        elif filter_type == 'unanswered':     # 🔥 ADD THIS  
+            where_clause = ' AND ur.is_correct IS NULL AND ur.is_skipped = 0'
         elif filter_type == 'all':
-            where_clause = ''  # Show ALL questions
+            where_clause = ''
         else:
             abort(404, "Invalid filter")
+
         
         questions = conn.execute(base_query + where_clause, (test_id, user_id, test_id)).fetchall()
         print(f"DEBUG: Filter '{filter_type}' returned {len(questions)} questions")
@@ -705,6 +710,7 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
 
 
 
