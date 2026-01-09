@@ -383,11 +383,31 @@
             {% endif %}
             {% if next_qid %}
                 <button class="header-nav-btn" onclick="window.location.href='{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}'">⏭ Next</button>
+            {% elif is_last_question %}
+                <button class="header-nav-btn" style="background-color: #28a745; border-color: #28a745;" onclick="showCompletionModal()">🎉 Done</button>
             {% else %}
                 <button class="header-nav-btn" disabled>⏭ Next</button>
             {% endif %}
+        
         </div>
     </div>
+
+
+            <!-- Topic Completion Modal -->
+        <div id="completionModal" class="completion-modal">
+            <div class="modal-content-custom">
+                <h2>🎉 Topic Completed!</h2>
+                <p>Congratulations! You've completed all questions in <strong>{{ topic }}</strong>.</p>
+                <div class="modal-buttons">
+                    <button class="modal-btn success" onclick="markComplete()">✓ Mark Complete</button>
+                    {% if next_topic %}
+                        <button class="modal-btn primary" onclick="goToNextTopic()">Next: {{ next_topic }}</button>
+                    {% endif %}
+                    <button class="modal-btn secondary" onclick="goBackToTopics()">← Back to Topics</button>
+                </div>
+            </div>
+        </div>
+
 
     <div class="container-fluid">
         <div class="question">
@@ -437,9 +457,12 @@
                     {% endif %}
                     {% if next_qid %}
                         <a href="{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}" class="nav-btn">⏭️ Next</a>
+                    {% elif is_last_question %}
+                        <button class="nav-btn" style="background-color: #28a745;" onclick="showCompletionModal()">🎉 Complete Topic</button>
                     {% else %}
                         <button class="nav-btn" disabled>⏭️ Next</button>
                     {% endif %}
+
                 </div>
                 <div class="back-links">
                     <a href="{{ url_for('show_subject', subject_name=subject) }}"
@@ -462,6 +485,10 @@
     
     <script src="{{ url_for('static', filename='js/bookmark.js') }}"></script>
     
+
+
+
+
     <script>
         if (typeof toggleBookmark === 'undefined') {
             console.log('⚠️ External bookmark JS not loaded, using fallback');
@@ -566,6 +593,26 @@
         
         console.log('📄 Question page loaded, bookmark functionality ready');
         console.log('🎮 Keyboard shortcuts: ← → for navigation, Space/Enter for answer, B for bookmark');
+
+        
+        // Topic Completion Modal Functions
+            function showCompletionModal() { document.getElementById('completionModal').style.display = 'block'; }
+            function markComplete() {
+                {% if session.user_id %}
+                fetch('/complete_topic', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({subject: '{{ subject }}', topic: '{{ topic }}'})
+                }).then(r=>r.json()).then(d=>{if(d.success)goBackToTopics();}).catch(()=>goBackToTopics());
+                {% else %} goBackToTopics(); {% endif %}
+            }
+            function goToNextTopic() { {% if next_topic %}window.location.href="{{ url_for('show_topic', subject_name=subject, topic_name=next_topic) }}";{% endif %} }
+            function goBackToTopics() { window.location.href = "{{ url_for('show_subject', subject_name=subject) }}"; }
+            window.onclick = function(e) {
+                const modal = document.getElementById('completionModal');
+                if (e.target == modal) modal.style.display = "none";
+            }
+
+
     </script>
 </body>
 </html>
