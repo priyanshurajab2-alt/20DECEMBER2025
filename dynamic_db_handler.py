@@ -1,1314 +1,714 @@
-# dynamic_db_handler.py - COMPLETE VERSION WITH CENTRALIZED USER MANAGEMENT
+from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, session, jsonify
 import sqlite3
 import os
-import glob
-from flask import render_template, request, redirect, url_for, flash, jsonify, session
-from datetime import datetime
-import shutil
-import traceback
-from werkzeug.utils import secure_filename
-from fnmatch import fnmatch
+from dynamic_db_handler import dynamic_db_handler
+test_bp = Blueprint('test_bp', __name__, url_prefix='/test', template_folder='templates')
+# then the URL becomes /test/tests
 
-BASE_DATA_DIR = '/var/data'
+# At top of test.py
+from dynamic_db_handler import dynamic_db_handler
 
-GOALS = {
-    'neet_ug': {
-        'label': 'NEET UG',
-        'description': 'Pre-medical entrance preparation',
-    },
-    'mbbs_prof': {
-        'label': 'MBBS Prof Exams',
-        'description': 'Professional university exams',
-    },
-    # add more goals if you need
-}
+BASE_TEST_DIR = '/var/data'  # keep if you use it elsewhere
 
-class DynamicDatabaseHandler:
-    def __init__(self):
-        self.db_categories = {
-            'qbank': {
-                'pattern': '*year*.db',
-                'description': 'Question Bank Databases',
-                'required_tables': ['qbank'],
-                'schema': self.get_qbank_schema()
-            },
-            'users': {
-                'pattern': 'admin_users.db',
-                'description': 'Centralized User Database',
-                'required_tables': ['users'],
-                'schema': self.get_centralized_user_schema()
-            },
-            'mcq': {
-                'pattern': '*mcq*.db',
-                'description': 'MCQ Databases',
-                'required_tables': ['mcq_questions'],
-                'schema': self.get_mcq_schema()
-            },
-            'admin': {
-                'pattern': 'admin*.db',
-                'description': 'Admin & System Data',
-                'required_tables': ['admin_actions'],
-                'schema': self.get_admin_schema()
-            },
-            # ------ Add this block ------
-            'test': {
-                'pattern': '*test.db',
-                'description': 'Test Databases',
-                'required_tables': ['test_info', 'test_questions'],
-                'schema': self.get_test_schema()
-            }
-            # ------ End addition ------
-        }
+# Auto-create user_responses if missing
 
-    def get_test_schema(self):
-        """Schema for test-type databases with subjects, topics, MCQs, and timing info"""
-        return {
-            'test_info': '''
-                CREATE TABLE IF NOT EXISTS test_info (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    test_name TEXT NOT NULL,
-                    description TEXT,
-                    duration_minutes INTEGER NOT NULL,
-                    start_time TIMESTAMP,
-                    end_time TIMESTAMP,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''',
-            'test_questions': '''
-                CREATE TABLE IF NOT EXISTS test_questions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    test_id INTEGER NOT NULL,
-                    subject TEXT NOT NULL,
-                    topic TEXT NOT NULL,
-                    question TEXT NOT NULL,
-                    option_a TEXT NOT NULL,
-                    option_b TEXT NOT NULL,
-                    option_c TEXT NOT NULL,
-                    option_d TEXT NOT NULL,
-                    correct_answer TEXT NOT NULL, -- one of 'a', 'b', 'c', 'd'
-                    explanation TEXT,
-                    FOREIGN KEY (test_id) REFERENCES test_info (id)
-                )
-            ''',
-            'user_responses': '''
-                CREATE TABLE IF NOT EXISTS user_responses (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    test_id INTEGER NOT NULL,
-                    user_id INTEGER,
-                    question_id INTEGER NOT NULL,
-                    user_answer TEXT,
-                    is_correct INTEGER DEFAULT 0,
-                    test_started INTEGER DEFAULT 0,
-                    test_submitted INTEGER DEFAULT 0,
-                    taken_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (test_id) REFERENCES test_info (id),
-                    FOREIGN KEY (question_id) REFERENCES test_questions (id)
-                );
-           '''
+# After imports, ADD this ENTIRE block:
+import base64
 
-        }
-
-    def get_qbank_schema(self):
-        """Example schema for question bank"""
-        return {
-            'qbank': '''
-                CREATE TABLE IF NOT EXISTS qbank (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    question TEXT NOT NULL,
-                    answer TEXT NOT NULL,
-                    year INTEGER,
-                    subject TEXT,
-                    topic TEXT
-                )
-            '''
-        }
-
-    def get_centralized_user_schema(self):
-        """Example schema for user database"""
-        return {
-            'users': '''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    email TEXT UNIQUE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            '''
-        }
-
-    def get_mcq_schema(self):
-        """Example schema for MCQ questions"""
-        return {
-            'mcq_questions': '''
-                CREATE TABLE IF NOT EXISTS mcq_questions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    question TEXT NOT NULL,
-                    option_a TEXT NOT NULL,
-                    option_b TEXT NOT NULL,
-                    option_c TEXT NOT NULL,
-                    option_d TEXT NOT NULL,
-                    correct_answer TEXT NOT NULL -- one of 'a', 'b', 'c', 'd'
-                )
-            '''
-        }
-
-    def get_admin_schema(self):
-        """Example schema for admin/system data"""
-        return {
-            'admin_actions': '''
-                CREATE TABLE IF NOT EXISTS admin_actions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    action_type TEXT NOT NULL,
-                    performed_by TEXT,
-                    action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    details TEXT
-                )
-            '''
-        }
-
-        # Auto-discover databases on startup
-        self.discovered_databases = self.discover_databases()
-
-    # Add the schema getter just below
-    
-    def discover_databases(self):
-        """Automatically discover databases based on patterns"""
-        discovered = {}
-        
-        for category, config in self.db_categories.items():
-            discovered[category] = []
-            
-            # Find all files matching the pattern
-            matching_files = glob.glob(os.path.join('/var/data', config['pattern']))
-            
-            for db_file in matching_files:
-                if os.path.exists(db_file):
-                    db_info = {
-                        'file': db_file,
-                        'name': os.path.splitext(os.path.basename(db_file))[0],
-                        'size': os.path.getsize(db_file),
-                        'modified': datetime.fromtimestamp(os.path.getmtime(db_file))
-                    }
-                    discovered[category].append(db_info)
-        
-        return discovered
-    
-    def get_connection(self, db_file):
-        """Get connection to any database file with proper error handling"""
-        if not os.path.exists(db_file):
-            raise FileNotFoundError(f"Database file {db_file} not found")
-        
-        conn = sqlite3.connect(db_file)
-        conn.row_factory = sqlite3.Row
-        # Enable foreign keys
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
-    
-    def safe_table_name(self, table_name):
-        """Safely quote table names for SQL queries"""
-        # Remove any existing quotes and add double quotes
-        clean_name = table_name.strip('"').strip("'").strip("`").strip("[").strip("]")
-        return f'"{clean_name}"'
-    
-    def table_exists(self, conn, table_name):
-        """Check if a table exists in the database"""
-        result = conn.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name = ?
-        """, (table_name,)).fetchone()
-        return result is not None
-    
-    def get_qbank_schema(self):
-        """Schema for qbank-type databases - CONTENT ONLY (no user tables)"""
-        return {
-            'qbank': '''
-                CREATE TABLE IF NOT EXISTS qbank (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    subject TEXT NOT NULL,
-                    chapter TEXT,
-                    topic TEXT NOT NULL,
-                    question TEXT NOT NULL,
-                    answer TEXT NOT NULL,
-                    is_premium INTEGER DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            '''
-        }
-    
-    def get_centralized_user_schema(self):
-        """Schema for centralized user database - ALL USER DATA"""
-        return {
-            'users': '''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
-                    first_name TEXT,
-                    last_name TEXT,
-                    year_of_study TEXT DEFAULT '1st',
-                    college TEXT,
-                    user_type TEXT DEFAULT 'student',
-                    is_active INTEGER DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_login TIMESTAMP
-                )
-            ''',
-            'user_bookmarks': '''
-                CREATE TABLE IF NOT EXISTS user_bookmarks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    question_id INTEGER NOT NULL,
-                    subject TEXT NOT NULL,
-                    topic TEXT NOT NULL,
-                    source_database TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id),
-                    UNIQUE(user_id, question_id, source_database)
-                )
-            ''',
-            'user_notes': '''
-                CREATE TABLE IF NOT EXISTS user_notes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    question_id INTEGER NOT NULL,
-                    note TEXT NOT NULL,
-                    source_database TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id)
-                )
-            ''',
-            'user_topic_completion': '''
-                CREATE TABLE IF NOT EXISTS user_topic_completion (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    subject TEXT NOT NULL,
-                    topic TEXT NOT NULL,
-                    source_database TEXT NOT NULL,
-                    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id),
-                    UNIQUE(user_id, subject, topic, source_database)
-                )
-            ''',
-            'user_analytics': '''
-                CREATE TABLE IF NOT EXISTS user_responses (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    test_id INTEGER NOT NULL,
-                    user_id INTEGER,
-                    question_id INTEGER NOT NULL,
-                    user_answer TEXT,
-                    is_correct INTEGER DEFAULT 0,
-                    test_started INTEGER DEFAULT 0,
-                    test_submitted INTEGER DEFAULT 0,
-                    taken_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (test_id) REFERENCES test_info (id),
-                    FOREIGN KEY (question_id) REFERENCES test_questions (id)
-                )
-            '''
-        }
-    
-    def get_mcq_schema(self):
-         """Complete schema for MCQ databases with user tracking"""
-         return {
-        'mcq_questions': """
-            CREATE TABLE IF NOT EXISTS mcq_questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject TEXT NOT NULL,
-                chapter TEXT,
-                topic TEXT NOT NULL,
-                question TEXT NOT NULL,
-                option_a TEXT NOT NULL,
-                option_b TEXT NOT NULL,
-                option_c TEXT NOT NULL,
-                option_d TEXT NOT NULL,
-                correct_answer TEXT NOT NULL,
-                explanation TEXT,
-                difficulty TEXT DEFAULT 'medium',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """,
-        'user_responses': """
-            CREATE TABLE IF NOT EXISTS user_responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                user_id INTEGER,
-                db_file TEXT NOT NULL,
-                subject TEXT NOT NULL,
-                topic TEXT NOT NULL,
-                question_id INTEGER NOT NULL,
-                user_response TEXT,
-                outcome TEXT CHECK(outcome IN ('correct', 'incorrect', NULL)),
-                test_status TEXT CHECK(test_status IN ('started', 'completed', NULL)) DEFAULT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(session_id, question_id)
-            )
-        """,
-            'mcq_tests': '''
-                CREATE TABLE IF NOT EXISTS mcq_tests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    test_name TEXT NOT NULL,
-                    subject TEXT NOT NULL,
-                    total_questions INTEGER NOT NULL,
-                    duration_minutes INTEGER NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''',
-            'mcq_results': '''
-                CREATE TABLE IF NOT EXISTS mcq_results (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    test_id INTEGER NOT NULL,
-                    score INTEGER NOT NULL,
-                    total_questions INTEGER NOT NULL,
-                    percentage REAL NOT NULL,
-                    time_taken_minutes INTEGER NOT NULL,
-                    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            '''
-        }
-    
-    def get_admin_schema(self):
-        """Schema for admin/system data databases"""
-        return {
-            'admin_actions': '''
-                CREATE TABLE IF NOT EXISTS admin_actions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    admin_user_id TEXT NOT NULL,
-                    action_type TEXT NOT NULL,
-                    target_db TEXT,
-                    target_table TEXT,
-                    action_details TEXT,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''',
-            'system_settings': '''
-                CREATE TABLE IF NOT EXISTS system_settings (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    setting_key TEXT UNIQUE NOT NULL,
-                    setting_value TEXT,
-                    description TEXT,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''',
-            'database_migrations': '''
-                CREATE TABLE IF NOT EXISTS database_migrations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    migration_name TEXT NOT NULL,
-                    source_database TEXT,
-                    target_database TEXT,
-                    records_migrated INTEGER DEFAULT 0,
-                    migration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    status TEXT DEFAULT 'completed'
-                )
-            '''
-        }
-    
-    def add_new_database(self, category, db_name):
-        
-        if category not in self.db_categories:
-            return False, "Invalid category"
-
-        # 1) Build base filename from category
-        if category == 'qbank':
-            base_name = f"{db_name}_year.db"
-        elif category == 'mcq':
-            base_name = f"{db_name}_mcq.db"
-        elif category == 'admin':
-            base_name = "admin_users.db"
-        elif category == 'users':
-            base_name = "admin_users.db"
-        elif category == 'test':
-            base_name = f"{db_name}_test.db"
-        else:
-            base_name = f"{db_name}.db"
-
-        # 2) If we are inside a goal manager, prefix with "<goal_key>_"
-        goal_key = session.get('admin_goal')   # 'neet_ug', 'mbbs_prof', or None
-        if goal_key and category not in ('admin', 'users'):
-            base_name = f"{goal_key}_{base_name}"
-
-        # 3) Full path
-        db_file = os.path.join('/var/data', base_name)
-
-        # Check if database already exists
-        if os.path.exists(db_file):
-            return False, f"Database {db_file} already exists"
-
-        try:
-            # Create database with proper schema
-            conn = sqlite3.connect(db_file)
-            schema = self.db_categories[category]['schema']
-
-            for table_name, create_sql in schema.items():
-                conn.execute(create_sql)
-
-            conn.commit()
-            conn.close()
-
-            # Refresh discovered databases
-            self.discovered_databases = self.discover_databases()
-
-            return True, f"Database {db_file} created successfully"
-
-        except Exception as e:
-            return False, f"Error creating database: {str(e)}"
-
-    def upload_database(self, uploaded_file, category):
-        if not uploaded_file or uploaded_file.filename == '':
-            return False, "No file selected"
-        
-        # Secure the filename
-        filename = secure_filename(uploaded_file.filename)
-        
-        # Validate/ensure .db extension
-        if not filename.lower().endswith('.db'):
-            filename = f"{filename}.db"
-        
-        # CRITICAL: FORCE _test.db SUFFIX FOR TEST CATEGORY
-        if category == 'test' and not filename.lower().endswith('_test.db'):
-            base_name = os.path.splitext(filename)[0]
-            filename = f"{base_name}_test.db"
-        
-        # Special handling for centralized user database
-        if category == 'users' and filename != 'admin_users.db':
-            return False, "User database must be named 'admin_users.db'"
-        
-        # NEW: prefix with admin_goal if present (except for centralized users)
-        goal_key = session.get('admin_goal')
-        if goal_key and category not in ('admin', 'users'):
-            filename = f"{goal_key}_{filename}"
-        
-        full_path = os.path.join('/var/data', filename)
-        
-        # Check if file already exists
-        if os.path.exists(full_path):
-            return False, f"Database {filename} already exists"
-        
-        try:
-            uploaded_file.save(full_path)
-            
-            # Validate it's a proper SQLite database
-            db_path = os.path.join('/var/data', filename)
-            conn = sqlite3.connect(db_path)
-            
-            # Check if it has required tables for the category
-            required_tables = self.db_categories[category]['required_tables']
-            for table in required_tables:
-                result = conn.execute("""
-                    SELECT name FROM sqlite_master 
-                    WHERE type='table' AND name = ?
-                """, (table,)).fetchone()
-                if not result:
-                    conn.close()
-                    os.remove(full_path)  # ← Fix: full_path, not filename
-                    return False, f"Database missing required table: {table}"
-            conn.close()
-            
-            # Refresh discovery
-            self.discovered_databases = self.discover_databases()
-            return True, f"Database '{filename}' uploaded successfully"
-        
-        except Exception as e:
-            if os.path.exists(full_path):
-                os.remove(full_path)
-            return False, f"Error uploading database: {str(e)}"
-
-    def get_database_stats(self, db_file):
-        """Get statistics for a database with better error handling"""
-        try:
-            conn = self.get_connection(db_file)
-            
-            # Get all tables
-            tables = conn.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name NOT LIKE 'sqlite_%'
-                ORDER BY name
-            """).fetchall()
-            
-            stats = {
-                'file': db_file,
-                'tables': [],
-                'total_records': 0
-            }
-            
-            for table in tables:
-                table_name = table['name']
-                try:
-                    safe_name = self.safe_table_name(table_name)
-                    count_query = f"SELECT COUNT(*) as count FROM {safe_name}"
-                    count = conn.execute(count_query).fetchone()['count']
-                    
-                    stats['tables'].append({
-                        'name': table_name,
-                        'records': count
-                    })
-                    stats['total_records'] += count
-                except Exception as e:
-                    print(f"Error counting records in table {table_name}: {e}")
-                    stats['tables'].append({
-                        'name': table_name,
-                        'records': 0,
-                        'error': str(e)
-                    })
-            
-            conn.close()
-            return stats
-        
-        except Exception as e:
-            return {'error': str(e)}
-    
-    def backup_all_databases(self):
-        """Backup all discovered databases"""
-        try:
-            backup_dir = f"backups/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            os.makedirs(backup_dir, exist_ok=True)
-            
-            backup_count = 0
-            for category, databases in self.discovered_databases.items():
-                category_dir = os.path.join(backup_dir, category)
-                os.makedirs(category_dir, exist_ok=True)
-                
-                for db_info in databases:
-                    source_file = db_info['file']
-                    dest_file = os.path.join(category_dir, os.path.basename(source_file))
-                    shutil.copy2(source_file, dest_file)
-                    backup_count += 1
-            
-            return True, f"Successfully backed up {backup_count} databases to {backup_dir}"
-        
-        except Exception as e:
-            return False, f"Backup failed: {str(e)}"
-    
-    def migrate_users_to_centralized_db(self):
-        """Migrate users from all QBank databases to centralized admin_users.db"""
-        try:
-            ADMIN_USERS_DB = '/var/data/admin_users.db'
-            if not os.path.exists(ADMIN_USERS_DB):
-                success, message = self.add_new_database('users', 'centralized')
-                if not success:
-                    return False, f"Failed to create centralized user database: {message}"
-            
-            centralized_conn = self.get_connection('admin_users.db')
-            migration_count = 0
-            
-            # Migrate from all QBank databases
-            qbank_databases = self.discovered_databases.get('qbank', [])
-            
-            for db_info in qbank_databases:
-                db_file = db_info['file']
-                print(f"Migrating users from {db_file}...")
-                
-                try:
-                    source_conn = self.get_connection(db_file)
-                    
-                    # Check if source database has users table
-                    if not self.table_exists(source_conn, 'users'):
-                        source_conn.close()
-                        continue
-                    
-                    # Migrate users (avoid duplicates by email)
-                    users = source_conn.execute('SELECT * FROM users').fetchall()
-                    for user in users:
-                        try:
-                            centralized_conn.execute('''
-                                INSERT OR IGNORE INTO users 
-                                (username, email, password, created_at)
-                                VALUES (?, ?, ?, ?)
-                            ''', (user['username'], user['email'], user['password'], user['created_at']))
-                            migration_count += 1
-                        except Exception as e:
-                            print(f"User migration error: {e}")
-                    
-                    # Migrate bookmarks if they exist
-                    if self.table_exists(source_conn, 'bookmarks'):
-                        bookmarks = source_conn.execute('SELECT * FROM bookmarks').fetchall()
-                        for bookmark in bookmarks:
-                            try:
-                                centralized_conn.execute('''
-                                    INSERT OR IGNORE INTO user_bookmarks 
-                                    (user_id, question_id, subject, topic, source_database, created_at)
-                                    VALUES (?, ?, ?, ?, ?, ?)
-                                ''', (bookmark['user_id'], bookmark['question_id'], 
-                                      bookmark['subject'], bookmark['topic'], db_file, bookmark['created_at']))
-                            except Exception as e:
-                                print(f"Bookmark migration error: {e}")
-                    
-                    source_conn.close()
-                    
-                except Exception as e:
-                    print(f"Error migrating from {db_file}: {e}")
-            
-            centralized_conn.commit()
-            centralized_conn.close()
-            
-            # Refresh discovered databases
-            self.discovered_databases = self.discover_databases()
-            
-            return True, f"Successfully migrated {migration_count} user records to admin_users.db"
-            
-        except Exception as e:
-            return False, f"Migration failed: {str(e)}"
-
-
-# Global instance
-dynamic_db_handler = DynamicDatabaseHandler()
-
-
-# CENTRALIZED USER MANAGEMENT FUNCTIONS
-def create_centralized_user_database():
-    """Create admin_users.db as the ONLY user database for the entire system"""
-    return dynamic_db_handler.add_new_database('users', 'centralized')
-
-
-def migrate_all_users_to_centralized_db():
-    """Migrate ALL users from ALL databases to admin_users.db"""
-    return dynamic_db_handler.migrate_users_to_centralized_db()
-
-
-# INTEGRATION FUNCTIONS FOR APP.PY
-def get_all_qbank_subjects():
-    """Get all subjects from all discovered QBank databases"""
-    all_subjects = {}
-    
-    # Refresh discovery first
+def migrate_add_images_column():
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    
-    # Get all QBank databases
-    qbank_databases = dynamic_db_handler.discovered_databases.get('qbank', [])
-    
-    for db_info in qbank_databases:
-        db_file = db_info['file']
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+    for db_info in test_dbs:
         try:
-            conn = dynamic_db_handler.get_connection(db_file)
-            
-            # Get subjects from this database
-            subjects = conn.execute('''
-                SELECT DISTINCT subject, COUNT(*) as question_count
-                FROM qbank 
-                GROUP BY subject 
-                ORDER BY subject
-            ''').fetchall()
-            
-            for subject_row in subjects:
-                subject = subject_row['subject']
-                if subject not in all_subjects:
-                    all_subjects[subject] = []
-                
-                all_subjects[subject].append({
-                    'database': db_file,
-                    'question_count': subject_row['question_count']
-                })
-            
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(test_questions)")
+            if 'images' not in [c[1] for c in cursor.fetchall()]:
+                cursor.execute("ALTER TABLE test_questions ADD COLUMN images BLOB DEFAULT NULL")
+                conn.commit()
+                print(f"✅ Added images to {os.path.basename(db_info['file'])}")
             conn.close()
         except Exception as e:
-            print(f"Error reading subjects from {db_file}: {e}")
+            print(f"Error: {e}")
     
-    return all_subjects
+migrate_add_images_column()  # ← RUNS AUTOMATICALLY ONCE
+print("🎉 Migration COMPLETE")
 
 
-def get_goal_qbank_subjects(goal_key=None):
-    """Get subjects only from qbank DBs for a specific goal (by filename prefix)."""
-    all_subjects = {}
+
+def get_test_db_connection():
+    """Return connection to the tests database for the current goal, like MCQ does."""
+    goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs', etc.
+
+
+
+
 
     # Refresh discovery
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    qbank_databases = dynamic_db_handler.discovered_databases.get('qbank', [])
+    test_databases = dynamic_db_handler.discovered_databases.get('test', [])
 
-    prefix = f"{goal_key}_" if goal_key else None
+    # 1) Try to find a test DB whose filename contains the goal key
+    if goal_key:
+        for db_info in test_databases:
+            if goal_key.lower() in db_info['file'].lower():
+                conn = dynamic_db_handler.get_connection(db_info['file'])
+                conn.row_factory = sqlite3.Row
+                return conn
 
-    for db_info in qbank_databases:
-        db_file = db_info['file']
+    # 2) Fallback: first available test DB
+    if test_databases:
+        conn = dynamic_db_handler.get_connection(test_databases[0]['file'])
+        conn.row_factory = sqlite3.Row
+        return conn
 
-        # If a goal is set, skip DBs from other goals
-        if prefix and not os.path.basename(db_file).startswith(prefix):
+    # 3) Last resort: use /var/data/tests.db
+    db_path = os.path.join(BASE_TEST_DIR, 'tests.db')
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+# Auto-create user_responses if missing
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            question_id INTEGER,
+            user_answer TEXT,
+            is_correct INTEGER,
+            test_started INTEGER DEFAULT 0,
+            is_skipped INTEGER DEFAULT 0,
+    
+            test_submitted INTEGER DEFAULT 0,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(test _id, user_id, question_id)
+        )
+    ''')
+    conn.commit()
+
+
+    return conn
+
+# Auto-create user_responses if missing
+# Auto-create user_responses if missing
+
+
+def get_db_connection_for_test(test_id):
+    """
+    Find and return the exact database connection where the given test_id exists.
+    This ensures consistency between submit and review.
+    """
+    # Refresh discovered databases
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
+
+    for db_info in test_dbs:
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            # Check if this test exists in this DB
+            if conn.execute('SELECT 1 FROM test_info WHERE id = ?', (test_id,)).fetchone():
+                return conn  # Found the right one!
+        except Exception as e:
+            print(f"Error checking {db_info['file']}: {e}")
+            if 'conn' in locals():
+                conn.close()
             continue
 
-        try:
-            conn = dynamic_db_handler.get_connection(db_file)
-            subjects = conn.execute('''
-                SELECT DISTINCT subject, COUNT(*) as question_count
-                FROM qbank
-                GROUP BY subject
-                ORDER BY subject
-            ''').fetchall()
-
-            for row in subjects:
-                subject = row['subject']
-                if subject not in all_subjects:
-                    all_subjects[subject] = []
-                all_subjects[subject].append({
-                    'database': db_file,
-                    'question_count': row['question_count']
-                })
-            conn.close()
-        except Exception as e:
-            print(f"Error reading subjects from {db_file}: {e}")
-
-    return all_subjects
+    # If not found in any discovered DB, fallback (should rarely happen)
+    conn = get_db_connection_for_test(test_id)  # This already sets row_factory
+    return conn
+def get_session_db(test_id):
+    db_file = session.get(f'test_{test_id}_db_file')
+    if not db_file:
+        return None
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def find_subject_database(subject_name):
-    """Find which database contains a specific subject"""
-    # Refresh discovery
+@test_bp.route('/tests')
+def list_tests():
+    user_id = session.get('user_id', 1)
+    goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs_prof', etc.
+    user_sub_status = session.get('subscription_status', 'nonsubscribed')
+    user_sub_goal = session.get('subscription_goal')
+    print(f"DEBUG: sub_status='{user_sub_status}', sub_goal='{user_sub_goal}'")
+
+
+
+
+
+    # Get ALL test databases
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    all_test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
     
-    qbank_databases = dynamic_db_handler.discovered_databases.get('qbank', [])
+    # FILTER by current goal
+    goal_test_dbs = []
+    if goal_key:
+        for db_info in all_test_dbs:
+            if goal_key.lower() in db_info['file'].lower():
+                goal_test_dbs.append(db_info)
+    else:
+        goal_test_dbs = all_test_dbs  # No goal = show all
     
-    for db_info in qbank_databases:
-        db_file = db_info['file']
+    print(f"DEBUG: Goal='{goal_key}', Found {len(goal_test_dbs)} goal-specific test DBs")
+    
+    # 🔥 COUNT PREMIUM vs FREE TESTS
+    premium_count = sum(1 for db_info in goal_test_dbs for test_row in dynamic_db_handler.get_connection(db_info['file']).execute('SELECT is_locked FROM test_info').fetchall() if test_row['is_locked'] == 1)
+    free_count = len(goal_test_dbs) * 10 - premium_count  # Rough estimate
+    print(f"DEBUG: {premium_count}🔒 PREMIUM + {free_count}🚀 FREE tests available")
+ 
+
+
+
+
+
+
+
+    all_tests = []
+    
+    # Query ONLY goal-specific databases
+    for db_info in goal_test_dbs:
         try:
-            conn = dynamic_db_handler.get_connection(db_file)
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
             
-            # Check if subject exists in this database
-            result = conn.execute('''
-                SELECT COUNT(*) as count 
-                FROM qbank 
-                WHERE LOWER(subject) = ?
-            ''', (subject_name.lower(),)).fetchone()
+            tests = conn.execute('''
+                SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+             
+                    ti.is_locked,              
+                    ti.start_time, ti.end_time, ti.created_at,
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM user_responses ur 
+                        WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
+                    ) THEN 1 ELSE 0 END AS test_submitted
+                FROM test_info ti
+                ORDER BY ti.created_at DESC
+                ''', (user_id,)).fetchall()
+
+            
+            # Add DB info
+            for test_row in tests:
+                    test_dict = dict(test_row)
+                    test_dict['database_file'] = os.path.basename(db_info['file'])
+                    
+                    if test_dict.get('is_locked', 0) == 1:
+
+                    # Locked test: only unlock if user subscribed for this goal
+                      # 🔥 FIXED LOCK LOGIC (COMPLETE):
+                     # 🔥 SIMPLE SESSION (No DB needed!)
+                            user_id = session.get('user_id', 1)
+                            user_name = session.get('user_name', session.get('username', f'User#{user_id}'))
+                            user_email = session.get('user_email', f'{user_id}@noemail.com')
+                            user_sub_status = session.get('subscription_status', 'nonsubscribed')
+                            user_sub_goal = session.get('subscription_goal')
+
+                            print(f"👤 {user_id}:{user_name} ({user_email}) → sub='{user_sub_status}' goal='{user_sub_goal}'")
+
+                    
+                    if test_dict.get('is_locked', 0) == 1:
+                        if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
+                            test_dict['effective_locked'] = 0  # Unlock
+                        else:
+                            test_dict['effective_locked'] = 1  # Lock
+                    else:
+                        test_dict['effective_locked'] = 0  # Free
+                    
+                    # ✅ Completion check (KEEP)
+                    
+
+
+                    # 🔥 CHECK COMPLETION IN THIS DB:
+                    user_id = session.get('user_id', 1)
+                    try:
+                        check_conn = dynamic_db_handler.get_connection(db_info['file'])
+                        check_conn.row_factory = sqlite3.Row
+                        result = check_conn.execute('''
+                            SELECT 1 FROM user_responses 
+                            WHERE test_id=? AND user_id=? AND test_submitted=1
+                        ''', (test_dict['id'], user_id)).fetchone()
+                        test_dict['test_submitted'] = 1 if result else 0
+                        check_conn.close()
+                    except:
+                        test_dict['test_submitted'] = 0
+                    
+                    all_tests.append(test_dict)
+
             
             conn.close()
-            
-            if result['count'] > 0:
-                return db_file
         except Exception as e:
-            print(f"Error checking subject in {db_file}: {e}")
+            print(f"Error in {db_info['file']}: {e}")
     
-    # Default fallback
-    return '/var/data/1st_year.db'
-
-
-def register_dynamic_db_routes(app, ensure_user_session_func):
-    """Register dynamic database management routes with centralized user support"""
+    all_tests.sort(key=lambda t: t.get('created_at', ''), reverse=True)
     
+    return render_template('test/tests.html', tests=all_tests)
 
+
+@test_bp.route('/tests/<int:test_id>/questions')
+def view_test_questions(test_id):
+    conn = get_db_connection_for_test(test_id)
+    try:
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        if not test:
+            abort(404, description="Test not found")
+
+        questions = conn.execute('''
+            SELECT subject, topic, question, option_a, option_b, option_c, option_d, 
+                   correct_answer, explanation
+            FROM test_questions
+            WHERE test_id = ?
+            ORDER BY subject, topic, id
+        ''', (test_id,)).fetchall()
+
+    finally:
+        conn.close()
+
+    grouped_questions = {}
+    for q in questions:
+        grouped_questions.setdefault(q['subject'], {})
+        grouped_questions[q['subject']].setdefault(q['topic'], [])
+        grouped_questions[q['subject']][q['topic']].append(q)
+
+    return render_template('test/test_questions.html', test=test, grouped_questions=grouped_questions)
+
+
+# -----------------------------
+# Single-question-per-page with independent AJAX marking and skip support
+# -----------------------------
+
+
+@test_bp.route('/tests/<int:test_id>/start')
+def start_test(test_id):
+    db_file = request.args.get('db_file')  # From template!
     
-    # your existing /admin/dynamic_db_manager route is already here
-    # we add two new routes below:
+    if db_file:
+        full_path = os.path.join('/var/data', db_file)
+        if os.path.exists(full_path):
+            # Verify test exists in this DB
+            conn = dynamic_db_handler.get_connection(full_path)
+            if conn.execute('SELECT 1 FROM test_info WHERE id=?', (test_id,)).fetchone():
+                session[f'test_{test_id}_db_file'] = full_path
+                print(f"✅ start_test(): test_id={test_id} in {db_file}")
+                conn.close()
+                # Initialize sessions
+                session[f'test_{test_id}_answers'] = {}
+                session[f'test_{test_id}_marked'] = []
+                session[f'test_{test_id}_skipped'] = []
+                return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=1))
+            else:
+                conn.close()
+                flash(f"Test ID {test_id} not found in {db_file}!", "error")
+                return redirect(url_for('test_bp.list_tests'))
+        else:
+            flash(f"Database {db_file} not found!", "error")
+            return redirect(url_for('test_bp.list_tests'))
+    
+    # Fallback if no db_file
+    flash("No database specified!", "error")
+    return redirect(url_for('test_bp.list_tests'))
 
-    @app.route('/admin/goals')
-    def goals_home():
-        # Simple page listing goals with links to goal-specific manager
-        return render_template('goals_home.html', goals=GOALS)
 
-    @app.route('/admin/goal_db/<goal_key>')
-    def goal_dynamic_db_manager(goal_key):
-        if goal_key not in GOALS:
-            flash('Invalid goal', 'error')
-            return redirect(url_for('goals_home'))
+@test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
+def single_question(test_id, q_num):
+    conn = get_session_db(test_id) 
+    if not conn:
+     abort(404)
+    try:
+        questions = conn.execute(
+            '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer,images
+               FROM test_questions WHERE test_id = ? ORDER BY id''',
+            (test_id,)
+        ).fetchall()
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+    finally:
+        conn.close()
 
-        # Remember which goal admin is working on
-        session['admin_goal'] = goal_key
+    if not test or not questions or q_num < 1 or q_num > len(questions):
+        abort(404)
 
-        # Discover all databases
-        dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    question = questions[q_num - 1]
 
-        # Filter by prefix "<goal_key>_"
-        prefix = f"{goal_key}_"
-        filtered = {}
-        for category, dbs in dynamic_db_handler.discovered_databases.items():
-            filtered[category] = [
-                db for db in dbs
-                if os.path.basename(db['file']).startswith(prefix)
-            ]
+    answer_key = f'test_{test_id}_answers'
+    mark_key = f'test_{test_id}_marked'
+    skip_key = f'test_{test_id}_skipped'
 
-        db_stats = {}
-        for category, databases in filtered.items():
-            db_stats[category] = []
-            for dbinfo in databases:
-                db_stats[category].append(dbinfo)
-  
+    if answer_key not in session:
+        session[answer_key] = {}
+    if mark_key not in session:
+        session[mark_key] = []
+    if skip_key not in session:
+        session[skip_key] = []
 
-        # Reuse the same template you already use for the global manager
-        return render_template(
-            'dynamic_db_manager.html',
-        categories=dynamic_db_handler.db_categories,
-        discovered_databases=filtered,
-        db_stats=db_stats
-        )
+    answers = session[answer_key]
+    marked = set(session[mark_key])
+    skipped = set(session[skip_key])
+
+    if request.method == 'POST':
+        selected_option = request.form.get('answer')
+        nav = request.form.get('nav')  # previous, next, submit, skip
+
+        if nav == 'skip':
+            # Mark the question as skipped
+            skipped.add(str(question['id']))
+            session[skip_key] = list(skipped)
+            # Remove answer if it exists, since it's skipped
+            if str(question['id']) in answers:
+                del answers[str(question['id'])]
+                session[answer_key] = answers
+            # Navigate forward if possible
+            next_q_num = q_num + 1 if q_num < len(questions) else q_num
+            return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=next_q_num))
+
+        if nav in ('next', 'submit'):
+            if not selected_option:
+                flash("Please select an option or choose Skip.")
+                return render_template(
+                    'test/single_question.html',
+                    test=test,
+                    question=question,
+                    q_num=q_num,
+                    total=len(questions),
+                    selected_answer=answers.get(str(question['id']), None),
+                    marked_questions=marked,
+                    skipped_questions=skipped,
+                    duration_minutes=test['duration_minutes']
+                )
+            # Save answer and remove from skipped if any
+            answers[str(question['id'])] = selected_option
+            session[answer_key] = answers
+            if str(question['id']) in skipped:
+                skipped.remove(str(question['id']))
+                session[skip_key] = list(skipped)
+
+        elif nav == 'previous':
+            # Save answer if selected before going back
+            if selected_option:
+                answers[str(question['id'])] = selected_option
+                session[answer_key] = answers
+
+        # Navigate accordingly
+        if nav == 'previous':
+            prev_q_num = max(1, q_num - 1)
+            return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=prev_q_num))
+        elif nav == 'next':
+            next_q_num = min(len(questions), q_num + 1)
+            return redirect(url_for('test_bp.single_question', test_id=test_id, q_num=next_q_num))
+        elif nav == 'submit':
+            return redirect(url_for('test_bp.submit_test', test_id=test_id))
+
+    return render_template(
+        'test/single_question.html',
+        test=test,
+        question=question,
+        q_num=q_num,
+        total=len(questions),
+        selected_answer=answers.get(str(question['id']), None),
+        marked_questions=marked,
+        skipped_questions=skipped,
+        duration_minutes=test['duration_minutes']
+    )
+
+
+# AJAX toggle mark
+@test_bp.route('/tests/<int:test_id>/question/<int:q_num>/toggle_mark', methods=['POST'])
+def toggle_mark_ajax(test_id, q_num):
+    conn = get_db_connection_for_test(test_id)
+    try:
+        questions = conn.execute('SELECT id FROM test_questions WHERE test_id = ? ORDER BY id', (test_id,)).fetchall()
+    finally:
+        conn.close()
+
+    if not questions or q_num < 1 or q_num > len(questions):
+        return jsonify({'success': False, 'error': 'Invalid question'}), 400
+
+    q_id_str = str(questions[q_num - 1]['id'])
+
+    mark_key = f'test_{test_id}_marked'
+    if mark_key not in session:
+        session[mark_key] = []
+    marked = set(session[mark_key])
+
+    if q_id_str in marked:
+        marked.remove(q_id_str)
+        marked_now = False
+    else:
+        marked.add(q_id_str)
+        marked_now = True
+
+    session[mark_key] = list(marked)
+
+    return jsonify({'success': True, 'marked': marked_now})
+
+
+@test_bp.route('/tests/<int:test_id>/review')
+def review_test(test_id):
+    conn = get_session_db(test_id)
+    try:
+        questions = conn.execute('''SELECT id FROM test_questions WHERE test_id = ? ORDER BY id''', (test_id,)).fetchall()
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+    finally:
+        conn.close()
+    if not test or not questions:
+        abort(404)
+
+    answer_key = f'test_{test_id}_answers'
+    mark_key = f'test_{test_id}_marked'
+    skip_key = f'test_{test_id}_skipped'
+
+    answers = session.get(answer_key, {})
+    marked = set(session.get(mark_key, []))
+    skipped = set(session.get(skip_key, []))
+
+    return render_template('test/review.html',
+                           test=test,
+                           questions=questions,
+                           answers=answers,
+                           marked=marked,
+                           skipped=skipped)
+
+@test_bp.route('/tests/<int:test_id>/review-attempted')
+def review_attempted(test_id):
+    db_file = request.args.get('db_file')
+    if not db_file:
+        flash("Database required for review")
+        return redirect(url_for('test_bp.list_tests'))
+    
+    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
+    conn.row_factory = sqlite3.Row
 
       
-
-
-
-    @app.route('/admin/dynamic_db_manager')
-    def dynamic_db_home():
-        """Main dynamic database manager interface"""
-        # Refresh database discovery
-        dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    try:
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
+        if not test:
+            flash(f"Test ID {test_id} not found!")
+            return redirect(url_for('test_bp.list_tests'))
         
-        # Get stats for each discovered database
-        db_stats = {}
-        for category, databases in dynamic_db_handler.discovered_databases.items():
-            db_stats[category] = []
-            for db_info in databases:
-                stats = dynamic_db_handler.get_database_stats(db_info['file'])
-                if 'error' not in stats:
-                    db_stats[category].append({**db_info, **stats})
-                else:
-                    db_stats[category].append({**db_info, 'error': stats['error']})
+        user_id = session.get('user_id', 1)
+        print(f"DEBUG: Looking for user_id={user_id}")
         
-        return render_template('dynamic_db_manager.html', 
-                             categories=dynamic_db_handler.db_categories,
-                             discovered_databases=dynamic_db_handler.discovered_databases,
-                             db_stats=db_stats)
+        all_questions = conn.execute('''
+            SELECT tq.*, ur.user_answer, ur.is_correct , ur.is_skipped 
+            FROM test_questions tq
+            LEFT JOIN user_responses ur ON tq.id = ur.question_id 
+                AND ur.test_id = ? AND ur.user_id = ?
+            WHERE tq.test_id = ?
+            ORDER BY tq.id
+        ''', (test_id, user_id, test_id)).fetchall()
+        print(f"DEBUG: Total questions found: {len(all_questions)}")
+        
+        correct_questions = [q for q in all_questions if q['is_correct'] == 1]
+        incorrect_questions = [q for q in all_questions if q['is_correct'] == 0]
+        skipped_questions = [q for q in all_questions if q['is_skipped'] == 1]
+        unanswered_questions = [q for q in all_questions if q['is_correct'] is None and q['is_skipped'] == 0]        
+        print(f"DEBUG: Correct={len(correct_questions)}, Wrong={len(incorrect_questions)}, Unanswered={len(unanswered_questions)}")
+        
+    finally:
+        conn.close()
     
-    @app.route('/admin/add_database', methods=['GET', 'POST'])
-    def add_new_database():
-        """Add a new database"""
-        if request.method == 'POST':
-            category = request.form['category']
-            db_name = request.form['db_name'].strip()
-            
-            if not db_name:
-                flash('Database name is required', 'error')
-                return redirect(url_for('add_new_database'))
-            
-            success, message = dynamic_db_handler.add_new_database(category, db_name)
-            
-            if success:
-                flash(message, 'success')
-                return redirect(url_for('dynamic_db_home'))
-            else:
-                flash(message, 'error')
-        
-        return render_template('add_database.html', 
-                             categories=dynamic_db_handler.db_categories)
+    return render_template('test/review_attempted.html',
+                           test=test,
+                           correct_count=len(correct_questions),
+                           incorrect_count=len(incorrect_questions),
+                           skipped_count=len(skipped_questions),  
+                           unanswered_count=len(unanswered_questions),
+                           correct_questions=correct_questions,
+                           incorrect_questions=incorrect_questions,
+                           skipped_questions=skipped_questions,   # 🔥 NEW
+
+                           unanswered_questions=unanswered_questions)
+
+@test_bp.route('/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
+def review_question(test_id, filter_type, q_index):
+    db_file = request.args.get('db_file')
+    if not db_file:
+        return redirect(url_for('test_bp.review_attempted', test_id=test_id, db_file=db_file))
     
-    @app.route('/admin/upload_database', methods=['GET', 'POST'])
-    def upload_database():
-        """Upload an existing database file"""
-        if request.method == 'POST':
-            # Check if file was uploaded
-            if 'database_file' not in request.files:
-                flash('No file selected', 'error')
-                return redirect(request.url)
-            
-            file = request.files['database_file']
-            category = request.form.get('category')
-            
-            if not category:
-                flash('Please select a database category', 'error')
-                return redirect(request.url)
-            
-            # Upload and validate the database
-            success, message = dynamic_db_handler.upload_database(file, category)
-            
-            if success:
-                flash(message, 'success')
-                return redirect(url_for('dynamic_db_home'))
-            else:
-                flash(message, 'error')
-        
-        return render_template('upload_database.html', 
-                             categories=dynamic_db_handler.db_categories)
+    print(f"DEBUG: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}, db_file={db_file}")
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
+    conn.row_factory = sqlite3.Row
+
     
-    @app.route('/admin/migrate_users')
-    def migrate_users():
-        """Migrate users from all databases to centralized admin_users.db"""
-        success, message = dynamic_db_handler.migrate_users_to_centralized_db()
+    try:
+        # 1. Verify test exists
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        if not test:
+            flash(f"Test ID {test_id} not found!")
+            return redirect(url_for('test_bp.list_tests'))
         
-        if success:
-            flash(message, 'success')
+        user_id = session.get('user_id', 1)
+        
+        # 2. Base LEFT JOIN query for ALL questions
+        base_query = '''
+            SELECT tq.*, ur.user_answer, ur.is_correct, ur.is_skipped, tq.explanation
+            FROM test_questions tq
+            LEFT JOIN user_responses ur ON tq.id = ur.question_id 
+                AND ur.test_id = ? AND ur.user_id = ?
+            WHERE tq.test_id = ?
+        '''
+        
+        # 3. Filter by filter_type
+        if filter_type == 'correct':
+            where_clause = ' AND ur.is_correct = 1'
+        elif filter_type == 'incorrect':
+            where_clause = ' AND ur.is_correct = 0'
+        elif filter_type == 'skipped':        # 🔥 ADD THIS
+            where_clause = ' AND ur.is_skipped = 1'
+        elif filter_type == 'unanswered':     # 🔥 ADD THIS  
+            where_clause = ' AND ur.is_correct IS NULL AND ur.is_skipped = 0'
+        elif filter_type == 'all':
+            where_clause = ''
         else:
-            flash(message, 'error')
+            abort(404, "Invalid filter")
+
         
-        return redirect(url_for('dynamic_db_home'))
+        questions = conn.execute(base_query + where_clause, (test_id, user_id, test_id)).fetchall()
+        print(f"DEBUG: Filter '{filter_type}' returned {len(questions)} questions")
+        
+        if not questions or q_index < 1 or q_index > len(questions):
+            flash("No questions found for this filter")
+            return redirect(url_for('test_bp.review_attempted', test_id=test_id, db_file=db_file))
+
+        # 4. Current question + navigation
+        question = questions[q_index - 1]
+        prev_q = q_index - 1 if q_index > 1 else None
+        next_q = q_index + 1 if q_index < len(questions) else None
+        
+        print(f"DEBUG: Showing question {question['id']}: user_answer={question['user_answer']}, is_correct={question['is_correct']}")
+        
+    finally:
+        conn.close()
     
-    @app.route('/admin/manage_db/<db_file>')
-    def manage_specific_database(db_file):
-        """Manage a specific database with better error handling"""
-        try:
-            filename = os.path.basename(db_file)
-            full_path = os.path.join(BASE_DATA_DIR, filename)
-            conn = dynamic_db_handler.get_connection(full_path)
+    return render_template('test/review_question.html',
+                           test=test,
+                           question=question,
+                           q_index=q_index,
+                           total=len(questions),
+                           filter_type=filter_type,
+                           prev_q=prev_q,
+                           next_q=next_q)
 
-            
-            # Get all tables
-            tables = conn.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name NOT LIKE 'sqlite_%'
-                ORDER BY name
-            """).fetchall()
-            
-            # Get table statistics
-            table_stats = []
-            for table in tables:
-                table_name = table['name']
-                try:
-                    safe_name = dynamic_db_handler.safe_table_name(table_name)
-                    count_query = f"SELECT COUNT(*) as count FROM {safe_name}"
-                    count = conn.execute(count_query).fetchone()['count']
-                    
-                    # Get column info
-                    columns = conn.execute(f"PRAGMA table_info({safe_name})").fetchall()
-                    
-                    table_stats.append({
-                        'name': table_name,
-                        'records': count,
-                        'columns': len(columns)
-                    })
-                except Exception as e:
-                    print(f"Error getting stats for table {table_name}: {e}")
-                    table_stats.append({
-                        'name': table_name,
-                        'records': 0,
-                        'columns': 0,
-                        'error': str(e)
-                    })
-            
-            conn.close()
-            
-            return render_template('manage_database.html',
-                                   db_file=filename,
-                                   tables=table_stats)
-
-        
-        except Exception as e:
-            flash(f'Error accessing database: {str(e)}', 'error')
-            return redirect(url_for('dynamic_db_home'))
+@test_bp.route('/tests/<int:test_id>/submit', methods=['GET', 'POST'])
+def submit_test(test_id):
+    print(f"DEBUG SUBMIT: test_id={test_id}")
     
-    @app.route('/admin/edit_table/<db_file>/<table_name>')
-    def edit_database_table(db_file, table_name):
-        """FIXED: Edit a specific table in a database with proper SQL handling"""
-        try:
-            filename = os.path.basename(db_file)
-            full_path = os.path.join(BASE_DATA_DIR, filename)
-            print(f"Attempting to edit table: {table_name} in database: {full_path}")
-            conn = dynamic_db_handler.get_connection(full_path)
-
-            
-            # Check if table exists first
-            if not dynamic_db_handler.table_exists(conn, table_name):
-                flash(f'Table "{table_name}" does not exist in database', 'error')
-                conn.close()
-                return redirect(url_for('manage_specific_database', db_file=db_file))
-            
-            # Get table schema using safe table name
-            safe_name = dynamic_db_handler.safe_table_name(table_name)
-            try:
-                schema = conn.execute(f"PRAGMA table_info({safe_name})").fetchall()
-                print(f"Schema retrieved: {len(schema)} columns")
-            except Exception as e:
-                print(f"Error getting schema: {e}")
-                flash(f'Error getting table schema: {str(e)}', 'error')
-                conn.close()
-                return redirect(url_for('manage_specific_database', db_file=db_file))
-            
-            if not schema:
-                flash(f'Table "{table_name}" has no accessible schema', 'error')
-                conn.close()
-                return redirect(url_for('manage_specific_database', db_file=db_file))
-            
-            # Get table data with pagination
-            page = request.args.get('page', 1, type=int)
-            per_page = 25
-            offset = (page - 1) * per_page
-            
-            try:
-                # Use COALESCE to handle potential NULL id values
-                data_query = f"""
-                    SELECT * FROM {safe_name} 
-                    ORDER BY COALESCE(id, 0) DESC
-                    LIMIT ? OFFSET ?
-                """
-                data = conn.execute(data_query, (per_page, offset)).fetchall()
-                print(f"Data retrieved: {len(data)} records")
-                
-                # Get total count
-                count_query = f"SELECT COUNT(*) as count FROM {safe_name}"
-                total = conn.execute(count_query).fetchone()['count']
-                print(f"Total records: {total}")
-                
-            except Exception as e:
-                print(f"Error retrieving table data: {e}")
-                flash(f'Error retrieving table data: {str(e)}', 'error')
-                conn.close()
-                return redirect(url_for('manage_specific_database', db_file=db_file))
-            
-            conn.close()
-            
-            return render_template('edit_table.html',
-                                 db_file=db_file,
-                                 table_name=table_name,
-                                 schema=schema,
-                                 data=data,
-                                 page=page,
-                                 total=total,
-                                 per_page=per_page)
-        
-        except Exception as e:
-            print(f"Critical error in edit_database_table: {str(e)}")
-            print(traceback.format_exc())
-            flash(f'Critical error accessing table: {str(e)}', 'error')
-            return redirect(url_for('manage_specific_database', db_file=filename))
+    if request.method == 'POST' and request.form.get('review') == 'review':
+        print("DEBUG: Redirecting to review")
+        return redirect(url_for('test_bp.review_attempted', test_id=test_id))
     
-    @app.route('/admin/edit_record/<db_file>/<table_name>/<int:record_id>', methods=['GET', 'POST'])
-    def edit_database_record(db_file, table_name, record_id):
-        """FIXED: Edit record with FULL PATH support"""
+    # Find CORRECT DB for this test_id (4 lines only)
+    # 🔥 USE SESSION DB (5 lines):
+    db_file = session.get(f'test_{test_id}_db_file')
+    if not db_file or not os.path.exists(db_file):
+        flash("Test session expired!", "error")
+        return redirect(url_for('test_bp.list_tests'))
+
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+    print(f"✅ SESSION DB: {os.path.basename(db_file)}")
+
+
+         # 🔥 ADD DEBUG LOCATION (3 lines):
+       
+
+
+    try:
+        # DEBUG: Check test exists
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        print(f"DEBUG: Test found: {test['test_name'] if test else 'NOT FOUND'}")
+        if not test:
+            flash(f"Test ID {test_id} not found!")
+            return redirect(url_for('test_bp.list_tests'))
+        
+        questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        print(f"DEBUG: Questions found: {len(questions)}")
+        
+        user_id = session.get('user_id', 1)
+        answer_key = f'test_{test_id}_answers'
+        answers = session.get(answer_key, {})
+        print(f"DEBUG: Session answers: {answers}")
+        
+        for q in questions:
+            qid = str(q['id'])
+            user_answer = answers.get(qid)
+            is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
+
+            is_skipped = 1 if not user_answer else 0  # 🔥 DEFINE is_skipped
+
+            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}, skipped={is_skipped}")
+            
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted,is_skipped)
+                VALUES (?, ?, ?, ?, ?, 1, 1,?)
+            ''', (test_id, user_id, q['id'], user_answer, is_correct,is_skipped ))
+                    # Insert a durable completion marker (one row per user+test)
+
+            questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        print(f"DEBUG: Questions found: {len(questions)}")
+
+            # 🔥 ADD TABLE CREATION HERE:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                question_id INTEGER,
+                user_answer TEXT,
+                is_correct INTEGER,
+                test_started INTEGER DEFAULT 0,
+                test_submitted INTEGER DEFAULT 0,
+                is_skipped INTEGER DEFAULT 0,
+
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(test_id, user_id, question_id)
+            )
+        ''')
+        conn.commit()
+        print("DEBUG: user_responses table READY")
+        # 🔥 END ADD
         try:
-            full_db_path = os.path.join('/var/data', db_file)  # ← CRITICAL FIX
-            
-            conn = dynamic_db_handler.get_connection(full_db_path)  # ← Use full path
-            safe_name = dynamic_db_handler.safe_table_name(table_name)
-            
-            if request.method == 'POST':
-                admin_user_id = session.get('user_id', 'anonymous')
-                
-                updates = []
-                values = []
-                for key, value in request.form.items():
-                    if key not in ['csrf_token', 'submit']:
-                        safe_column = dynamic_db_handler.safe_table_name(key)
-                        updates.append(f"{safe_column} = ?")
-                        values.append(value)
-                
-                if updates:
-                    values.append(record_id)
-                    update_query = f'UPDATE {safe_name} SET {", ".join(updates)} WHERE id = ?'
-                    print(f"Executing: {update_query} | Values: {values}")
-                    conn.execute(update_query, values)
-                    
-                    # Log action if table exists
-                    try:
-                        if dynamic_db_handler.table_exists(conn, 'admin_actions'):
-                            conn.execute('''
-                                INSERT INTO admin_actions (admin_user_id, action_type, target_db, target_table, action_details)
-                                VALUES (?, ?, ?, ?, ?)
-                            ''', (str(admin_user_id), 'UPDATE', full_db_path, table_name, f'Updated record ID {record_id}'))
-                    except Exception as log_error:
-                        print(f"Log error: {log_error}")
-                    
-                    conn.commit()
-                    flash('Record updated successfully!', 'success')
-                    conn.close()
-                    return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-            
-            # GET: Fetch record/schema
-            record_query = f'SELECT * FROM {safe_name} WHERE id = ?'
-            record = conn.execute(record_query, (record_id,)).fetchone()
-            
-            if not record:
-                flash('Record not found', 'error')
-                conn.close()
-                return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-            
-            schema = conn.execute(f'PRAGMA table_info({safe_name})').fetchall()
-            conn.close()
-            
-            return render_template('edit_record.html',
-                                db_file=db_file,  # Pass basename for templates
-                                table_name=table_name,
-                                record=record,
-                                schema=schema)
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
+                VALUES (?, ?, 0, 1)
+            ''', (test_id, user_id))
+            print("✅ FALLBACK marker added")
+        except:
+            print("⚠️ Fallback marker skipped")
         
-        except FileNotFoundError:
-            flash(f'Database {db_file} not found at /var/data/{db_file}', 'error')
-            return redirect(url_for('manage_specific_database', db_file=db_file))
-        except Exception as e:
-            print(f"Edit record error: {str(e)}")
-            print(traceback.format_exc())
-            flash(f'Error editing record: {str(e)}', 'error')
-            return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
+        conn.commit()
+        print("DEBUG: Responses saved")
 
-
-
-
-    @app.route('/admin/add_record/<db_file>/<table_name>', methods=['GET', 'POST'])
-    def add_database_record(db_file, table_name):
-        """FIXED: Add a new record to a table"""
-        try:
-
-            filename = os.path.basename(db_file)
-            fullpath = os.path.join(BASE_DATA_DIR, filename)
-
-
-            conn = dynamic_db_handler.get_connection(fullpath)
-            safe_name = dynamic_db_handler.safe_table_name(table_name)
             
-            if request.method == 'POST':
-                admin_user_id = session.get('user_id', 'anonymous')
-                
-                # Build insert query safely
-                columns = []
-                values = []
-                placeholders = []
-                
-                for key, value in request.form.items():
-                    if key not in ['csrf_token', 'submit'] and value.strip():
-                        safe_column = dynamic_db_handler.safe_table_name(key)
-                        columns.append(safe_column)
-                        values.append(value)
-                        placeholders.append('?')
+  
 
-                        # MINIMAL image upload
-                    if 'images' in request.files:
-                        img_file = request.files['images']
-                        img_file.seek(0)  # ← RESET STREAM POSITION (CRITICAL!)
-                        image_bytes = img_file.read()
-                        if image_bytes and len(image_bytes) > 1024:  # Valid image size
-                            columns.append('images')
-                            values.append(image_bytes)
-                            placeholders.append('?')
-                            print(f"✅ Image: {len(image_bytes)} bytes")
-                        else:
-                            print(f"❌ Invalid image: {len(image_bytes)} bytes")
+        conn.commit()
 
 
-                
-                if columns:
-                    insert_query = f"INSERT INTO {safe_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
-                    print(f"Executing insert query: {insert_query}")
-                    print(f"With values: {values}")
-                    
-                    cursor = conn.execute(insert_query, values)
-                    
-                    # Log the action
-                    try:
-                        if dynamic_db_handler.table_exists(conn, 'admin_actions'):
-                            conn.execute('''
-                                INSERT INTO admin_actions (admin_user_id, action_type, target_db, target_table, action_details)
-                                VALUES (?, ?, ?, ?, ?)
-                            ''', (str(admin_user_id), 'INSERT', db_file, table_name, f'Added new record ID {cursor.lastrowid}'))
-                    except Exception as log_error:
-                        print(f"Could not log admin action: {log_error}")
-                    
-                    conn.commit()
-                    flash('Record added successfully!', 'success')
-                    conn.close()
-                    return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-                else:
-                    flash('Please fill at least one field', 'error')
-            
-            # GET request - get schema for form
-            schema = conn.execute(f'PRAGMA table_info({safe_name})').fetchall()
-            conn.close()
-            
-            return render_template('add_record.html',
-                                 db_file=db_file,
-                                 table_name=table_name,
-                                 schema=schema)
+        print("DEBUG: Responses saved")
         
-        except Exception as e:
-            print(f"Error in add_database_record: {str(e)}")
-            print(traceback.format_exc())
-            flash(f'Error adding record: {str(e)}', 'error')
-            return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
-    
-    @app.route('/admin/database_backup')
-    def backup_all_databases():
-        """Backup all discovered databases"""
-        success, message = dynamic_db_handler.backup_all_databases()
+        total = len(questions)
+        correct = sum(1 for q in questions if answers.get(str(q['id'])) 
+                     and answers.get(str(q['id'])).upper() == q['correct_answer'].upper())
+        wrong = sum(1 for q in questions if answers.get(str(q['id'])) 
+                   and answers.get(str(q['id'])).upper() != q['correct_answer'].upper())
+        unanswered = total - correct - wrong
         
-        if success:
-            flash(message, 'success')
-        else:
-            flash(message, 'error')
-        
-        return redirect(url_for('dynamic_db_home'))
-    
-    @app.route('/admin/delete_database/<db_file>', methods=['POST'])
-    def delete_database(db_file):
-        """Delete a database (with confirmation)"""
-        try:
-            fullpath = os.path.join('/var/data', db_file)  # ← ADD THIS LINE
-            
-            # Prevent deletion of centralized user database
-            if os.path.basename(db_file) == 'admin_users.db':
-                flash('Cannot delete centralized user database!', 'error')
-                return redirect(url_for('dynamic_db_home'))
-            
-            if os.path.exists(fullpath):  # ← CHANGE: use fullpath
-                # Create backup before deletion
-                backup_dir = f"deleted_backups/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                os.makedirs(backup_dir, exist_ok=True)
-                shutil.copy2(fullpath, os.path.join(backup_dir, os.path.basename(db_file)))  # ← fullpath
-                
-                # Delete the database
-                os.remove(fullpath)  # ← fullpath
-                
-                # Refresh discovered databases
-                dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-                
-                flash(f'Database {db_file} deleted successfully. Backup saved to {backup_dir}', 'success')
-            else:
-                flash(f'Database NOT found at {fullpath}', 'error')  # ← Better error msg
-                
-        except Exception as e:
-            flash(f'Error deleting database: {str(e)}', 'error')
-        
-        return redirect(url_for('dynamic_db_home'))
+    finally:
+        conn.close()
 
-    @app.route('/admin/debug_table/<db_file>/<table_name>')
-    def debug_table_access(db_file, table_name):
-        """Debug function to diagnose table access issues"""
-        try:
-            conn = dynamic_db_handler.get_connection(db_file)
-            
-            # Check if table exists
-            exists = dynamic_db_handler.table_exists(conn, table_name)
-            
-            # Get all tables in database
-            all_tables = conn.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name NOT LIKE 'sqlite_%'
-            """).fetchall()
-            
-            table_list = [t['name'] for t in all_tables]
-            
-            if not exists:
-                conn.close()
-                return f"""
-                <h2>Debug: Table '{table_name}' NOT FOUND in {db_file}</h2>
-                <p><strong>Available tables:</strong> {', '.join(table_list)}</p>
-                <p><a href="{url_for('manage_specific_database', db_file=db_file)}">Back to Database</a></p>
-                """
-            
-            # Get schema
-            safe_name = dynamic_db_handler.safe_table_name(table_name)
-            schema = conn.execute(f"PRAGMA table_info({safe_name})").fetchall()
-            
-            # Try to count records
-            try:
-                count_query = f"SELECT COUNT(*) as count FROM {safe_name}"
-                count = conn.execute(count_query).fetchone()['count']
-            except Exception as e:
-                count = f"Error counting: {e}"
-            
-            # Try to get sample data
-            try:
-                sample_query = f"SELECT * FROM {safe_name} LIMIT 3"
-                sample_data = conn.execute(sample_query).fetchall()
-                sample_info = f"Sample records retrieved: {len(sample_data)}"
-            except Exception as e:
-                sample_info = f"Error getting sample data: {e}"
-            
-            conn.close()
-            
-            return f"""
-            <h2>Debug Info for '{table_name}' in {db_file}</h2>
-            <p><strong>Table exists:</strong> ✅ Yes</p>
-            <p><strong>Safe table name:</strong> {safe_name}</p>
-            <p><strong>Schema columns:</strong> {len(schema)}</p>
-            <p><strong>Record count:</strong> {count}</p>
-            <p><strong>Sample data:</strong> {sample_info}</p>
-            <p><strong>All tables in DB:</strong> {', '.join(table_list)}</p>
-            <h3>Schema Details:</h3>
-            <ul>
-            {''.join([f'<li>{col[1]} ({col[2]}) - NOT NULL: {bool(col[3])}</li>' for col in schema])}
-            </ul>
-            <p><a href="{url_for('edit_database_table', db_file=db_file, table_name=table_name)}">Try Edit Table</a> | 
-               <a href="{url_for('manage_specific_database', db_file=db_file)}">Back to Database</a></p>
-            """
-            
-        except Exception as e:
-            return f"""
-            <h2>Debug Error for '{table_name}' in {db_file}</h2>
-            <p><strong>Error:</strong> {str(e)}</p>
-            <p><strong>Traceback:</strong></p>
-            <pre>{traceback.format_exc()}</pre>
-            <p><a href="{url_for('manage_specific_database', db_file=db_file)}">Back to Database</a></p>
-            """
+    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
+        session.pop(key, None)
+
+    return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
+
