@@ -6,45 +6,119 @@
     <style>
         .filter-btn { min-height: 80px; font-size: 1.2em; }
         .filter-btn.active { box-shadow: 0 0 0 3px #007bff; }
+        
+        /* 🔥 QUESTION STATUS BAR */
+        .question-status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 24px 0;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+            gap: 8px;
+            max-width: 100%;
+            overflow-x: auto;
+            padding: 12px 0;
+            scrollbar-width: thin;
+        }
+        .status-btn {
+            width: 42px; height: 42px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 14px; color: white;
+            text-decoration: none; transition: all 0.2s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .status-btn:hover { 
+            transform: scale(1.15) translateY(-2px); 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .status-btn.correct { background: #10b981; }
+        .status-btn.incorrect { background: #ef4444; }
+        .status-btn.skipped { background: #f59e0b; }
+        .status-btn.unanswered { background: #6b7280; opacity: 0.7; }
     </style>
 </head>
 <body class="container mt-5">
-    <h2>📊 Review Attempt - {{ test.test_name }}</h2>
+    <h1 class="mb-4">📊 Review - {{ test.test_name }}</h1>
     
-    <div class="row mt-4 g-3">
-        <div class="col-md-4">
+    <!-- 🔥 STATS CARDS (Fixed counts + Skipped) -->
+    <div class="row mb-5 g-3">
+        <div class="col-md-3 col-sm-6">
             <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='correct', q_index=1) }}" 
                class="btn btn-success filter-btn w-100">
                 ✅ Correct<br><strong>{{ correct_count }}</strong>
             </a>
         </div>
-        
-
-        <div class="col-md-4">
+        <div class="col-md-3 col-sm-6">
             <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='incorrect', q_index=1) }}" 
                class="btn btn-danger filter-btn w-100">
                 ❌ Wrong<br><strong>{{ incorrect_count }}</strong>
             </a>
         </div>
-        
-
-
-        <div class="col-md-4">
-    <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='all', q_index=1) }}" 
-       class="btn btn-primary filter-btn w-100 {% if filter_type == 'all' %}active{% endif %}">
-        📋 All<br><strong>{{ (correct_count + incorrect_count + unanswered_count) }}</strong>
-    </a>
-</div>
-
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='skipped', q_index=1) }}" 
+               class="btn btn-warning filter-btn w-100">
+                ⏭️ Skipped<br><strong>{{ skipped_count }}</strong>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type='unanswered', q_index=1) }}" 
+               class="btn btn-secondary filter-btn w-100">
+                ❓ Unanswered<br><strong>{{ unanswered_count }}</strong>
+            </a>
+        </div>
     </div>
-    
+
+    <!-- 🔥 QUESTION STATUS BAR -->
+    <div class="question-status-bar">
+        <h3 class="mb-4">
+            <span class="me-3">🎯</span>
+            Question Status ({{ correct_count }}✅ {{ incorrect_count }}❌ {{ skipped_count }}⏭️ {{ unanswered_count }}❓)
+        </h3>
+        
+        <div class="status-grid">
+            {% for i, q in all_questions|enumerate(start=1) %}
+                {% set q_status = 'correct' if q.is_correct == 1 
+                                 else 'incorrect' if q.is_correct == 0 
+                                 else 'skipped' if q.is_skipped == 1 
+                                 else 'unanswered' %}
+                
+                <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=q_status, q_index=i) }}"
+                   class="status-btn {{ q_status }}">
+                    {{ i }}
+                    {% if q.is_correct == 1 %}✅{% endif %}
+                    {% if q.is_correct == 0 %}❌{% endif %}
+                    {% if q.is_skipped == 1 %}⏭️{% endif %}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 🔥 SUMMARY + BACK BUTTON -->
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>📈 Test Summary</h5>
+                    <p><strong>Score:</strong> {{ correct_count }} / {{ (correct_count + incorrect_count + skipped_count + unanswered_count) }} ({{ "%.1f"|format((correct_count / (correct_count + incorrect_count + skipped_count + unanswered_count) * 100)) }}%)</p>
+                    <p><strong>Correct:</strong> {{ correct_count }} | <strong>Wrong:</strong> {{ incorrect_count }}</p>
+                    <p><strong>Skipped:</strong> {{ skipped_count }} | <strong>Unanswered:</strong> {{ unanswered_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mt-4">
-        <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-secondary">← Back to Tests</a>
+        <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-secondary btn-lg">
+            ← Back to Tests
+        </a>
     </div>
 </body>
 </html>
-
-
 
 
 
