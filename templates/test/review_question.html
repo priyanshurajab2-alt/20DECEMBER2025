@@ -9,6 +9,46 @@
         .answer-wrong { background: #f8d7da; border: 2px solid #dc3545; }
         .explanation-box { background: #e8f5e8; border-left: 5px solid #28a745; padding: 20px; }
         .nav-btn { min-width: 120px; }
+        
+        /* 🔥 QUESTION STATUS BAR (Compact for single question view) */
+        .question-status-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            color: white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+            gap: 6px;
+            max-width: 100%;
+            overflow-x: auto;
+            padding: 8px 0;
+            scrollbar-width: thin;
+        }
+        .status-btn {
+            width: 38px; height: 38px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 13px; color: white;
+            text-decoration: none; transition: all 0.2s ease;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+        .status-btn:hover { 
+            transform: scale(1.2) translateY(-1px); 
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+        .status-btn.current { 
+            background: #ffd700 !important; 
+            border-color: #ffed4a !important;
+            transform: scale(1.3) !important;
+            box-shadow: 0 0 0 3px rgba(255,215,0,0.5) !important;
+        }
+        .status-btn.correct { background: #10b981; }
+        .status-btn.incorrect { background: #ef4444; }
+        .status-btn.skipped { background: #f59e0b; }
+        .status-btn.unanswered { background: #6b7280; opacity: 0.7; }
     </style>
 </head>
 <body class="container mt-5">
@@ -18,6 +58,22 @@
         <span class="badge bg-secondary fs-6">Q{{ q_index }} of {{ total }} ({{ filter_type|title }})</span>
     </div>
     
+    <!-- 🔥 MINI STATUS BAR (Current Filter Only) -->
+    <div class="question-status-bar mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0"><span class="me-2">🎯</span>Quick Navigation</h5>
+            <small>({{ total }} questions in {{ filter_type }})</small>
+        </div>
+        <div class="status-grid">
+            {% for i in range(1, total + 1) %}
+                <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=filter_type, q_index=i) }}"
+                   class="status-btn {{ 'current' if i == q_index else '' }}">
+                    {{ i }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Question -->
     <div class="question-container">
         <h4>{{ question.subject }} - {{ question.topic }}</h4>
@@ -81,20 +137,20 @@
         <div>
             {% if prev_q %}
             <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=filter_type, q_index=prev_q) }}" 
-   class="btn btn-secondary nav-btn">← Previous</a>
-
+               class="btn btn-secondary nav-btn">← Previous</a>
             {% endif %}
             
             {% if next_q %}
             <a href="{{ url_for('test_bp.review_question', test_id=test.id, db_file=request.args.get('db_file'), filter_type=filter_type, q_index=next_q) }}" 
-   class="btn btn-primary nav-btn">Next →</a>
-
+               class="btn btn-primary nav-btn">Next →</a>
             {% endif %}
         </div>
         
         <div class="d-flex gap-2">
-            <a href="{{ url_for('test_bp.review_attempted', test_id=test.id, db_file=request.args.get('db_file')) }}" class="btn btn-outline-secondary">Filters</a>
-            <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-outline-secondary">All Tests</a>
+            <a href="{{ url_for('test_bp.review_attempted', test_id=test.id, db_file=request.args.get('db_file')) }}" class="btn btn-outline-primary">
+                📊 All Filters
+            </a>
+            <a href="{{ url_for('test_bp.list_tests') }}" class="btn btn-outline-secondary">🏠 All Tests</a>
         </div>
     </div>
 </body>
