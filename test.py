@@ -77,6 +77,8 @@ def get_test_db_connection():
             user_answer TEXT,
             is_correct INTEGER,
             test_started INTEGER DEFAULT 0,
+            is_skipped INTEGER DEFAULT 0,
+    
             test_submitted INTEGER DEFAULT 0,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(test _id, user_id, question_id)
@@ -489,7 +491,7 @@ def review_attempted(test_id):
         print(f"DEBUG: Looking for user_id={user_id}")
         
         all_questions = conn.execute('''
-            SELECT tq.*, ur.user_answer, ur.is_correct
+            SELECT tq.*, ur.user_answer, ur.is_correct , ur.is_skipped 
             FROM test_questions tq
             LEFT JOIN user_responses ur ON tq.id = ur.question_id 
                 AND ur.test_id = ? AND ur.user_id = ?
@@ -500,8 +502,8 @@ def review_attempted(test_id):
         
         correct_questions = [q for q in all_questions if q['is_correct'] == 1]
         incorrect_questions = [q for q in all_questions if q['is_correct'] == 0]
-        unanswered_questions = [q for q in all_questions if q['is_correct'] is None]
-        
+        skipped_questions = [q for q in all_questions if q['is_skipped'] == 1]
+        unanswered_questions = [q for q in all_questions if q['is_correct'] is None and q['is_skipped'] == 0]        
         print(f"DEBUG: Correct={len(correct_questions)}, Wrong={len(incorrect_questions)}, Unanswered={len(unanswered_questions)}")
         
     finally:
@@ -511,9 +513,12 @@ def review_attempted(test_id):
                            test=test,
                            correct_count=len(correct_questions),
                            incorrect_count=len(incorrect_questions),
+                           skipped_count=len(skipped_questions),  
                            unanswered_count=len(unanswered_questions),
                            correct_questions=correct_questions,
                            incorrect_questions=incorrect_questions,
+                           skipped_questions=skipped_questions,   # 🔥 NEW
+
                            unanswered_questions=unanswered_questions)
 
 @test_bp.route('/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
@@ -539,7 +544,7 @@ def review_question(test_id, filter_type, q_index):
         
         # 2. Base LEFT JOIN query for ALL questions
         base_query = '''
-            SELECT tq.*, ur.user_answer, ur.is_correct, tq.explanation
+            SELECT tq.*, ur.user_answer, ur.is_correct, ur.is_skipped, tq.explanation
             FROM test_questions tq
             LEFT JOIN user_responses ur ON tq.id = ur.question_id 
                 AND ur.test_id = ? AND ur.user_id = ?
@@ -629,12 +634,15 @@ def submit_test(test_id):
             qid = str(q['id'])
             user_answer = answers.get(qid)
             is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
-            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}")
+
+            is_skipped = 1 if not user_answer else 0  # 🔥 DEFINE is_skipped
+
+            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}, skipped={is_skipped}")
             
             conn.execute('''
-                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted)
-                VALUES (?, ?, ?, ?, ?, 1, 1)
-            ''', (test_id, user_id, q['id'], user_answer, is_correct))
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted,is_skipped)
+                VALUES (?, ?, ?, ?, ?, 1, 1,?)
+            ''', (test_id, user_id, q['id'], user_answer, is_correct,is_skipped ))
                     # Insert a durable completion marker (one row per user+test)
 
             questions = conn.execute(
@@ -654,6 +662,8 @@ def submit_test(test_id):
                 is_correct INTEGER,
                 test_started INTEGER DEFAULT 0,
                 test_submitted INTEGER DEFAULT 0,
+                is_skipped INTEGER DEFAULT 0,
+
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(test_id, user_id, question_id)
             )
@@ -695,6 +705,7 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
 
 
     
