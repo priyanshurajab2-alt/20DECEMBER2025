@@ -501,7 +501,8 @@ def review_attempted(test_id):
         print(f"DEBUG: Total questions found: {len(all_questions)}")
         
         correct_questions = [q for q in all_questions if q['is_correct'] == 1]
-        incorrect_questions = [q for q in all_questions if q['is_correct'] == 0]
+        incorrect_questions = [q for q in all_questions if q['is_correct'] == 0 and q['is_skipped'] == 0]
+
         skipped_questions = [q for q in all_questions if q['is_skipped'] == 1]
         unanswered_questions = [q for q in all_questions if q['is_correct'] is None and q['is_skipped'] == 0]        
         print(f"DEBUG: Correct={len(correct_questions)}, Wrong={len(incorrect_questions)}, Unanswered={len(unanswered_questions)}")
@@ -710,8 +711,6 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
-
-
 
 
     
