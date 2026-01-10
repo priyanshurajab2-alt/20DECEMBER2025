@@ -448,7 +448,7 @@
                 <button id="bookmark-btn" 
                         type="button" 
                         class="bookmark-btn {% if bookmarked %}bookmarked{% endif %}" 
-                        onclick="({{ q.id }}, '{{ subject }}', '{{ topic }}')"
+                        onclick="toggleBookmark{{ q.id }}, '{{ subject }}', '{{ topic }}')"
                         title="{% if bookmarked %}Remove bookmark{% else %}Add bookmark{% endif %}">
                     ★
                 </button>
