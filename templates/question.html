@@ -361,39 +361,75 @@
         }
 
         {% if is_last_question %}
-.completion-modal {
-    display: none !important; 
-    position: fixed; 
-    z-index: 9999; 
-    left: 0; top: 0; 
-    width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.8);
+        .completion-modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    padding: 20px;
 }
+
 .modal-content-custom {
-    background: white; 
-    margin: 15% auto; 
-    padding: 30px; 
-    border-radius: 12px; 
-    max-width: 450px; 
+    background-color: white;
+    margin: 10% auto;
+    padding: 30px 20px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
     text-align: center;
 }
-.modal-buttons { margin-top: 25px; display: flex; flex-direction: column; gap: 12px; }
-.modal-btn {
-    padding: 14px 20px; 
-    border: none; 
-    border-radius: 8px; 
-    font-size: 16px; 
-    font-weight: 600; 
-    cursor: pointer; 
-    width: 100%; 
-    transition: all 0.3s;
-}
-.modal-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
-.modal-btn.success { background: #28a745; color: white; }
-.modal-btn.primary { background: #003087; color: white; }
-.modal-btn.secondary { background: #6c757d; color: white; }
-{% endif %}
 
+.modal-buttons {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+}
+
+.modal-btn.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.modal-btn.primary {
+    background-color: #003087;
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    background-color: #0051a8;
+}
+
+.modal-btn.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .modal-buttons {
+        flex-direction: row;
+        justify-content: center;
+    }
+    
+    .modal-btn {
+        width: auto;
+        min-width: 140px;
+    }
+}
 
 
 
@@ -407,7 +443,7 @@
                 <button id="bookmark-btn" 
                         type="button" 
                         class="bookmark-btn {% if bookmarked %}bookmarked{% endif %}" 
-                        onclick="toggleBookmark({{ q.id }}, '{{ subject }}', '{{ topic }}')"
+                        onclick="({{ q.id }}, '{{ subject }}', '{{ topic }}')"
                         title="{% if bookmarked %}Remove bookmark{% else %}Add bookmark{% endif %}">
                     ★
                 </button>
@@ -419,14 +455,30 @@
             {% else %}
                 <button class="header-nav-btn" disabled>⏮ Prev</button>
             {% endif %}
+
             {% if next_qid %}
-                <button class="header-nav-btn" onclick="window.location.href='{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}'">⏭ Next</button>
-            {% elif is_last_question %}
-                <button class="header-nav-btn" style="background-color: #28a745; border-color: #28a745;" onclick="showCompletionModal()">🎉 Done</button>
-            {% else %}
-                <button class="header-nav-btn" disabled>⏭ Next</button>
-            {% endif %}
-        
+            <button class="header-nav-btn" onclick="window.location.href='{{ url_for('show_question', subject_name=subject, topic_name=topic, qid=next_qid) }}'">⏭ Next</button>
+        {% elif is_last_question %}
+            <button class="header-nav-btn" style="background-color: #28a745; border-color: #28a745;" onclick="showCompletionModal()">🎉 Done</button>
+        {% else %}
+            <button class="header-nav-btn" disabled>⏭ Next</button>
+        {% endif %}
+                
+        </div>
+    </div>
+
+
+    <div id="completionModal" class="completion-modal">
+        <div class="modal-content-custom">
+            <h2>🎉 Topic Completed!</h2>
+            <p>Congratulations! You've completed all questions in <strong>{{ topic }}</strong>.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn success" onclick="markComplete()">✓ Mark Complete</button>
+                {% if next_topic %}
+                    <button class="modal-btn primary" onclick="goToNextTopic()">Next: {{ next_topic }}</button>
+                {% endif %}
+                <button class="modal-btn secondary" onclick="goBackToTopics()">← Back to Topics</button>
+            </div>
         </div>
     </div>
 
@@ -590,49 +642,57 @@
             }
         }
 
-        function navigateBackToChapters(event, url) {
-        event.preventDefault();
-        // Replace the current history entry (the question page) with subject chapters
-        history.replaceState({page: 'subject_chapters'}, '', url);
-        // Then go to the subject chapters page
-        window.location.href = url;
-    }
-
-        // Copy EXACTLY from answer.html
         function showCompletionModal() {
-            document.getElementById('completionModal').style.display = 'block';
+    document.getElementById('completionModal').style.display = 'block';
+}
+
+function markComplete() {
+    {% if session.user_id %}
+    fetch('/complete_topic', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            subject: '{{ subject }}',
+            topic: '{{ topic }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            goBackToTopics();
         }
+    })
+    .catch(error => {
+        console.error('Error marking complete:', error);
+        goBackToTopics(); // fallback
+    });
+    {% else %}
+    goBackToTopics();
+    {% endif %}
+}
+
+function goToNextTopic() {
+    {% if next_topic %}
+    window.location.href = "{{ url_for('show_topic', subject_name=subject, topic_name=next_topic) }}";
+    {% endif %}
+}
+
+function goBackToTopics() {
+    window.location.href = "{{ url_for('show_subject', subject_name=subject) }}";
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('completionModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
     
-        function markComplete() {
-            {% if session.user_id %}
-            fetch('/complete_topic', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({subject: '{{ subject }}', topic: '{{ topic }}'})
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) goBackToTopics();
-            }).catch(()=>goBackToTopics());
-            {% else %}
-                goBackToTopics();
-            {% endif %}
-        }
     
-        function goToNextTopic() {
-            {% if next_topic %}
-            window.location.href = "{{ url_for('show_topic', subject_name=subject, topic_name=next_topic) }}";
-            {% endif %}
-        }
     
-        function goBackToTopics() {
-            window.location.href = "{{ url_for('show_subject', subject_name=subject) }}";
-        }
-    
-        window.onclick = function(event) {
-            const modal = document.getElementById('completionModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
     
     
     
