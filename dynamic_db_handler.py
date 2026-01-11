@@ -1048,11 +1048,10 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
     
     @app.route('/admin/edit_record/<db_file>/<table_name>/<int:record_id>', methods=['GET', 'POST'])
     def edit_database_record(db_file, table_name, record_id):
-        """FIXED: Edit record with FULL PATH support"""
+        """FIXED: Edit record with FULL PATH support + IMAGE UPLOAD"""
         try:
-            full_db_path = os.path.join('/var/data', db_file)  # ← CRITICAL FIX
-            
-            conn = dynamic_db_handler.get_connection(full_db_path)  # ← Use full path
+            full_db_path = os.path.join('/var/data', db_file)
+            conn = dynamic_db_handler.get_connection(full_db_path)
             safe_name = dynamic_db_handler.safe_table_name(table_name)
             
             if request.method == 'POST':
@@ -1060,19 +1059,36 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
                 
                 updates = []
                 values = []
+                
+                # Handle form fields (same as before)
                 for key, value in request.form.items():
                     if key not in ['csrf_token', 'submit']:
                         safe_column = dynamic_db_handler.safe_table_name(key)
                         updates.append(f"{safe_column} = ?")
                         values.append(value)
                 
+                # HANDLE IMAGE UPLOADS (NEW - matches add_record logic)
+                if 'images' in request.files:
+                    img_files = request.files.getlist('images')  # Support multiple
+                    for img_file in img_files:
+                        if img_file.filename:  # Valid file
+                            img_file.seek(0)  # ← RESET STREAM POSITION (CRITICAL!)
+                            image_bytes = img_file.read()
+                            if image_bytes and len(image_bytes) > 1024:  # Valid image size
+                                safe_column = dynamic_db_handler.safe_table_name('images')
+                                updates.append(f"{safe_column} = ?")
+                                values.append(image_bytes)
+                                print(f"✅ Image updated: {len(image_bytes)} bytes")
+                            else:
+                                print(f"❌ Invalid image: {len(image_bytes)} bytes")
+                
                 if updates:
                     values.append(record_id)
                     update_query = f'UPDATE {safe_name} SET {", ".join(updates)} WHERE id = ?'
-                    print(f"Executing: {update_query} | Values: {values}")
+                    print(f"Executing: {update_query} | Values: {len(values)} items")
                     conn.execute(update_query, values)
                     
-                    # Log action if table exists
+                    # Log action
                     try:
                         if dynamic_db_handler.table_exists(conn, 'admin_actions'):
                             conn.execute('''
@@ -1083,11 +1099,11 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
                         print(f"Log error: {log_error}")
                     
                     conn.commit()
-                    flash('Record updated successfully!', 'success')
+                    flash('Record updated successfully with images!', 'success')
                     conn.close()
                     return redirect(url_for('edit_database_table', db_file=db_file, table_name=table_name))
             
-            # GET: Fetch record/schema
+            # GET: Fetch record/schema (unchanged)
             record_query = f'SELECT * FROM {safe_name} WHERE id = ?'
             record = conn.execute(record_query, (record_id,)).fetchone()
             
@@ -1100,7 +1116,7 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
             conn.close()
             
             return render_template('edit_record.html',
-                                db_file=db_file,  # Pass basename for templates
+                                db_file=db_file,
                                 table_name=table_name,
                                 record=record,
                                 schema=schema)
@@ -1312,4 +1328,5 @@ def register_dynamic_db_routes(app, ensure_user_session_func):
             <pre>{traceback.format_exc()}</pre>
             <p><a href="{url_for('manage_specific_database', db_file=db_file)}">Back to Database</a></p>
             """
+
 
