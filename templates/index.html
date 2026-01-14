@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>[YourBrand] – Master Your Exam with Confidence</title>
+  <title>MBBS QBank – Master Your Exam with Confidence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -28,64 +28,67 @@
       margin: 0 auto;
       padding: 0 24px;
     }
-    header {
+
+    /* Navigation Bar */
+    .navbar {
       background: #fff;
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
       padding: 16px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
-    nav {
+    .nav-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .logo {
+    .navbar-brand {
       font-size: 1.8rem;
       font-weight: 700;
       color: var(--primary);
       text-decoration: none;
     }
-    .nav-links a {
-      margin-left: 32px;
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-link {
       color: var(--text);
       text-decoration: none;
       font-weight: 500;
+      transition: color 0.2s;
     }
-    .nav-links a:hover { color: var(--primary); }
+    .nav-link:hover {
+      color: var(--primary);
+    }
+    .btn-login {
+      background: var(--primary);
+      color: white !important;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .btn-login:hover {
+      background: var(--primary-dark);
+      color: white !important;
+    }
 
     .hero {
       background: linear-gradient(135deg, #f0f6ff 0%, #e6f0ff 100%);
-      padding: 140px 0 100px;
+      padding: 180px 0 140px;
       text-align: center;
     }
     .hero h1 {
-      font-size: 3.8rem;
-      font-weight: 700;
-      margin-bottom: 1.2rem;
-      line-height: 1.1;
-    }
-    .hero p {
-      font-size: 1.4rem;
-      color: var(--gray);
-      max-width: 720px;
-      margin: 0 auto 2.5rem;
-    }
-    .btn {
-      display: inline-block;
-      background: var(--primary);
-      color: white;
-      font-weight: 600;
-      padding: 14px 36px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 1.1rem;
-      transition: all 0.2s;
-    }
-    .btn:hover {
-      background: var(--primary-dark);
-      transform: translateY(-2px);
+      font-size: 4.2rem;
+      font-weight: 800;
+      margin-bottom: 0;
+      line-height: 1.05;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     section {
@@ -104,80 +107,40 @@
       max-width: 760px;
       margin: 0 auto 3.5rem;
     }
-
-    /* Carousel/Grid for Goals */
-    .goals-wrapper {
-      overflow-x: auto;
-      padding-bottom: 1rem;
-      scrollbar-width: thin;
-    }
     .goals-grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 32px;
-      min-width: max-content; /* for horizontal scroll on small screens */
-      padding: 0 1rem;
-    }
-    @media (min-width: 1024px) {
-      .goals-grid {
-        flex-wrap: wrap;
-        justify-content: center;
-        min-width: 100%;
-      }
     }
     .goal-card {
       background: white;
       border: 1px solid var(--border);
       border-radius: 10px;
-      width: 340px;
       padding: 40px 32px;
       text-align: center;
+      text-decoration: none;
+      color: var(--text);
       transition: all 0.25s ease;
-      flex-shrink: 0;
     }
     .goal-card:hover {
       border-color: var(--primary);
       box-shadow: 0 10px 30px rgba(0, 86, 179, 0.1);
       transform: translateY(-6px);
     }
+    .goal-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1.2rem;
+      color: var(--primary);
+    }
     .goal-title {
       font-size: 1.55rem;
       font-weight: 700;
       margin-bottom: 1rem;
       color: var(--primary);
-      position: relative;
-      display: inline-block;
-    }
-    .goal-title::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: var(--primary);
-      transform: scaleX(0);
-      transition: transform 0.3s ease;
-    }
-    .goal-card:hover .goal-title::after {
-      transform: scaleX(1);
     }
     .goal-description {
       color: var(--gray);
       font-size: 1.05rem;
-      margin-bottom: 1.8rem;
-    }
-    .goal-btn {
-      background: var(--primary);
-      color: white;
-      padding: 12px 32px;
-      border-radius: 6px;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-block;
-      transition: all 0.2s;
-    }
-    .goal-btn:hover {
-      background: var(--primary-dark);
     }
 
     footer {
@@ -191,70 +154,45 @@
 </head>
 <body>
 
-  <header>
-    <div class="container">
-      <nav>
-        <a href="#" class="logo">[YourBrand]</a>
-        <div class="nav-links">
-          <a href="#">Exams</a>
-          <a href="#">Why Us</a>
-          <a href="#">Pricing</a>
-          <a href="#">Resources</a>
-          <a href="#">Login</a>
-        </div>
-      </nav>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a class="navbar-brand" href="#">MBBS QBank</a>
+      <div class="nav-links">
+        <a class="nav-link" href="#goals">Goals</a>
+        <a class="nav-link" href="#features">Features</a>
+        <a class="nav-link" href="{{ url_for('signup') }}">Sign Up</a>
+        <a class="nav-link btn-login" href="{{ url_for('login') }}">Login</a>
+      </div>
     </div>
-  </header>
+  </nav>
 
   <section class="hero">
     <div class="container">
       <h1>Master Hard Concepts.<br>Pass Your Exam.</h1>
-      <p>High-yield practice questions with crystal-clear explanations — trusted tools to help you succeed on your high-stakes test.</p>
-      <div style="margin-top: 2.5rem;">
-        <a href="#" class="btn">Explore Products</a>
-        <a href="#" class="btn" style="margin-left:20px; background:transparent; border:2px solid var(--primary); color:var(--primary);">Try Demo</a>
-      </div>
     </div>
   </section>
 
-  <section style="background: var(--light);">
+  <!-- Goals Section -->
+  <section class="goals-section" id="goals" style="background: var(--light);">
     <div class="container">
       <h2 class="goals-title">Choose Your Goal</h2>
-      <p class="goals-subtitle">Select your exam preparation goal to access personalized question banks, focused content, and tailored study paths.</p>
-
-      <div class="goals-wrapper">
-        <div class="goals-grid">
-          <div class="goal-card">
-            <h3 class="goal-title">USMLE Step 1</h3>
-            <p class="goal-description">Build a strong foundation with high-yield basic sciences, integrated concepts, and in-depth rationales.</p>
-            <a href="#" class="goal-btn">Start Preparing</a>
-          </div>
-
-          <div class="goal-card">
-            <h3 class="goal-title">NCLEX-RN</h3>
-            <p class="goal-description">Develop clinical judgment through next-generation questions and realistic case scenarios for licensure success.</p>
-            <a href="#" class="goal-btn">Start Preparing</a>
-          </div>
-
-          <div class="goal-card">
-            <h3 class="goal-title">MCAT</h3>
-            <p class="goal-description">Targeted, passage-based practice across biology, chemistry, physics, biochemistry, and critical analysis.</p>
-            <a href="#" class="goal-btn">Start Preparing</a>
-          </div>
-
-          <div class="goal-card">
-            <h3 class="goal-title">Shelf Exams</h3>
-            <p class="goal-description">Specialty-specific questions to perform at the top of your rotations and prepare effectively for Step 2 CK.</p>
-            <a href="#" class="goal-btn">Start Preparing</a>
-          </div>
-        </div>
+      <p class="goals-subtitle">Select your exam preparation goal to get personalized content and question banks</p>
+      <div class="goals-grid">
+        {% for key, g in goals.items() %}
+        <a href="{{ url_for('select_goal', goal_key=key) }}" class="goal-card">
+          <div class="goal-icon">{{ g.icon|default('📚') }}</div>
+          <h3 class="goal-title">{{ g.label }}</h3>
+          <p class="goal-description">{{ g.description|default('Start your journey with comprehensive practice questions') }}</p>
+        </a>
+        {% endfor %}
       </div>
     </div>
   </section>
 
   <footer>
     <div class="container">
-      <p>© 2026 [YourBrand]. All rights reserved.</p>
+      <p>© 2026 MBBS QBank. All rights reserved.</p>
       <p style="margin-top:1rem;">
         <a href="#">Privacy Policy</a> • <a href="#">Terms of Use</a> • <a href="#">Contact Us</a>
       </p>
