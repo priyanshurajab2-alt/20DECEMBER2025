@@ -128,6 +128,7 @@ def get_session_db(test_id):
 
 
 @test_bp.route('/tests')
+@test_bp.route('/api/tests') 
 def list_tests():
     user_id = session.get('user_id', 1)
     goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs_prof', etc.
@@ -242,8 +243,9 @@ def list_tests():
     
     all_tests.sort(key=lambda t: t.get('created_at', ''), reverse=True)
     
-    return render_template('test/tests.html', tests=all_tests)
-
+     if request.headers.get('Accept') == 'application/json' or request.path.endswith('/api/tests'):
+        return jsonify(all_tests)  # JSON for Flutter
+    return render_template('test/tests.html', tests=all_tests)  # HTML for web
 
 @test_bp.route('/tests/<int:test_id>/questions')
 def view_test_questions(test_id):
