@@ -455,29 +455,7 @@ def remove_bookmark_from_db(user_id, question_id):
 # --------------------
 
 
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.get_json()
-    email = data['email'].strip().lower()
-    password = data['password']
-    
-    conn = get_user_db_connection()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-    conn.close()
-    
-    if user and check_password_hash(user['password'], password):
-        user_conn = get_user_db_connection()
-        user_conn.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (user['id'],))
-        user_conn.commit()
-        user_conn.close()
-        
-        return jsonify({
-            'success': True,
-            'user_id': user['id'],
-            'username': user['username'],
-            'user_type': user.get('user_type', 'student')
-        })
-    return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
 
 @app.route('/api/google-login', methods=['POST'])
 def api_google_login():
@@ -883,6 +861,46 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html')
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    if request.method == 'POST':
+        data = request.get_json()
+        email = data['email'].strip().lower()
+        password = data['password']
+
+        conn = get_user_db_connection()  # Always admin_users.db
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        conn.close()
+
+        if user and check_password_hash(user['password'], password):
+            # Update last login
+            user_conn = get_user_db_connection()
+            user_conn.execute(
+                "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+                (user['id'],)
+            )
+            user_conn.commit()
+            user_conn.close()
+            
+            # If user is admin, optionally return admin error
+            if user['user_type'] == 'admin':
+                return jsonify({
+                    'success': False, 
+                    'error': 'Admins must use admin login.'
+                }), 401
+
+            # Return user_type in response
+            return jsonify({
+                'success': True,
+                'user_id': user['id'],
+                'username': user['username'],
+                'user_type': user['user_type']
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+
 
 
 @app.route('/subscribe1', methods=['GET'])
@@ -1850,6 +1868,7 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
