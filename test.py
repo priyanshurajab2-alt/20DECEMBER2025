@@ -243,7 +243,7 @@ def list_tests():
     
     all_tests.sort(key=lambda t: t.get('created_at', ''), reverse=True)
     
-     if request.headers.get('Accept') == 'application/json' or request.path.endswith('/api/tests'):
+    if request.headers.get('Accept') == 'application/json' or request.path.endswith('/api/tests'):
         return jsonify(all_tests)  # JSON for Flutter
     return render_template('test/tests.html', tests=all_tests)  # HTML for web
 
@@ -715,6 +715,41 @@ def submit_test(test_id):
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
 
 
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
     
     
     
