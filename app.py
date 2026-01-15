@@ -1687,6 +1687,26 @@ def show_question(subject_name, topic_name, qid):
     )
 
 
+
+@app.route('/api/subjects', methods=['GET'])
+def api_subjects():
+    subjects = get_all_qbank_subjects()  # Your existing function
+    return jsonify({'success': True, 'subjects': subjects})
+
+@app.route('/api/questions/<subject>/<topic>', methods=['GET'])
+def api_questions(subject, topic):
+    conn = get_dynamic_subject_connection(subject)
+    questions = conn.execute('SELECT * FROM qbank WHERE LOWER(subject)=? AND topic=?', 
+                            (subject.lower(), topic)).fetchall()
+    return jsonify({'success': True, 'questions': [dict(q) for q in questions]})
+
+@app.route('/api/bookmarks/<int:user_id>', methods=['GET'])
+def api_bookmarks(user_id):
+    conn = get_user_db_connection()
+    bookmarks = conn.execute('SELECT * FROM user_bookmarks WHERE user_id=?', (user_id,)).fetchall()
+    return jsonify({'success': True, 'bookmarks': [dict(b) for b in bookmarks]})
+
+
 @app.route('/subscribe', methods=['POST'])
 def subscribe():
     if 'user_id' not in session:
