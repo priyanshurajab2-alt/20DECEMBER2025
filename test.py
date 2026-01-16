@@ -299,6 +299,28 @@ def view_test_questions(test_id):
     return render_template('test/test_questions.html', test=test, grouped_questions=grouped_questions)
 
 
+@test_bp.route('/api/tests/<int:test_id>/questions')
+def api_test_questions(test_id):
+    conn = get_db_connection_for_test(test_id)
+    if not conn:
+        return jsonify({"error": "Test not found"}), 404
+    
+    test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+    questions = conn.execute('SELECT * FROM test_questions WHERE test_id = ? ORDER BY id', (test_id,)).fetchall()
+    conn.close()
+    
+    return jsonify({
+        'test': dict(test) if test else None,
+        'questions': [dict(q) for q in questions]
+    })
+
+
+
+
+
+
+
+
 # -----------------------------
 # Single-question-per-page with independent AJAX marking and skip support
 # -----------------------------
@@ -333,6 +355,10 @@ def start_test(test_id):
     # Fallback if no db_file
     flash("No database specified!", "error")
     return redirect(url_for('test_bp.list_tests'))
+
+
+
+
 
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
@@ -434,6 +460,41 @@ def single_question(test_id, q_num):
         skipped_questions=skipped,
         duration_minutes=test['duration_minutes']
     )
+@test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>', methods=['GET'])
+def api_single_question(test_id, q_num):
+    """
+    FLUTTER API ENDPOINT - Matches your Flutter: singleQuestion(testId, qNum)
+    Returns JSON only - No session needed
+    """
+    # Direct DB lookup (Flutter doesn't use session)
+    conn = get_db_connection_for_test(test_id)
+    if not conn:
+        return jsonify({"error": "Test not found"}), 404
+    
+    try:
+        questions = conn.execute(
+            '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, 
+                      correct_answer, images
+               FROM test_questions WHERE test_id = ? ORDER BY id''',
+            (test_id,)
+        ).fetchall()
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+    finally:
+        conn.close()
+
+    if not test or not questions or q_num < 1 or q_num > len(questions):
+        return jsonify({"error": "Question not found"}), 404
+
+    question = questions[q_num - 1]
+    
+    # PERFECT FLUTTER JSON RESPONSE
+    return jsonify({
+        "test": dict(test),
+        "question": dict(question),
+        "q_num": q_num,
+        "total": len(questions),
+        "duration_minutes": test['duration_minutes']
+    })
 
 
 # AJAX toggle mark
@@ -738,6 +799,7 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
   
+    
     
     
     
