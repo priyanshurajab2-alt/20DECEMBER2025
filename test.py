@@ -460,13 +460,13 @@ def single_question(test_id, q_num):
         skipped_questions=skipped,
         duration_minutes=test['duration_minutes']
     )
+import base64  # ← ADD THIS at top of test.py if missing
+
 @test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>', methods=['GET'])
 def api_single_question(test_id, q_num):
     """
-    FLUTTER API ENDPOINT - Matches your Flutter: singleQuestion(testId, qNum)
-    Returns JSON only - No session needed
+    FLUTTER API ENDPOINT - Bytes serialization FIXED
     """
-    # Direct DB lookup (Flutter doesn't use session)
     conn = get_db_connection_for_test(test_id)
     if not conn:
         return jsonify({"error": "Test not found"}), 404
@@ -474,7 +474,7 @@ def api_single_question(test_id, q_num):
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, 
-                      correct_answer, images
+                      correct_answer, explanation, images
                FROM test_questions WHERE test_id = ? ORDER BY id''',
             (test_id,)
         ).fetchall()
@@ -487,10 +487,20 @@ def api_single_question(test_id, q_num):
 
     question = questions[q_num - 1]
     
-    # PERFECT FLUTTER JSON RESPONSE
+    # 🔥 SERIALIZATION HELPER - Converts bytes to base64
+    def make_json_safe(obj):
+        result = dict(obj)
+        for key, value in result.items():
+            if isinstance(value, bytes):
+                result[key] = base64.b64encode(value).decode('utf-8')
+            elif value is None:
+                result[key] = None
+        return result
+    
     return jsonify({
-        "test": dict(test),
-        "question": dict(question),
+        "success": True,
+        "test": make_json_safe(test),
+        "question": make_json_safe(question),
         "q_num": q_num,
         "total": len(questions),
         "duration_minutes": test['duration_minutes']
