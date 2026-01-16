@@ -248,9 +248,6 @@ def list_tests():
     return render_template('test/tests.html', tests=all_tests)  # HTML for web
 
 @test_bp.route('/tests/<int:test_id>/questions')
-@test_bp.route('/api/tests/<int:test_id>/questions')  # Flutter JSON ✅
-
-
 def view_test_questions(test_id):
     conn = get_db_connection_for_test(test_id)
     try:
@@ -275,12 +272,8 @@ def view_test_questions(test_id):
         grouped_questions[q['subject']].setdefault(q['topic'], [])
         grouped_questions[q['subject']][q['topic']].append(q)
 
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-            return jsonify({
-                'test': dict(test),
-                'questions': grouped_questions
-            })
     return render_template('test/test_questions.html', test=test, grouped_questions=grouped_questions)
+
 
 # -----------------------------
 # Single-question-per-page with independent AJAX marking and skip support
@@ -319,21 +312,10 @@ def start_test(test_id):
 
 
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])
-@test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>', methods=['GET', 'POST'])  #
-
-
 def single_question(test_id, q_num):
-
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-
-
-      conn = get_session_db(test_id) 
-    else:
-        conn = get_session_db(test_id)
-    
+    conn = get_session_db(test_id) 
     if not conn:
-        abort(404, "Test database not found")
-
+     abort(404)
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer,images
@@ -363,23 +345,6 @@ def single_question(test_id, q_num):
     answers = session[answer_key]
     marked = set(session[mark_key])
     skipped = set(session[skip_key])
-
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-     return jsonify({
-        'test': dict(test),
-        'question': dict(question),
-        'q_num': q_num,
-        'total': len(questions),
-        'selected_answer': answers.get(str(question['id']), None),
-        'marked_questions': list(marked),
-        'skipped_questions': list(skipped),
-        'duration_minutes': test['duration_minutes']
-    })
-
-
-
-
-
 
     if request.method == 'POST':
         selected_option = request.form.get('answer')
@@ -449,10 +414,6 @@ def single_question(test_id, q_num):
 
 # AJAX toggle mark
 @test_bp.route('/tests/<int:test_id>/question/<int:q_num>/toggle_mark', methods=['POST'])
-
-
-@test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>/toggle_mark', methods=['POST'])
-
 def toggle_mark_ajax(test_id, q_num):
     conn = get_db_connection_for_test(test_id)
     try:
@@ -483,9 +444,6 @@ def toggle_mark_ajax(test_id, q_num):
 
 
 @test_bp.route('/tests/<int:test_id>/review')
-@test_bp.route('/api/tests/<int:test_id>/review')  # 🔥 Flutter JSON
-
-
 def review_test(test_id):
     conn = get_session_db(test_id)
     try:
@@ -504,16 +462,6 @@ def review_test(test_id):
     marked = set(session.get(mark_key, []))
     skipped = set(session.get(skip_key, []))
 
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-     return jsonify({
-        'test': dict(test),
-        'questions': [dict(q) for q in questions],
-        'answers': answers,
-        'marked_questions': list(marked),
-        'skipped_questions': list(skipped),
-        'total_questions': len(questions)
-    })
-
     return render_template('test/review.html',
                            test=test,
                            questions=questions,
@@ -522,9 +470,6 @@ def review_test(test_id):
                            skipped=skipped)
 
 @test_bp.route('/tests/<int:test_id>/review-attempted')
-@test_bp.route('/tests/<int:test_id>/review-attempted')
-@test_bp.route('/api/tests/<int:test_id>/review-attempted')
-
 def review_attempted(test_id):
     db_file = request.args.get('db_file')
     if not db_file:
@@ -566,99 +511,6 @@ def review_attempted(test_id):
         
     finally:
         conn.close()
-
-        # 🔥 JSON API for Flutter
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-        return jsonify({
-            'test': dict(test),
-            'stats': {
-                'correct_count': len(correct_questions),
-                'incorrect_count': len(incorrect_questions),
-                'skipped_count': len(skipped_questions),
-                'unanswered_count': len(unanswered_questions),
-                'total_questions': len(all_questions)
-            },
-            'correct_questions': correct_questions,
-            'incorrect_questions': incorrect_questions,
-            'skipped_questions': skipped_questions,
-            'unanswered_questions': unanswered_questions
-        })
-
-
-
-
-    
-    return render_template('test/review_attempted.html',
-                           test=test,
-                           correct_count=len(correct_questions),
-                           incorrect_count=len(incorrect_questions),
-                           skipped_count=len(skipped_questions),  
-                           unanswered_count=len(unanswered_questions),
-                           correct_questions=correct_questions,
-                           incorrect_questions=incorrect_questions,
-                           skipped_questions=skipped_questions,   # 🔥 NEW
-
-                           unanswered_questions=unanswered_questions)
-
-
-def review_attempted(test_id):
-    db_file = request.args.get('db_file')
-    if not db_file:
-        flash("Database required for review")
-        return redirect(url_for('test_bp.list_tests'))
-    
-    print(f"DEBUG REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
-    full_db_path = f"/var/data/{db_file}"
-    conn = dynamic_db_handler.get_connection(full_db_path)
-    conn.row_factory = sqlite3.Row
-
-      
-    try:
-        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
-        print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
-        if not test:
-            flash(f"Test ID {test_id} not found!")
-            return redirect(url_for('test_bp.list_tests'))
-        
-        user_id = session.get('user_id', 1)
-        print(f"DEBUG: Looking for user_id={user_id}")
-        
-        all_questions = conn.execute('''
-            SELECT tq.*, ur.user_answer, ur.is_correct , ur.is_skipped 
-            FROM test_questions tq
-            LEFT JOIN user_responses ur ON tq.id = ur.question_id 
-                AND ur.test_id = ? AND ur.user_id = ?
-            WHERE tq.test_id = ?
-            ORDER BY tq.id
-        ''', (test_id, user_id, test_id)).fetchall()
-        print(f"DEBUG: Total questions found: {len(all_questions)}")
-        
-        correct_questions = [q for q in all_questions if q['is_correct'] == 1]
-        incorrect_questions = [q for q in all_questions if q['is_correct'] == 0 and q['is_skipped'] == 0]
-
-        skipped_questions = [q for q in all_questions if q['is_skipped'] == 1]
-        unanswered_questions = [q for q in all_questions if q['is_correct'] is None and q['is_skipped'] == 0]        
-        print(f"DEBUG: Correct={len(correct_questions)}, Wrong={len(incorrect_questions)}, Unanswered={len(unanswered_questions)}")
-        
-    finally:
-        conn.close()
-
-    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-        return jsonify({
-            'test': dict(test),
-            'stats': {
-                'correct_count': len(correct_questions),
-                'incorrect_count': len(incorrect_questions),
-                'skipped_count': len(skipped_questions),
-                'unanswered_count': len(unanswered_questions),
-                'total_questions': len(all_questions)
-            },
-            'correct_questions': correct_questions,
-            'incorrect_questions': incorrect_questions,
-            'skipped_questions': skipped_questions,
-            'unanswered_questions': unanswered_questions
-        })
-    
     
     return render_template('test/review_attempted.html',
                            test=test,
@@ -673,8 +525,6 @@ def review_attempted(test_id):
                            unanswered_questions=unanswered_questions)
 
 @test_bp.route('/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
-@test_bp.route('/api/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
-
 def review_question(test_id, filter_type, q_index):
     db_file = request.args.get('db_file')
     if not db_file:
@@ -735,18 +585,6 @@ def review_question(test_id, filter_type, q_index):
         
     finally:
         conn.close()
-
-        if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
-          return jsonify({
-            'test': dict(test),
-            'question': dict(question),
-            'q_index': q_index,
-            'total': len(questions),
-            'filter_type': filter_type,
-            'prev_q': prev_q,
-            'next_q': next_q
-        })
-
     
     return render_template('test/review_question.html',
                            test=test,
@@ -758,12 +596,7 @@ def review_question(test_id, filter_type, q_index):
                            next_q=next_q)
 
 @test_bp.route('/tests/<int:test_id>/submit', methods=['GET', 'POST'])
-@test_bp.route('/api/tests/<int:test_id>/submit', methods=['GET', 'POST'])
-
 def submit_test(test_id):
-
-
-
     print(f"DEBUG SUBMIT: test_id={test_id}")
     
     if request.method == 'POST' and request.form.get('review') == 'review':
@@ -819,6 +652,139 @@ def submit_test(test_id):
                 VALUES (?, ?, ?, ?, ?, 1, 1,?)
             ''', (test_id, user_id, q['id'], user_answer, is_correct,is_skipped ))
                     # Insert a durable completion marker (one row per user+test)
+
+            questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        print(f"DEBUG: Questions found: {len(questions)}")
+
+            # 🔥 ADD TABLE CREATION HERE:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                question_id INTEGER,
+                user_answer TEXT,
+                is_correct INTEGER,
+                test_started INTEGER DEFAULT 0,
+                test_submitted INTEGER DEFAULT 0,
+                is_skipped INTEGER DEFAULT 0,
+
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(test_id, user_id, question_id)
+            )
+        ''')
+        conn.commit()
+        print("DEBUG: user_responses table READY")
+        # 🔥 END ADD
+        try:
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
+                VALUES (?, ?, 0, 1)
+            ''', (test_id, user_id))
+            print("✅ FALLBACK marker added")
+        except:
+            print("⚠️ Fallback marker skipped")
+        
+        conn.commit()
+        print("DEBUG: Responses saved")
+
+            
+  
+
+        conn.commit()
+
+
+        print("DEBUG: Responses saved")
+        
+        total = len(questions)
+        correct = sum(1 for q in questions if answers.get(str(q['id'])) 
+                     and answers.get(str(q['id'])).upper() == q['correct_answer'].upper())
+        wrong = sum(1 for q in questions if answers.get(str(q['id'])) 
+                   and answers.get(str(q['id'])).upper() != q['correct_answer'].upper())
+        unanswered = total - correct - wrong
+        
+    finally:
+        conn.close()
+
+    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
+        session.pop(key, None)
+
+    return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
 
             questions = conn.execute(
             'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
