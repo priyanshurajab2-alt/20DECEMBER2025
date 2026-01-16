@@ -12,7 +12,6 @@ import os
 from mcq import register_mcq_routes
 from flask import Flask
 from test import test_bp
-app.register_blueprint(test_bp)  # ← MISSING!
 
 
 # Import the test blueprint (replace with your module name)
