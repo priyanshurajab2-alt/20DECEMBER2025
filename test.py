@@ -245,6 +245,32 @@ def list_tests():
     return render_template('test/tests.html', tests=all_tests)
 
 
+# ADD THIS NEW ROUTE before existing list_tests()
+@test_bp.route('/api/tests')
+def api_list_tests():
+    # Same logic as list_tests() but JSON only
+    user_id = session.get('user_id', 1)
+    goal_key = session.get('current_goal')
+    
+    dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
+    goal_test_dbs = [db for db in dynamic_db_handler.discovered_databases.get('test', []) 
+                    if not goal_key or goal_key.lower() in db['file'].lower()]
+    
+    all_tests = []
+    for db_info in goal_test_dbs:
+        conn = dynamic_db_handler.get_connection(db_info['file'])
+        conn.row_factory = sqlite3.Row
+        tests = conn.execute('SELECT * FROM test_info ORDER BY created_at DESC').fetchall()
+        for test in tests:
+            test_dict = dict(test)
+            test_dict['database_file'] = os.path.basename(db_info['file'])
+            all_tests.append(test_dict)
+        conn.close()
+    
+    return jsonify(all_tests)
+
+
+
 @test_bp.route('/tests/<int:test_id>/questions')
 def view_test_questions(test_id):
     conn = get_db_connection_for_test(test_id)
@@ -711,8 +737,8 @@ def submit_test(test_id):
         session.pop(key, None)
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
-
-
+  
+    
     
     
     
