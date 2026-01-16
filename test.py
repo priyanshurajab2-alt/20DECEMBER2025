@@ -566,58 +566,34 @@ def review_test(test_id):
 
 @test_bp.route('/api/tests/<int:test_id>/review', methods=['GET'])
 def api_test_review(test_id):
-    """FLUTTER REVIEW SCREEN - Returns ALL question statuses"""
+    """FLUTTER API - IDENTICAL TO review_test()"""
     conn = get_session_db(test_id)
-    if not conn:
-        return jsonify({"error": "Test session not found"}), 404
-    
     try:
-        # Get ALL questions for this test
-        questions = conn.execute(
-            'SELECT id FROM test_questions WHERE test_id = ? ORDER BY id', 
-            (test_id,)
-        ).fetchall()
-        
-        test = conn.execute('SELECT test_name, duration_minutes FROM test_info WHERE id = ?', 
-                          (test_id,)).fetchone()
-        
-        # Get CURRENT SESSION STATE (your existing logic)
-        answer_key = f'test_{test_id}_answers'
-        mark_key = f'test_{test_id}_marked'
-        skip_key = f'test_{test_id}_skipped'
-        
-        answers = session.get(answer_key, {})
-        marked = set(session.get(mark_key, []))
-        skipped = set(session.get(skip_key, []))
-        
-        # 🔥 BUILD PERFECT REVIEW DATA
-        review_data = []
-        for i, q in enumerate(questions):
-            q_id = str(q['id'])
-            status = 'not_visited'
-            
-            if q_id in answers:
-                status = 'answered'
-            if q_id in marked:
-                status = 'marked_review' if status == 'answered' else 'marked'
-            if q_id in skipped:
-                status = 'skipped'
-            
-            review_data.append({
-                'q_num': i + 1,
-                'question_id': q['id'],
-                'status': status
-            })
-        
-        return jsonify({
-            'success': True,
-            'test': dict(test),
-            'questions': review_data,
-            'time_left': session.get(f'test_{test_id}_time_left', 1800)
-        })
-        
+        questions = conn.execute('''SELECT id FROM test_questions WHERE test_id = ? ORDER BY id''', (test_id,)).fetchall()
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
     finally:
         conn.close()
+    
+    if not test or not questions:
+        return jsonify({"error": "Test not found"}), 404
+
+    answer_key = f'test_{test_id}_answers'
+    mark_key = f'test_{test_id}_marked'
+    skip_key = f'test_{test_id}_skipped'
+
+    answers = session.get(answer_key, {})
+    marked = set(session.get(mark_key, []))
+    skipped = set(session.get(skip_key, []))
+
+    # 🔥 EXACT SAME DATA AS HTML TEMPLATE - Just JSON
+    return jsonify({
+        'success': True,
+        'test': dict(test),
+        'questions': [dict(q) for q in questions],  # Same as template
+        'answers': answers,                         # Same as template  
+        'marked': list(marked),                     # Same as template
+        'skipped': list(skipped),                   # Same as template
+    })
 
 
 @test_bp.route('/tests/<int:test_id>/review-attempted')
@@ -674,6 +650,67 @@ def review_attempted(test_id):
                            skipped_questions=skipped_questions,   # 🔥 NEW
 
                            unanswered_questions=unanswered_questions)
+
+
+
+@test_bp.route('/api/tests/<int:test_id>/review-attempted', methods=['GET'])
+def api_review_attempted(test_id):
+    """FLUTTER API - IDENTICAL TO review_attempted()"""
+    db_file = request.args.get('db_file')
+    if not db_file:
+        return jsonify({"error": "Database file required"}), 400
+    
+    print(f"DEBUG API_REVIEW_ATTEMPTED: test_id={test_id}, db_file={db_file}")
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
+    conn.row_factory = sqlite3.Row
+    
+    try:
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        print(f"DEBUG: Test '{test['test_name'] if test else 'NOT FOUND'}'")
+        if not test:
+            return jsonify({"error": f"Test ID {test_id} not found!"}), 404
+        
+        user_id = session.get('user_id', 1)
+        print(f"DEBUG: Looking for user_id={user_id}")
+        
+        all_questions = conn.execute('''
+            SELECT tq.*, ur.user_answer, ur.is_correct, ur.is_skipped 
+            FROM test_questions tq
+            LEFT JOIN user_responses ur ON tq.id = ur.question_id 
+                AND ur.test_id = ? AND ur.user_id = ?
+            WHERE tq.test_id = ?
+            ORDER BY tq.id
+        ''', (test_id, user_id, test_id)).fetchall()
+        print(f"DEBUG: Total questions found: {len(all_questions)}")
+        
+        correct_questions = [dict(q) for q in all_questions if q['is_correct'] == 1]
+        incorrect_questions = [dict(q) for q in all_questions if q['is_correct'] == 0 and q['is_skipped'] == 0]
+        skipped_questions = [dict(q) for q in all_questions if q['is_skipped'] == 1]
+        unanswered_questions = [dict(q) for q in all_questions if q['is_correct'] is None and q['is_skipped'] == 0]        
+        print(f"DEBUG: Correct={len(correct_questions)}, Wrong={len(incorrect_questions)}, Unanswered={len(unanswered_questions)}")
+        
+    finally:
+        conn.close()
+    
+    return jsonify({
+        'success': True,
+        'test': dict(test),
+        'correct_count': len(correct_questions),
+        'incorrect_count': len(incorrect_questions),
+        'skipped_count': len(skipped_questions),
+        'unanswered_count': len(unanswered_questions),
+        'correct_questions': correct_questions,
+        'incorrect_questions': incorrect_questions,
+        'skipped_questions': skipped_questions,
+        'unanswered_questions': unanswered_questions
+    })
+
+
+
+
+
+
 
 @test_bp.route('/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>')
 def review_question(test_id, filter_type, q_index):
@@ -745,6 +782,82 @@ def review_question(test_id, filter_type, q_index):
                            filter_type=filter_type,
                            prev_q=prev_q,
                            next_q=next_q)
+
+@test_bp.route('/api/tests/<int:test_id>/review/<string:filter_type>/<int:q_index>', methods=['GET'])
+def api_review_question(test_id, filter_type, q_index):
+    """FLUTTER API - IDENTICAL TO review_question()"""
+    db_file = request.args.get('db_file')
+    if not db_file:
+        return jsonify({"error": "Database file required"}), 400
+    
+    print(f"DEBUG API: review_question - test_id={test_id}, filter={filter_type}, q_index={q_index}, db_file={db_file}")
+    full_db_path = f"/var/data/{db_file}"
+    conn = dynamic_db_handler.get_connection(full_db_path)
+    conn.row_factory = sqlite3.Row
+
+    try:
+        # 1. Verify test exists
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        if not test:
+            return jsonify({"error": f"Test ID {test_id} not found!"}), 404
+        
+        user_id = session.get('user_id', 1)
+        
+        # 2. Base LEFT JOIN query for ALL questions
+        base_query = '''
+            SELECT tq.*, ur.user_answer, ur.is_correct, ur.is_skipped, tq.explanation
+            FROM test_questions tq
+            LEFT JOIN user_responses ur ON tq.id = ur.question_id 
+                AND ur.test_id = ? AND ur.user_id = ?
+            WHERE tq.test_id = ?
+        '''
+        
+        # 3. Filter by filter_type
+        if filter_type == 'correct':
+            where_clause = ' AND ur.is_correct = 1'
+        elif filter_type == 'incorrect':
+            where_clause = ' AND ur.is_correct = 0'
+        elif filter_type == 'skipped':
+            where_clause = ' AND ur.is_skipped = 1'
+        elif filter_type == 'unanswered':  
+            where_clause = ' AND ur.is_correct IS NULL AND ur.is_skipped = 0'
+        elif filter_type == 'all':
+            where_clause = ''
+        else:
+            return jsonify({"error": "Invalid filter"}), 404
+
+        questions = conn.execute(base_query + where_clause, (test_id, user_id, test_id)).fetchall()
+        print(f"DEBUG: Filter '{filter_type}' returned {len(questions)} questions")
+        
+        if not questions or q_index < 1 or q_index > len(questions):
+            return jsonify({"error": "No questions found for this filter"}), 404
+
+        # 4. Current question + navigation
+        question = questions[q_index - 1]
+        prev_q = q_index - 1 if q_index > 1 else None
+        next_q = q_index + 1 if q_index < len(questions) else None
+        
+        print(f"DEBUG: Showing question {question['id']}: user_answer={question['user_answer']}, is_correct={question['is_correct']}")
+        
+    finally:
+        conn.close()
+    
+    return jsonify({
+        'success': True,
+        'test': dict(test),
+        'question': dict(question),
+        'q_index': q_index,
+        'total': len(questions),
+        'filter_type': filter_type,
+        'prev_q': prev_q,
+        'next_q': next_q
+    })
+
+
+
+
+
+
 
 @test_bp.route('/tests/<int:test_id>/submit', methods=['GET', 'POST'])
 def submit_test(test_id):
@@ -865,6 +978,285 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
   
+    
+@test_bp.route('/api/tests/<int:test_id>/submit', methods=['POST'])
+def api_submit_test(test_id):
+    """FLUTTER API - IDENTICAL TO submit_test()"""
+    print(f"DEBUG API_SUBMIT: test_id={test_id}")
+    
+    # Find CORRECT DB for this test_id
+    db_file = session.get(f'test_{test_id}_db_file')
+    if not db_file or not os.path.exists(db_file):
+        return jsonify({"error": "Test session expired!"}), 400
+
+    conn = dynamic_db_handler.get_connection(db_file)
+    conn.row_factory = sqlite3.Row
+    print(f"✅ SESSION DB: {os.path.basename(db_file)}")
+
+    try:
+        # DEBUG: Check test exists
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        print(f"DEBUG: Test found: {test['test_name'] if test else 'NOT FOUND'}")
+        if not test:
+            return jsonify({"error": f"Test ID {test_id} not found!"}), 404
+        
+        questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        print(f"DEBUG: Questions found: {len(questions)}")
+        
+        user_id = session.get('user_id', 1)
+        answer_key = f'test_{test_id}_answers'
+        answers = session.get(answer_key, {})
+        print(f"DEBUG: Session answers: {answers}")
+        
+        # 🔥 CREATE user_responses TABLE (moved to top)
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                test_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                question_id INTEGER,
+                user_answer TEXT,
+                is_correct INTEGER,
+                test_started INTEGER DEFAULT 0,
+                test_submitted INTEGER DEFAULT 0,
+                is_skipped INTEGER DEFAULT 0,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(test_id, user_id, question_id)
+            )
+        ''')
+        
+        # Save all answers
+        for q in questions:
+            qid = str(q['id'])
+            user_answer = answers.get(qid)
+            is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
+            is_skipped = 1 if not user_answer else 0
+
+            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}, skipped={is_skipped}")
+            
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted, is_skipped)
+                VALUES (?, ?, ?, ?, ?, 1, 1, ?)
+            ''', (test_id, user_id, q['id'], user_answer, is_correct, is_skipped))
+
+        # Fallback completion marker
+        try:
+            conn.execute('''
+                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
+                VALUES (?, ?, 0, 1)
+            ''', (test_id, user_id))
+            print("✅ FALLBACK marker added")
+        except:
+            print("⚠️ Fallback marker skipped")
+        
+        conn.commit()
+        print("DEBUG: Responses saved")
+
+        # Calculate scores
+        total = len(questions)
+        correct = sum(1 for q in questions if answers.get(str(q['id'])) 
+                     and answers.get(str(q['id'])).upper() == q['correct_answer'].upper())
+        wrong = sum(1 for q in questions if answers.get(str(q['id'])) 
+                   and answers.get(str(q['id'])).upper() != q['correct_answer'].upper())
+        unanswered = total - correct - wrong
+        
+    finally:
+        conn.close()
+
+    # Clear session
+    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
+        session.pop(key, None)
+
+    return jsonify({
+        'success': True,
+        'test': dict(test),
+        'scores': {
+            'total': total,
+            'correct': correct,
+            'wrong': wrong,
+            'unanswered': unanswered,
+            'percentage': round((correct / total * 100), 1) if total > 0 else 0
+        }
+    })
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
     
     
     
