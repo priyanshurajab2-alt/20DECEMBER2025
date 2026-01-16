@@ -248,26 +248,106 @@ def list_tests():
 # ADD THIS NEW ROUTE before existing list_tests()
 @test_bp.route('/api/tests')
 def api_list_tests():
-    # Same logic as list_tests() but JSON only
     user_id = session.get('user_id', 1)
-    goal_key = session.get('current_goal')
-    
+    goal_key = session.get('current_goal')  # 'neet_ug', 'mbbs_prof', etc.
+    user_sub_status = session.get('subscription_status', 'nonsubscribed')
+    user_sub_goal = session.get('subscription_goal')
+    print(f"DEBUG API: sub_status='{user_sub_status}', sub_goal='{user_sub_goal}'")
+
+    # Get ALL test databases
     dynamic_db_handler.discovered_databases = dynamic_db_handler.discover_databases()
-    goal_test_dbs = [db for db in dynamic_db_handler.discovered_databases.get('test', []) 
-                    if not goal_key or goal_key.lower() in db['file'].lower()]
+    all_test_dbs = dynamic_db_handler.discovered_databases.get('test', [])
     
+    # FILTER by current goal
+    goal_test_dbs = []
+    if goal_key:
+        for db_info in all_test_dbs:
+            if goal_key.lower() in db_info['file'].lower():
+                goal_test_dbs.append(db_info)
+    else:
+        goal_test_dbs = all_test_dbs  # No goal = show all
+    
+    print(f"DEBUG API: Goal='{goal_key}', Found {len(goal_test_dbs)} goal-specific test DBs")
+    
+    # 🔥 COUNT PREMIUM vs FREE TESTS
+    premium_count = sum(1 for db_info in goal_test_dbs for test_row in dynamic_db_handler.get_connection(db_info['file']).execute('SELECT is_locked FROM test_info').fetchall() if test_row['is_locked'] == 1)
+    free_count = len(goal_test_dbs) * 10 - premium_count  # Rough estimate
+    print(f"DEBUG API: {premium_count}🔒 PREMIUM + {free_count}🚀 FREE tests available")
+
     all_tests = []
-    for db_info in goal_test_dbs:
-        conn = dynamic_db_handler.get_connection(db_info['file'])
-        conn.row_factory = sqlite3.Row
-        tests = conn.execute('SELECT * FROM test_info ORDER BY created_at DESC').fetchall()
-        for test in tests:
-            test_dict = dict(test)
-            test_dict['database_file'] = os.path.basename(db_info['file'])
-            all_tests.append(test_dict)
-        conn.close()
     
-    return jsonify(all_tests)
+    # Query ONLY goal-specific databases
+    for db_info in goal_test_dbs:
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['file'])
+            conn.row_factory = sqlite3.Row
+            
+            tests = conn.execute('''
+                SELECT ti.id, ti.test_name, ti.description, ti.duration_minutes,
+                    ti.is_locked,              
+                    ti.start_time, ti.end_time, ti.created_at,
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM user_responses ur 
+                        WHERE ur.test_id = ti.id AND ur.user_id = ? AND ur.test_submitted = 1
+                    ) THEN 1 ELSE 0 END AS test_submitted
+                FROM test_info ti
+                ORDER BY ti.created_at DESC
+                ''', (user_id,)).fetchall()
+
+            # Add DB info
+            for test_row in tests:
+                test_dict = dict(test_row)
+                test_dict['database_file'] = os.path.basename(db_info['file'])
+                
+                if test_dict.get('is_locked', 0) == 1:
+                    # Locked test: only unlock if user subscribed for this goal
+                    # 🔥 FIXED LOCK LOGIC (COMPLETE):
+                    # 🔥 SIMPLE SESSION (No DB needed!)
+                    user_id = session.get('user_id', 1)
+                    user_name = session.get('user_name', session.get('username', f'User#{user_id}'))
+                    user_email = session.get('user_email', f'{user_id}@noemail.com')
+                    user_sub_status = session.get('subscription_status', 'nonsubscribed')
+                    user_sub_goal = session.get('subscription_goal')
+
+                    print(f"👤 API {user_id}:{user_name} ({user_email}) → sub='{user_sub_status}' goal='{user_sub_goal}'")
+
+                if test_dict.get('is_locked', 0) == 1:
+                    if user_sub_status == 'subscribed' and user_sub_goal == goal_key:
+                        test_dict['effective_locked'] = 0  # Unlock
+                    else:
+                        test_dict['effective_locked'] = 1  # Lock
+                else:
+                    test_dict['effective_locked'] = 0  # Free
+                
+                # ✅ Completion check (KEEP)
+                # 🔥 CHECK COMPLETION IN THIS DB:
+                user_id = session.get('user_id', 1)
+                try:
+                    check_conn = dynamic_db_handler.get_connection(db_info['file'])
+                    check_conn.row_factory = sqlite3.Row
+                    result = check_conn.execute('''
+                        SELECT 1 FROM user_responses 
+                        WHERE test_id=? AND user_id=? AND test_submitted=1
+                    ''', (test_dict['id'], user_id)).fetchone()
+                    test_dict['test_submitted'] = 1 if result else 0
+                    check_conn.close()
+                except:
+                    test_dict['test_submitted'] = 0
+                
+                all_tests.append(test_dict)
+
+            conn.close()
+        except Exception as e:
+            print(f"Error API in {db_info['file']}: {e}")
+    
+    all_tests.sort(key=lambda t: t.get('created_at', ''), reverse=True)
+    
+    return jsonify({
+        'success': True,
+        'tests': all_tests,
+        'premium_count': premium_count,
+        'free_count': free_count
+    })
 
 
 
@@ -1081,6 +1161,182 @@ def api_submit_test(test_id):
             'percentage': round((correct / total * 100), 1) if total > 0 else 0
         }
     })
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
     
     
     
