@@ -323,9 +323,17 @@ def start_test(test_id):
 
 
 def single_question(test_id, q_num):
-    conn = get_session_db(test_id) 
+
+    if request.headers.get('Accept') == 'application/json' or '/api/' in request.path:
+
+
+      conn = get_session_db(test_id) 
+    else:
+        conn = get_session_db(test_id)
+    
     if not conn:
-     abort(404)
+        abort(404, "Test database not found")
+
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, correct_answer,images
@@ -888,6 +896,7 @@ def submit_test(test_id):
 
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
+
 
 
     
