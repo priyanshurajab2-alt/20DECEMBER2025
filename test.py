@@ -564,6 +564,62 @@ def review_test(test_id):
                            marked=marked,
                            skipped=skipped)
 
+@test_bp.route('/api/tests/<int:test_id>/review', methods=['GET'])
+def api_test_review(test_id):
+    """FLUTTER REVIEW SCREEN - Returns ALL question statuses"""
+    conn = get_session_db(test_id)
+    if not conn:
+        return jsonify({"error": "Test session not found"}), 404
+    
+    try:
+        # Get ALL questions for this test
+        questions = conn.execute(
+            'SELECT id FROM test_questions WHERE test_id = ? ORDER BY id', 
+            (test_id,)
+        ).fetchall()
+        
+        test = conn.execute('SELECT test_name, duration_minutes FROM test_info WHERE id = ?', 
+                          (test_id,)).fetchone()
+        
+        # Get CURRENT SESSION STATE (your existing logic)
+        answer_key = f'test_{test_id}_answers'
+        mark_key = f'test_{test_id}_marked'
+        skip_key = f'test_{test_id}_skipped'
+        
+        answers = session.get(answer_key, {})
+        marked = set(session.get(mark_key, []))
+        skipped = set(session.get(skip_key, []))
+        
+        # 🔥 BUILD PERFECT REVIEW DATA
+        review_data = []
+        for i, q in enumerate(questions):
+            q_id = str(q['id'])
+            status = 'not_visited'
+            
+            if q_id in answers:
+                status = 'answered'
+            if q_id in marked:
+                status = 'marked_review' if status == 'answered' else 'marked'
+            if q_id in skipped:
+                status = 'skipped'
+            
+            review_data.append({
+                'q_num': i + 1,
+                'question_id': q['id'],
+                'status': status
+            })
+        
+        return jsonify({
+            'success': True,
+            'test': dict(test),
+            'questions': review_data,
+            'time_left': session.get(f'test_{test_id}_time_left', 1800)
+        })
+        
+    finally:
+        conn.close()
+
+
 @test_bp.route('/tests/<int:test_id>/review-attempted')
 def review_attempted(test_id):
     db_file = request.args.get('db_file')
@@ -809,6 +865,184 @@ def submit_test(test_id):
 
     return render_template('test/report.html', test=test, total=total, correct=correct, wrong=wrong, unanswered=unanswered)
   
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    
+
+    
     
     
     
