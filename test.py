@@ -547,7 +547,7 @@ def api_single_question(test_id, q_num):
     """
     FLUTTER API ENDPOINT - Bytes serialization FIXED
     """
-    conn = get_db_connection_for_test(test_id)
+    conn = get_session_db(test_id)
     if not conn:
         return jsonify({"error": "Test not found"}), 404
     
