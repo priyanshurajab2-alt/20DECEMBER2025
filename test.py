@@ -550,62 +550,108 @@ def single_question(test_id, q_num):
     )
 import base64  # ← ADD THIS at top of test.py if missing
 
+from flask import request, jsonify
+import os
+import sqlite3
+import base64
+
 @test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>', methods=['GET'])
 def api_single_question(test_id, q_num):
-    # 🔥 ADD THESE 2 LINES (imports already exist)
-    import sqlite3
-    import base64
-    
     db_file = request.args.get('db_file')
+    user_id = request.args.get('user_id')
+
+    # ---------- DB CONNECTION ----------
     if db_file:
         db_path = f"/var/data/{db_file}"
-        if os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row  # 🔥 FIX 1: Enable dict access
-        else:
+        if not os.path.exists(db_path):
             return jsonify({"error": f"Database not found: {db_file}"}), 404
-    
-    # FALLBACK: Session (web compatibility)
+
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
     else:
         conn = get_session_db(test_id)
         if not conn:
             return jsonify({"error": "No database specified"}), 400
-        conn.row_factory = sqlite3.Row  # 🔥 FIX 2: Same for session
-    
-    # 🔥 MOVE make_json_safe HERE (before queries)
-    def make_json_safe(obj):
-        result = dict(obj)
+        conn.row_factory = sqlite3.Row
+
+    # ---------- HELPER ----------
+    def make_json_safe(row):
+        if row is None:
+            return None
+        result = dict(row)
         for key, value in result.items():
             if isinstance(value, bytes):
-                result[key] = f"data:image/png;base64,{base64.b64encode(value).decode('utf-8')}"
+                # assume image blob
+                result[key] = (
+                    "data:image/png;base64,"
+                    + base64.b64encode(value).decode("utf-8")
+                )
             elif value is None:
                 result[key] = ""
         return result
-    
+
     try:
+        # ---------- LOAD ALL QUESTIONS FOR THIS TEST ----------
         questions = conn.execute(
-            '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, 
-                      correct_answer, explanation, images
-               FROM test_questions WHERE test_id = ? ORDER BY id''',
-            (test_id,)
+            """
+            SELECT id, subject, topic, question,
+                   option_a, option_b, option_c, option_d,
+                   correct_answer, explanation, images
+            FROM test_questions
+            WHERE test_id = ?
+            ORDER BY id
+            """,
+            (test_id,),
         ).fetchall()
-        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+
+        test = conn.execute(
+            "SELECT * FROM test_info WHERE id = ?",
+            (test_id,),
+        ).fetchone()
+
+        total_questions = len(questions)
+
+        if not test or not questions or q_num < 1 or q_num > total_questions:
+            return jsonify({"error": "Question not found"}), 404
+
+        # `q_num` is 1-based index
+        question = questions[q_num - 1]
+
+        # ---------- USER STATUS FOR THIS QUESTION ----------
+        user_status = None
+        if user_id:
+            # IMPORTANT: question_id here is the per-test sequence id (same as q_num index)
+            user_status = conn.execute(
+                """
+                SELECT selected_option, marked_for_review, visited
+                FROM question_status
+                WHERE test_id = ? AND question_id = ? AND user_id = ?
+                """,
+                (test_id, q_num, user_id),
+            ).fetchone()
+
+        user_answer = user_status["selected_option"] if user_status else None
+        is_marked = bool(user_status["marked_for_review"]) if user_status else False
+        is_visited = bool(user_status["visited"]) if user_status else False
+
     finally:
         conn.close()
 
-    if not test or not questions or q_num < 1 or q_num > len(questions):
-        return jsonify({"error": "Question not found"}), 404
-
-    question = questions[q_num - 1]
-    
-    return jsonify({
-        "success": True,
-        "test": make_json_safe(test),
-        "question": make_json_safe(question),
-        "q_num": q_num,
-        "total": len(questions),
-        "duration_minutes": test['duration_minutes']
-    })
+    # ---------- RESPONSE ----------
+    return jsonify(
+        {
+            "success": True,
+            "test": make_json_safe(test),
+            "question": make_json_safe(question),
+            "q_num": q_num,
+            "total": total_questions,
+            "duration_minutes": test["duration_minutes"],
+            # user-specific state
+            "user_answer": user_answer,
+            "is_marked": is_marked,
+            "is_visited": is_visited,
+        }
+    )
 
 
 # AJAX toggle mark
@@ -1379,30 +1425,7 @@ def api_submit_test(test_id):
     })
     
     
-    
-    
-    
 
-    
-    
-    
-
-    
-
-    
-    
-
-    
-    
-
-    
-    
-    
-    
-
-    
-    
-    
 
     
 
