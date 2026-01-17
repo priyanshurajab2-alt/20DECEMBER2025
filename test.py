@@ -1323,37 +1323,27 @@ def submit_test(test_id):
     
 @test_bp.route('/api/tests/<int:test_id>/submit', methods=['POST'])
 def api_submit_test(test_id):
-    """FLUTTER API - IDENTICAL TO submit_test()"""
-    print(f"DEBUG API_SUBMIT: test_id={test_id}")
+    import sqlite3
+    import os
     
-    # Find CORRECT DB for this test_id
-    db_file = session.get(f'test_{test_id}_db_file')
-    if not db_file or not os.path.exists(db_file):
-        return jsonify({"error": "Test session expired!"}), 400
-
-    conn = dynamic_db_handler.get_connection(db_file)
+    # 🔥 Get db_file and user_id from query params (like question-status)
+    db_file = request.args.get('db_file')
+    user_id = request.args.get('user_id')
+    
+    if not db_file:
+        return jsonify({"error": "db_file required"}), 400
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    db_path = f"/var/data/{db_file}"
+    if not os.path.exists(db_path):
+        return jsonify({"error": f"Database not found: {db_file}"}), 404
+    
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    print(f"✅ SESSION DB: {os.path.basename(db_file)}")
-
+    
     try:
-        # DEBUG: Check test exists
-        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
-        print(f"DEBUG: Test found: {test['test_name'] if test else 'NOT FOUND'}")
-        if not test:
-            return jsonify({"error": f"Test ID {test_id} not found!"}), 404
-        
-        questions = conn.execute(
-            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
-            (test_id,)
-        ).fetchall()
-        print(f"DEBUG: Questions found: {len(questions)}")
-        
-        user_id = session.get('user_id', 1)
-        answer_key = f'test_{test_id}_answers'
-        answers = session.get(answer_key, {})
-        print(f"DEBUG: Session answers: {answers}")
-        
-        # 🔥 CREATE user_responses TABLE (moved to top)
+        # 🔥 CREATE user_responses table (like question_status table creation)
         conn.execute('''
             CREATE TABLE IF NOT EXISTS user_responses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1370,48 +1360,71 @@ def api_submit_test(test_id):
             )
         ''')
         
-        # Save all answers
+        # 🔥 Get test info
+        test = conn.execute('SELECT * FROM test_info WHERE id = ?', (test_id,)).fetchone()
+        if not test:
+            return jsonify({"error": f"Test ID {test_id} not found!"}), 404
+        
+        # 🔥 Get ALL questions for this test
+        questions = conn.execute(
+            'SELECT id, correct_answer FROM test_questions WHERE test_id = ? ORDER BY id',
+            (test_id,)
+        ).fetchall()
+        
+        # 🔥 Get USER answers from question_status table (EXACTLY like your GET logic)
+        status_data = conn.execute("""
+            SELECT question_id, selected_option 
+            FROM question_status 
+            WHERE user_id = ? AND test_id = ? AND selected_option IS NOT NULL
+        """, (user_id, test_id)).fetchall()
+        
+        answers = {str(row['question_id']): row['selected_option'] for row in status_data}
+        print(f"DEBUG: Found {len(answers)} answers for user_id={user_id}")
+        
+        # 🔥 Calculate scores (same logic as your original)
+        total = len(questions)
+        correct = 0
+        wrong = 0
+        unanswered = 0
+        
         for q in questions:
             qid = str(q['id'])
             user_answer = answers.get(qid)
+            
+            if user_answer:
+                is_correct = 1 if user_answer.upper() == q['correct_answer'].upper() else 0
+                if is_correct:
+                    correct += 1
+                else:
+                    wrong += 1
+            else:
+                unanswered += 1
+        
+        # 🔥 Save final responses to user_responses (like your INSERT OR REPLACE)
+        for q in questions:
+            qid = q['id']
+            user_answer = answers.get(str(qid))
             is_correct = 1 if user_answer and user_answer.upper() == q['correct_answer'].upper() else 0
-            is_skipped = 1 if not user_answer else 0
-
-            print(f"DEBUG Q{q['id']}: user='{user_answer}', correct='{q['correct_answer']}', score={is_correct}, skipped={is_skipped}")
             
             conn.execute('''
-                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, user_answer, is_correct, test_started, test_submitted, is_skipped)
-                VALUES (?, ?, ?, ?, ?, 1, 1, ?)
-            ''', (test_id, user_id, q['id'], user_answer, is_correct, is_skipped))
-
-        # Fallback completion marker
-        try:
-            conn.execute('''
-                INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
-                VALUES (?, ?, 0, 1)
-            ''', (test_id, user_id))
-            print("✅ FALLBACK marker added")
-        except:
-            print("⚠️ Fallback marker skipped")
+                INSERT OR REPLACE INTO user_responses 
+                (test_id, user_id, question_id, user_answer, is_correct, test_submitted)
+                VALUES (?, ?, ?, ?, ?, 1)
+            ''', (test_id, user_id, qid, user_answer, is_correct))
+        
+        # 🔥 Mark test as submitted
+        conn.execute('''
+            INSERT OR REPLACE INTO user_responses (test_id, user_id, question_id, test_submitted)
+            VALUES (?, ?, 0, 1)
+        ''', (test_id, user_id))
         
         conn.commit()
-        print("DEBUG: Responses saved")
-
-        # Calculate scores
-        total = len(questions)
-        correct = sum(1 for q in questions if answers.get(str(q['id'])) 
-                     and answers.get(str(q['id'])).upper() == q['correct_answer'].upper())
-        wrong = sum(1 for q in questions if answers.get(str(q['id'])) 
-                   and answers.get(str(q['id'])).upper() != q['correct_answer'].upper())
-        unanswered = total - correct - wrong
+        print(f"✅ SUBMIT SUCCESS: {correct}/{total} correct for user_id={user_id}")
         
     finally:
         conn.close()
-
-    # Clear session
-    for key in [f'test_{test_id}_answers', f'test_{test_id}_marked', f'test_{test_id}_skipped']:
-        session.pop(key, None)
-
+    
+    # 🔥 EXACT SAME RESPONSE FORMAT as your question-status
     return jsonify({
         'success': True,
         'test': dict(test),
@@ -1423,8 +1436,8 @@ def api_submit_test(test_id):
             'percentage': round((correct / total * 100), 1) if total > 0 else 0
         }
     })
-    
-    
+
+ 
 
 
     
