@@ -545,12 +545,20 @@ import base64  # ← ADD THIS at top of test.py if missing
 @test_bp.route('/api/tests/<int:test_id>/question/<int:q_num>', methods=['GET'])
 def api_single_question(test_id, q_num):
     """
-    FLUTTER API ENDPOINT - Bytes serialization FIXED
-    """
-    conn = get_session_db(test_id)
-    if not conn:
-        return jsonify({"error": "Test not found"}), 404
+    # 🔥 PRIORITY 1: Use Flutter's db_file parameter (MOST RELIABLE)
+    db_file = request.args.get('db_file')
+    if db_file:
+        db_path = f"/var/data/{db_file}"
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+        else:
+            return jsonify({"error": f"Database not found: {db_file}"}), 404
     
+    # FALLBACK: Session (web compatibility)
+    else:
+        conn = get_session_db(test_id)
+        if not conn:
+            return jsonify({"error": "No database specified"}), 400
     try:
         questions = conn.execute(
             '''SELECT id, subject, topic, question, option_a, option_b, option_c, option_d, 
