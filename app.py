@@ -865,43 +865,29 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    if request.method == 'POST':
-        data = request.get_json()
-        email = data['email'].strip().lower()
-        password = data['password']
-
-        conn = get_user_db_connection()  # Always admin_users.db
-        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-        conn.close()
-
-        if user and check_password_hash(user['password'], password):
-            # Update last login
-            user_conn = get_user_db_connection()
-            user_conn.execute(
-                "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
-                (user['id'],)
-            )
-            user_conn.commit()
-            user_conn.close()
-            
-            # If user is admin, optionally return admin error
-            if user['user_type'] == 'admin':
-                return jsonify({
-                    'success': False, 
-                    'error': 'Admins must use admin login.'
-                }), 401
-
-            # Return user_type in response
-            return jsonify({
-                'success': True,
-                'user_id': user['id'],
-                'username': user['username'],
-                'user_type': user['user_type']
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+@app.route('/api/login', methods=['POST'])  # 🔥 NEW LINE
+def api_login():                           # 🔥 NEW LINE
+    data = request.get_json()              # 🔥 NEW LINE
+    email = data['email']                  # 🔥 NEW LINE
+    password = data['password']            # 🔥 NEW LINE
+    
+    conn = get_user_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    conn.close()
+    
+    if user and check_password_hash(user['password'], password):
+        create_user_session(user['id'], user['username'], user['user_type'])
+        
+        return jsonify({                    # 🔥 CHANGE: Return JSON
+            'success': True,
+            'user_id': session['user_id'],
+            'user_email': session.get('user_email'),
+            'subscription_status': session.get('subscription_status'),
+            'subscription_goal': session.get('subscription_goal'),
+            'username': session['username'],
+            'user_type': session['user_type']
+        })
+    return jsonify({'success': False}), 401
 
 
 
