@@ -711,6 +711,49 @@ def api_test_review(test_id):
     })
 
 
+
+@test_bp.route('/api/tests/<int:test_id>/mark', methods=['POST'])
+def api_mark_question(test_id):
+    data = request.json
+    qid = data['question_id']
+    db_file = data.get('db_file')
+    
+    mark_key = f'test_{test_id}_marked'
+    marks = session.get(mark_key, [])
+    if qid not in marks:
+        marks.append(qid)
+    session[mark_key] = marks
+    
+    return jsonify({'success': True, 'marked_questions': marks})
+
+@test_bp.route('/api/tests/<int:test_id>/skip', methods=['POST'])
+def api_skip_question(test_id):
+    data = request.json
+    qid = data['question_id']
+    db_file = data.get('db_file')
+    
+    skip_key = f'test_{test_id}_skipped'
+    skips = session.get(skip_key, [])
+    if qid not in skips:
+        skips.append(qid)
+    session[skip_key] = skips
+    
+    return jsonify({'success': True, 'skipped_questions': skips})
+
+@test_bp.route('/api/tests/<int:test_id>/answer', methods=['POST'])
+def api_answer_question(test_id):
+    data = request.json
+    qid = data['question_id']
+    answer = data['answer']
+    db_file = data.get('db_file')
+    
+    answer_key = f'test_{test_id}_answers'
+    answers = session.get(answer_key, {})
+    answers[str(qid)] = answer
+    session[answer_key] = answers
+    
+    return jsonify({'success': True, 'answers': answers})
+
 @test_bp.route('/tests/<int:test_id>/review-attempted')
 def review_attempted(test_id):
     db_file = request.args.get('db_file')
