@@ -90,6 +90,28 @@ class DynamicDatabaseHandler:
                     FOREIGN KEY (test_id) REFERENCES test_info (id)
                 )
             ''',
+            
+
+                  'question_status': '''
+                    CREATE TABLE IF NOT EXISTS question_status (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        test_id INTEGER NOT NULL,
+                        question_id INTEGER NOT NULL,
+                        selected_option TEXT,        -- 'a', 'b', 'c', 'd' or NULL
+                        visited BOOLEAN NOT NULL DEFAULT 0,
+                        marked_for_review INTEGER NOT NULL DEFAULT 0,  -- 0=no, 1=yes
+                        bookmarked INTEGER NOT NULL DEFAULT 0,         -- 0=no, 1=yes
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, test_id, question_id),
+                        FOREIGN KEY (test_id) REFERENCES test_info (id),
+                        FOREIGN KEY (question_id) REFERENCES test_questions (id)
+                    )
+                ''',
+
+
+            
+            
             'user_responses': '''
                 CREATE TABLE IF NOT EXISTS user_responses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
