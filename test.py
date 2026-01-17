@@ -34,7 +34,15 @@ def migrate_add_images_column():
 migrate_add_images_column()  # ← RUNS AUTOMATICALLY ONCE
 print("🎉 Migration COMPLETE")
 
-
+def get_session_db(test_id):
+    db_file = session.get(f'test_{test_id}_db_file')
+    if db_file:
+        db_path = f"/var/data/{db_file}"
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row
+            return conn
+    return None
 
 def get_test_db_connection():
     """Return connection to the tests database for the current goal, like MCQ does."""
