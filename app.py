@@ -1513,6 +1513,70 @@ def home():
 
     return render_template('home.html', grouped_subjects=grouped_subjects, current_goal=goal_key)
 
+@app.route('/api/home', methods=['GET'])
+def api_home():
+    goal_key = request.args.get('goal_key') or session.get('current_goal')
+    user_id = request.args.get('user_id') or session.get('user_id')
+    
+    if not goal_key:
+        return jsonify({"error": "goal_key required"}), 400
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    # Get subjects from your databases (EXACT same logic)
+    all_subjects = get_goal_qbank_subjects(goal_key)
+    
+    # Simple list WITH user completion tracking
+    subjects = []
+    for subject_name in sorted(all_subjects.keys()):
+        db_info = all_subjects[subject_name][0]
+        
+        # Get completion stats for this user (simple version)
+        completed = 0
+        total = 0
+        
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['database'])
+            total_result = conn.execute(
+                'SELECT COUNT(DISTINCT topic) as count FROM qbank WHERE LOWER(subject) = ?',
+                (subject_name.lower(),)
+            ).fetchone()
+            total = total_result['count'] if total_result else 0
+            
+            # User completion from centralized DB
+            user_conn = get_user_db_connection()
+            completed_result = user_conn.execute(
+                'SELECT COUNT(*) as count FROM user_topic_completion WHERE user_id = ? AND LOWER(subject) = ? AND source_database = ?',
+                (user_id, subject_name.lower(), db_info['database'])
+            ).fetchone()
+            completed = completed_result['count'] if completed_result else 0
+            
+            user_conn.close()
+            conn.close()
+        except:
+            pass  # Keep 0 if error
+        
+        subjects.append({
+            'name': subject_name.title(),
+            'database': db_info['database'],
+            'completed_topics': completed,
+            'total_topics': total,
+            'progress': round((completed/total*100), 1) if total > 0 else 0
+        })
+    
+    print(f"✅ API Home: {len(subjects)} subjects for user_id={user_id}, goal={goal_key}")
+    
+    return jsonify({
+        'success': True,
+        'user_id': user_id,
+        'goal': goal_key,
+        'subjects': subjects,
+        'total_subjects': len(subjects)
+    })
+
+
+
+
 
 @app.route('/subject/<subject_name>')
 def show_subject(subject_name):
