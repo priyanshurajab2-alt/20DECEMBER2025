@@ -27,30 +27,7 @@ import traceback
 
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key'  
-
-# 🔥 PASTE ROUTES HERE (BEFORE print statement)
-@app.route('/api/goals', methods=['GET'])
-def api_get_goals():
-    return jsonify({
-        "success": True,
-        "goals": list(GOALS.keys()),
-        "current_goal": session.get('current_goal', 'neet_ug')
-    })
-
-@app.route('/api/set_goal', methods=['POST'])
-def api_set_goal():
-    goal_key = request.json.get('goal_key') if request.is_json else request.form.get('goal')
-    if goal_key in GOALS:
-        session['current_goal'] = goal_key
-        session.permanent = True
-        return jsonify({
-            "success": True,
-            "goal": goal_key,
-            "goal_label": GOALS[goal_key]['label']
-        })
-    return jsonify({"error": f"Invalid goal: {goal_key}"}), 400
-  # Required for sessions and flashes
+app.secret_key = 'your-secret-key'  # Required for sessions and flashes
 
 
 # Razorpay (replace with YOUR keys from dashboard)
@@ -98,9 +75,6 @@ oauth.register(
 # --------------------
 # CENTRALIZED DATABASE CONNECTION FUNCTIONS
 # --------------------
-
-
-
 @app.route('/set_goal', methods=['POST'])
 def set_goal():
     goal_key = request.form.get('goal')
@@ -943,12 +917,37 @@ def remove_bookmark_from_db(user_id, question_id):
         conn.close()
 
 # --------------------
-
-
 # BOOKMARK ROUTES
-# --------------------
+# 
+@app.route('/api/goals', methods=['GET'])
+def api_get_goals():
+    """🔥 Dynamic goals from your GOALS dict or database"""
+    return jsonify({
+        "success": True,
+        "goals": list(GOALS.keys()),  # ['neet_ug', 'mbbs_prof', 'aiims', ...]
+        "current_goal": session.get('current_goal', 'neet_ug')
+    })
 
 
+@app.route('/api/set_goal', methods=['POST'])
+def api_set_goal():
+    goal_key = request.json.get('goal_key') if request.is_json else request.form.get('goal')
+    
+    if not goal_key:
+        return jsonify({"error": "goal_key required"}), 400
+    
+    # 🔥 VALIDATE (use your GOALS dict)
+    if goal_key in GOALS:
+        session['current_goal'] = goal_key
+        session.permanent = True  # 🔥 PERSIST ACROSS REQUESTS
+        print(f"✅ SESSION UPDATED: current_goal='{goal_key}' for session_id={request.sid}")
+        return jsonify({
+            "success": True,
+            "goal": goal_key,
+            "goal_label": GOALS[goal_key]['label']
+        })
+    else:
+        return jsonify({"error": f"Invalid goal: {goal_key}"}), 400
 
 
 
@@ -2006,6 +2005,96 @@ def home():
 
     return render_template('home.html', grouped_subjects=grouped_subjects, current_goal=goal_key)
 
+
+@app.route('/api/home', methods=['GET'])
+def api_home():
+    goal_key = request.args.get('goal_key') or session.get('current_goal')
+    user_id = request.args.get('user_id') or session.get('user_id')
+    
+    if not goal_key:
+        return jsonify({"error": "goal_key required"}), 400
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    # Get subjects from your databases (EXACT same logic)
+    all_subjects = get_goal_qbank_subjects(goal_key)
+    
+    # Simple list WITH user completion tracking
+    subjects = []
+    for subject_name in sorted(all_subjects.keys()):
+        db_info = all_subjects[subject_name][0]
+        
+        # Get completion stats for this user (simple version)
+        completed = 0
+        total = 0
+        
+        try:
+            conn = dynamic_db_handler.get_connection(db_info['database'])
+            total_result = conn.execute(
+                'SELECT COUNT(DISTINCT topic) as count FROM qbank WHERE LOWER(subject) = ?',
+                (subject_name.lower(),)
+            ).fetchone()
+            total = total_result['count'] if total_result else 0
+            
+            # User completion from centralized DB
+            user_conn = get_user_db_connection()
+            completed_result = user_conn.execute(
+                'SELECT COUNT(*) as count FROM user_topic_completion WHERE user_id = ? AND LOWER(subject) = ? AND source_database = ?',
+                (user_id, subject_name.lower(), db_info['database'])
+            ).fetchone()
+            completed = completed_result['count'] if completed_result else 0
+            
+            user_conn.close()
+            conn.close()
+        except:
+            pass  # Keep 0 if error
+        
+        subjects.append({
+            'name': subject_name.title(),
+            'database': db_info['database'],
+            'completed_topics': completed,
+            'total_topics': total,
+            'progress': round((completed/total*100), 1) if total > 0 else 0
+        })
+    
+    print(f"✅ API Home: {len(subjects)} subjects for user_id={user_id}, goal={goal_key}")
+    
+    return jsonify({
+        'success': True,
+        'user_id': user_id,
+        'goal': goal_key,
+        'subjects': subjects,
+        'total_subjects': len(subjects)
+    })
+
+
+
+@app.route('/api/home', methods=['GET'])
+def api_home():
+    goal_key = request.args.get('goal_key') or session.get('current_goal')
+    
+    if not goal_key:
+        return jsonify({"error": "goal_key required"}), 400
+    
+    # Get subjects from your databases (EXACT same logic)
+    all_subjects = get_goal_qbank_subjects(goal_key)
+    
+    # Simple list - no complex completion tracking
+    subjects = []
+    for subject_name in sorted(all_subjects.keys()):
+        subjects.append({
+            'name': subject_name.title(),
+            'database': all_subjects[subject_name][0]['database']
+        })
+    
+    print(f"✅ API Home: {len(subjects)} subjects for {goal_key}")
+    
+    return jsonify({
+        'success': True,
+        'goal': goal_key,
+        'subjects': subjects,
+        'total_subjects': len(subjects)
+    })
 
 
 
@@ -4202,6 +4291,389 @@ ensure_subscription_columns()
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
