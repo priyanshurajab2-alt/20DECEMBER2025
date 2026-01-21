@@ -918,26 +918,36 @@ def remove_bookmark_from_db(user_id, question_id):
 
 # --------------------
 # BOOKMARK ROUTES
-# --------------------
+# 
+@app.route('/api/goals', methods=['GET'])
+def api_get_goals():
+    """🔥 Dynamic goals from your GOALS dict or database"""
+    return jsonify({
+        "success": True,
+        "goals": list(GOALS.keys()),  # ['neet_ug', 'mbbs_prof', 'aiims', ...]
+        "current_goal": session.get('current_goal', 'neet_ug')
+    })
+
+
 @app.route('/api/set_goal', methods=['POST'])
 def api_set_goal():
-    # 🔥 Get goal from JSON (Flutter) OR form-data (existing)
     goal_key = request.json.get('goal_key') if request.is_json else request.form.get('goal')
     
     if not goal_key:
         return jsonify({"error": "goal_key required"}), 400
     
-    # 🔥 Validate against your GOALS dict (same logic)
+    # 🔥 VALIDATE (use your GOALS dict)
     if goal_key in GOALS:
         session['current_goal'] = goal_key
-        print(f"✅ API Goal set: {goal_key} ({GOALS[goal_key]['label']})")
+        session.permanent = True  # 🔥 PERSIST ACROSS REQUESTS
+        print(f"✅ SESSION UPDATED: current_goal='{goal_key}' for session_id={request.sid}")
         return jsonify({
-            "success": True, 
+            "success": True,
             "goal": goal_key,
             "goal_label": GOALS[goal_key]['label']
         })
     else:
-        return jsonify({"error": "Invalid goal selected"}), 400
+        return jsonify({"error": f"Invalid goal: {goal_key}"}), 400
 
 
 
